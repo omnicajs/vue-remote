@@ -1,0 +1,46 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "allowSyntheticDefaultImports": true,
+        "baseUrl": "./",
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "importHelpers": true,
+        "isolatedModules": true,
+        "jsx": "preserve",
+        "lib": [
+            "esnext",
+            "dom",
+            "dom.iterable",
+            "scripthost"
+        ],
+        "module": "esnext",
+        "moduleResolution": "node",
+        "paths": {
+            "@/*": ["./src/*"]
+        },
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "sourceMap": false,
+        "strict": true,
+        "target": "es2016",
+        "types": [
+            "@vue/compiler-core/dist/compiler-core",
+            "@vue/compiler-dom/dist/compiler-dom",
+            "@vue/compiler-sfc/dist/compiler-sfc",
+            "@vue/compiler-ssr/dist/compiler-ssr",
+            "@vue/reactivity/dist/reactivity",
+            "@vue/runtime-core/dist/runtime-core",
+            "@vue/runtime-dom/dist/runtime-dom",
+            "node"
+        ],
+        "useDefineForClassFields": true
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.vue",
+        "src/shims-*.d.ts",
+        "rollup.config.ts"
+    ]
+}
