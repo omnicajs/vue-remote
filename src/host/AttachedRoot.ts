@@ -1,4 +1,4 @@
-import type { PropType } from 'vue'
+import type { DefineComponent, PropType } from 'vue'
 import type { RemoteReceiver } from '@remote-ui/core'
 import type { Provider } from '../../types/host'
 
@@ -58,4 +58,7 @@ export default /*#__PURE__*/ defineComponent({
             })
         })
     },
-})
+}) as DefineComponent<{
+    provider: Provider;
+    receiver: RemoteReceiver;
+}>

@@ -7,7 +7,8 @@ import type {
 
 import type {
     RemoteReceiver,
-    RemoteReceiverAttachableChild as Attachable,
+    RemoteReceiverAttachable as Attachable,
+    RemoteReceiverAttachableChild as AttachableChild,
 } from '@remote-ui/core'
 
 import type {
@@ -57,9 +58,11 @@ const eventSafe = (props: Unknown | undefined): Unknown | undefined => {
     return result
 }
 
-const isComment = (node: Attachable) => 'type' in node && node.type === InternalNodeType.RemoteComment
-const isElement = (node: Attachable) => 'type' in node && _isElement(node.type)
+const isComment = (node: AttachableChild) => 'type' in node && node.type === InternalNodeType.RemoteComment
+const isElement = (node: AttachableChild) => 'type' in node && _isElement(node.type)
 const isSlot = (node: Attachable) => 'type' in node && node.type === InternalNodeType.RemoteSlot
+
+const isEmptyText = (node: Attachable) => 'text' in node && node.text.length === 0
 
 const toSlots = (children: Attached[], render: (attached: Attached) => VNode | string | null) => {
     const defaultSlot: Attached[] = []
@@ -67,11 +70,11 @@ const toSlots = (children: Attached[], render: (attached: Attached) => VNode | s
     children.forEach(attached => {
         const { node, props } = attached
 
-        if (node.value === null) {
+        if (node.value === null || isEmptyText(node.value)) {
             return
         }
 
-        if ('type' in node.value && isSlot(node.value)) {
+        if (isSlot(node.value)) {
             const slotName = (props.value as { name: string }).name
             slots[slotName] = [
                 ...(slots[slotName] ?? []),
@@ -115,7 +118,7 @@ const render = (attached: Attached, provider: Provider): VNode | string | null =
             : h(provider.get(type), { ...eventSafe(attached.props.value), key: node.value.id }, slots)
     }
 
-    return 'text' in node.value && node.value.text.length > 0
+    return 'text' in node.value && !isEmptyText(node.value)
         ? node.value.text
         : null
 }
@@ -125,7 +128,7 @@ export default /*#__PURE__*/ defineComponent({
 
     props: {
         root: {
-            type: Object as PropType<Attachable>,
+            type: Object as PropType<AttachableChild>,
             required: true,
         },
 
@@ -152,7 +155,7 @@ export default /*#__PURE__*/ defineComponent({
         return () => render(attached, props.provider)
     },
 }) as DefineComponent<{
-    root: Attachable;
+    root: AttachableChild;
     provider: Provider;
     receiver: RemoteReceiver;
 }>
