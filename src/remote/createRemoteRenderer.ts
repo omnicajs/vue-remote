@@ -32,7 +32,12 @@ const setElementText = <Root extends RemoteRoot = RemoteRoot>(
     element: Component<Root>,
     text: string
 ) => {
-    element.replaceChildren(text)
+    const [node] = element.children
+    if (node && isRemoteText(node)) {
+        node.update(text)
+    } else {
+        element.replaceChildren(text)
+    }
 }
 
 const setText = <Root extends RemoteRoot = RemoteRoot>(

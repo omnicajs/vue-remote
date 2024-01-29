@@ -9,7 +9,11 @@ node_modules: package.json yarn.lock ## installs dependencies
 .PHONY: test
 test:
 	$(TARGET_HEADER)
-	@docker-compose run --rm node yarn test
+ifdef cli
+	$(DOCKER) yarn test $(cli) --passWithNoTests
+else
+	$(DOCKER) yarn test
+endif
 
 .PHONY: help
 help: ## Calls recipes list

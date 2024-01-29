@@ -3,12 +3,19 @@ import type {
 } from '@remote-ui/core'
 
 import {
+  App,
   Component,
+  ComponentPublicInstance,
+  MethodOptions,
 } from '@vue/runtime-core'
 
 import type {
   SerializedMouseEvent,
 } from '../types/events'
+
+import type {
+  None,
+} from '../types/scaffolding'
 
 import {
   afterEach,
@@ -21,7 +28,12 @@ import {
 
 import AttachedRoot from '@/host/AttachedRoot'
 
-import { createApp, h } from 'vue'
+import {
+  createApp,
+  h,
+  nextTick,
+  ref,
+} from 'vue'
 
 import {
   createRemoteRoot,
@@ -51,18 +63,24 @@ describe('vue', () => {
     })
   }
 
-  const createRemoteApp = async (component: Component, receiver: RemoteReceiver) => {
+  const createRemoteApp = async <M extends MethodOptions>(
+    component: Component<None, None, None, None, M>,
+    receiver: RemoteReceiver
+  ): Promise<{
+    app: App,
+    vm: ComponentPublicInstance<None, None, None, None, M>,
+  }> => {
     const root = createRemoteRoot(receiver.receive)
-    const { createApp} = createRemoteRenderer(root)
+    const { createApp } = createRemoteRenderer(root)
 
     const app = createApp(component)
 
-    app.mount(root)
+    const vm = app.mount(root) as ComponentPublicInstance<None, None, None, None, M>
 
     await root.mount()
     await receiver.flush()
 
-    return app
+    return { app, vm }
   }
 
   beforeEach(() => {
@@ -92,6 +110,35 @@ describe('vue', () => {
     }, receiver)
 
     expect(el?.innerHTML).toBe(expected)
+  })
+
+  test('patches text when reactive data is changed', async () => {
+    const receiver = createRemoteReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{
+      increment (): void;
+    }>({
+      setup (_, { expose }) {
+        const count = ref(0)
+
+        expose({
+          increment: () => count.value++,
+        })
+
+        return () => h('span', count.value)
+      },
+    }, receiver)
+
+    expect(el?.innerHTML).toBe('<span>0</span>')
+
+    vm.increment()
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('<span>1</span>')
   })
 
   test('processes click events on elements', async () => {

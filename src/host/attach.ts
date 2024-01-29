@@ -39,7 +39,7 @@ export const shallowAttach = <T extends Attachable>(
     const receiverRef = shallowRef(receiver)
 
     const updateAttached = () => {
-        const newAttached = receiverRef.value.attached.get(attachableRef.value) as T | null
+        const newAttached = receiverRef.value.attached.get(attachableRef.value)
 
         if (isUpdated(newAttached, node.value)) {
             node.value = newAttached && { ...newAttached }
@@ -98,15 +98,14 @@ const attachChildren = <T extends Attachable>(
     node: ShallowRef<T | null>,
     attach: AttachFn<AttachableChild>
 ) => {
-    const children = computed(() => childrenOf(node.value))
-    const attached: ShallowRef<Attached[]> = shallowRef(children.value.map(attach))
+    const attached: ShallowRef<Attached[]> = shallowRef(childrenOf(node.value).map(attach))
 
     const update = () => attached.value.forEach(({ update }) => update())
     const release = () => attached.value.forEach(({ release }) => release())
 
-    const stopWatch = watch(children, () => {
+    const stopWatch = watch(node, () => {
         release()
-        attached.value = children.value.map(attach)
+        attached.value = childrenOf(node.value).map(attach)
         update()
     })
 
