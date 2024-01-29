@@ -41,6 +41,9 @@
         "src/**/*.tsx",
         "src/**/*.vue",
         "src/shims-*.d.ts",
+        "tests/**/*.ts",
+        "tests/**/*.vue",
+        "tests/shims-*.d.ts",
         "rollup.config.ts"
     ]
 }

@@ -3,7 +3,7 @@ import type { Provider } from '../../types/host'
 
 export default (components: {
   [key: string]: Component<NonNullable<unknown>>;
-}): Provider => {
+} = {}): Provider => {
   const registry = new Map(Object.entries(components))
 
   return {
