@@ -1,13 +1,22 @@
 TARGET_HEADER=@echo -e '===== \e[34m' $@ '\e[0m'
 
 .PHONY: node_modules
-node_modules: package.json yarn.lock ## installs dependencies
+node_modules: package.json yarn.lock ## Installs dependencies
 	$(TARGET_HEADER)
 	@docker-compose run --rm node yarn install --silent
 	@touch node_modules || true
 
-.PHONY: test
-test:
+.PHONY: release
+release: ## Bumps version and creates tag
+	$(TARGET_HEADER)
+ifdef as
+	$(DOCKER) yarn release:$(as)
+else
+	$(DOCKER) yarn release
+endif
+
+.PHONY: tests
+tests: ## Runs autotests
 	$(TARGET_HEADER)
 ifdef cli
 	$(DOCKER) yarn test $(cli) --passWithNoTests
