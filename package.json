@@ -1,7 +1,7 @@
 {
   "name": "@omnicajs/vue-remote",
   "description": "Proxy renderer for Vue.js based on @remote-ui",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
     "build": "rollup --config rollup.config.ts --configPlugin typescript",
     "test": "jest --config jest.config.ts",
