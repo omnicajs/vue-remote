@@ -44,8 +44,8 @@ import createProvider from '@/host/createProvider'
 
 import createRemoteRenderer from '@/remote/createRemoteRenderer'
 
-import VRemote from './fixtures/remote/VRemote.vue'
 import VButton from './fixtures/host/VButton.vue'
+import VRemote from './fixtures/remote/VRemote.vue'
 
 describe('vue', () => {
   let el: HTMLElement | null = null;
