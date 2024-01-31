@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.4](https://github.com/omnicajs/vue-remote/compare/v0.0.3...v0.0.4) (2024-01-31)
+
+
+### Fixes
+
+* Added missing main/module fields in package.json ([542c2d3](https://github.com/omnicajs/vue-remote/commit/542c2d30ce02f997902f102fa7fb5d1bf5ef8511))
+
 ### [0.0.3](https://github.com/omnicajs/vue-remote/compare/v0.0.2...v0.0.3) (2024-01-30)
 
 
