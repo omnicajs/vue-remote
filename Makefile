@@ -6,6 +6,11 @@ node_modules: package.json yarn.lock ## Installs dependencies
 	@docker-compose run --rm node yarn install --silent
 	@touch node_modules || true
 
+.PHONY: publish
+publish: ## Publishes the package
+	$(TARGET_HEADER)
+	$(DOCKER) yarn publish
+
 .PHONY: release
 release: ## Bumps version and creates tag
 	$(TARGET_HEADER)
