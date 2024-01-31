@@ -1,4 +1,5 @@
 TARGET_HEADER=@echo -e '===== \e[34m' $@ '\e[0m'
+YARN=docker-compose run --rm node yarn
 
 .PHONY: node_modules
 node_modules: package.json yarn.lock ## Installs dependencies
@@ -9,24 +10,24 @@ node_modules: package.json yarn.lock ## Installs dependencies
 .PHONY: publish
 publish: ## Publishes the package
 	$(TARGET_HEADER)
-	$(DOCKER) yarn publish
+	$(YARN) publish
 
 .PHONY: release
 release: ## Bumps version and creates tag
 	$(TARGET_HEADER)
 ifdef as
-	$(DOCKER) yarn release:$(as)
+	$(YARN) release:$(as)
 else
-	$(DOCKER) yarn release
+	$(YARN) release
 endif
 
 .PHONY: tests
 tests: ## Runs autotests
 	$(TARGET_HEADER)
 ifdef cli
-	$(DOCKER) yarn test $(cli) --passWithNoTests
+	$(YARN) test $(cli) --passWithNoTests
 else
-	$(DOCKER) yarn test
+	$(YARN) test
 endif
 
 .PHONY: help
