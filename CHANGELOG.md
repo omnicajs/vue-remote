@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.6](https://github.com/omnicajs/vue-remote/compare/v0.0.5...v0.0.6) (2024-01-31)
+
+
+### Fixes
+
+* Missing license field in package.json ([8fd5b76](https://github.com/omnicajs/vue-remote/commit/8fd5b76a4459ace5a25dabf6d6ad54405663d253))
+
 ### [0.0.5](https://github.com/omnicajs/vue-remote/compare/v0.0.4...v0.0.5) (2024-01-31)
 
 ### [0.0.4](https://github.com/omnicajs/vue-remote/compare/v0.0.3...v0.0.4) (2024-01-31)
