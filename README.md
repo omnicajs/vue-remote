@@ -26,6 +26,7 @@ Host application:
 ```typescript
 import type { PropType } from 'vue'
 import type { RemoteChannel } from '@remote-ui/core'
+import type { Endpoint } from '@remote-ui/rpc'
 
 import {
   defineComponent,
@@ -92,7 +93,7 @@ const provider = createProvider({
   }),
 })
 
-type Endpoint = {
+type EndpointApi = {
   // starts a remote application
   run (channel: RemoteChannel, api: {
     doSomethingOnHost (): void;
@@ -114,15 +115,17 @@ export default defineComponent({
   setup () {
     const iframe = ref<HTMLIFrameElement | null>(null)
     const receiver = createRemoteReceiver()
+    
+    let endpoint: Endpoint | null = null
 
     onMounted(() => {
-      endpoint = createEndpoint<Endpoint>(fromIframe(iframe.value as HTMLIFrameElement, {
+      endpoint = createEndpoint<EndpointApi>(fromIframe(iframe.value as HTMLIFrameElement, {
         terminate: false,
       }))
     })
 
     onBeforeUnmount(() => endpoint?.call.release())
-    
+
     return () => [
       h(AttachedRoot, {
         provider,
