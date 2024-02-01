@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.7](https://github.com/omnicajs/vue-remote/compare/v0.0.6...v0.0.7) (2024-02-01)
+
+
+### Fixes
+
+* Fixed props retaining ([ab31265](https://github.com/omnicajs/vue-remote/commit/ab3126586a2cd5fc2e6eec132c565dbec35dcbcd))
+
 ### [0.0.6](https://github.com/omnicajs/vue-remote/compare/v0.0.5...v0.0.6) (2024-01-31)
 
 
