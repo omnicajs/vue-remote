@@ -7,6 +7,11 @@ node_modules: package.json yarn.lock ## Installs dependencies
 	@docker-compose run --rm node yarn install --silent
 	@touch node_modules || true
 
+.PHONY: build
+build: ## Builds the package
+	$(TARGET_HEADER)
+	$(YARN) build
+
 .PHONY: publish
 publish: ## Publishes the package
 	$(TARGET_HEADER)
