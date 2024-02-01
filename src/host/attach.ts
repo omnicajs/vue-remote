@@ -24,6 +24,14 @@ import {
     release,
 } from '@remote-ui/core'
 
+const propsOf = (node: Attachable | null) => {
+    return node && 'props' in node ? node.props as Unknown | undefined : undefined
+}
+
+const childrenOf = (node: Attachable | null) => {
+    return node && 'children' in node ? node.children : []
+}
+
 const isUpdated = <T extends Attachable>(a: T | null, b: T | null): boolean => {
     return a?.id !== b?.id || a?.version !== b?.version
 }
@@ -61,10 +69,7 @@ export const shallowAttach = <T extends Attachable>(
         updateAttached()
     }
 
-    const props: Ref<Unknown | undefined> = computed(() => {
-        const a = node.value as T | null
-        return a && 'props' in a ? a.props as Unknown | undefined : undefined
-    })
+    const props: Ref<Unknown | undefined> = computed(() => propsOf(node.value))
 
     const stopWatchRefs = watch([receiverRef, attachableRef], update)
     const stopWatchProps = watch(props, (
@@ -73,6 +78,8 @@ export const shallowAttach = <T extends Attachable>(
     ) => {
         release(oldProps)
         retain(newProps)
+    }, {
+        immediate: true,
     })
 
     return {
@@ -86,10 +93,6 @@ export const shallowAttach = <T extends Attachable>(
             release(props.value)
         },
     }
-}
-
-const childrenOf = (parent: Attachable | null) => {
-    return parent && 'children' in parent ? parent.children : []
 }
 
 type AttachFn<A extends Attachable = Attachable> = (attachable: A) => Attached<A>
