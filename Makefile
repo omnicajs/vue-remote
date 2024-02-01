@@ -12,11 +12,6 @@ build: ## Builds the package
 	$(TARGET_HEADER)
 	$(YARN) build
 
-.PHONY: publish
-publish: ## Publishes the package
-	$(TARGET_HEADER)
-	$(YARN) publish
-
 .PHONY: release
 release: ## Bumps version and creates tag
 	$(TARGET_HEADER)

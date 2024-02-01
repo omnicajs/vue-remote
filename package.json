@@ -8,7 +8,6 @@
   "scripts": {
     "build": "rollup --config rollup.config.ts --configPlugin typescript",
     "test": "jest --config jest.config.ts",
-    "publish": "yarn release && yarn build && git push --follow-tags origin main && npm publish",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:patch": "standard-version --release-as patch",
