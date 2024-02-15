@@ -4,10 +4,13 @@
     </button>
 </template>
 
-<script lang="ts">
-export default {
-  name: 'VButton',
-  props: ['disabled'],
-  emits: ['click'],
-}
+<script lang="ts" setup>
+defineProps({
+  disabled: {
+    type: Boolean,
+    default: false,
+  }
+})
+
+defineEmits(['click'])
 </script>
