@@ -3,6 +3,7 @@ import type { Endpoint } from '@remote-ui/rpc'
 import type { Extension } from './extension'
 
 import {
+    createApp,
     defineComponent,
     h,
     onBeforeUnmount,
@@ -39,7 +40,7 @@ type EndpointApi = {
     release (): void;
 }
 
-export default defineComponent({
+const RemoteApp = defineComponent({
     name: 'RemoteApp',
 
     props: {
@@ -84,3 +85,8 @@ export default defineComponent({
         ]
     },
 })
+
+const app = createApp(RemoteApp, {
+    src: 'http://localhost:3000/remote/1'
+})
+app.mount('#host')
