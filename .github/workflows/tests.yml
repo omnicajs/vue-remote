@@ -1,29 +1,46 @@
 name: Tests
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push, pull_request]
 
 jobs:
   tests:
+    timeout-minutes: 60
     runs-on: ubuntu-latest
-
+    
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
-
+        node-version: [ 18.x, 20.x ]
+        
     steps:
     - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-
-    - name: Run tests
-      run: |
-        yarn install
-        yarn test
+        
+    - name: Install dependencies
+      run: yarn install
+      
+    - name: Install Playwright Browsers
+      run: npx playwright install chromium firefox --with-deps
+      
+    - name: Build e2e example app
+      run: yarn e2e:build
+      
+    - name: Run example app server
+      run: nohup yarn e2e:serve &
+      
+    - name: Run e2e tests
+      run: yarn e2e:test
+    
+    - name: Run jest tests
+      run: yarn test
+      
+    - uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-report
+        path: playwright-report/
+        retention-days: 30
