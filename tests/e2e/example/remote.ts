@@ -18,7 +18,7 @@ import {
     createRemoteRenderer,
     createRemoteRoot,
     defineRemoteComponent,
-} from '../../src/index'
+} from '../../../src/index'
 
 const createApp = async (channel: RemoteChannel, component: Component, props: any) => {
     const remoteRoot = createRemoteRoot(channel, {

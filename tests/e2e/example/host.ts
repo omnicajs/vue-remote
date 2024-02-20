@@ -21,10 +21,10 @@ import {
 import {
     AttachedRoot,
     createProvider,
-} from '../../src/index'
+} from '../../../src/index'
 
-import VButton from '../fixtures/host/VButton.vue'
-import VInput from '../fixtures/host/VInput.vue'
+import VButton from '../../integration/fixtures/host/VButton.vue'
+import VInput from '../../integration/fixtures/host/VInput.vue'
 
 const provider = createProvider({
     VButton,

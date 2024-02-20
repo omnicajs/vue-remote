@@ -7,10 +7,10 @@
   "module": "dist/index.mjs",
   "scripts": {
     "build": "rollup --config rollup.config.ts --configPlugin typescript",
-    "e2e:build": "yarn rollup --config ./tests/example/rollup.config.ts --configPlugin typescript",
-    "e2e:serve": "node ./tests/example/server.mjs",
+    "e2e:build": "yarn rollup --config ./tests/e2e/example/rollup.config.ts --configPlugin typescript",
+    "e2e:serve": "node ./tests/e2e/example/server.mjs",
     "e2e:test": "npx playwright test",
-    "test": "jest --config jest.config.ts",
+    "test": "jest --config jest.config.ts ./tests/integration",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:patch": "standard-version --release-as patch",
