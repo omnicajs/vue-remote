@@ -17,7 +17,7 @@ import type {
 export type RemoteComponentType<
   Type extends string = string,
   Props = Unknown,
-  AllowedChildren extends _RemoteComponentType<string, any> | boolean = true
+  AllowedChildren extends _RemoteComponentType<string, Unknown> | boolean = true
 > = _RemoteComponentType<Type, Props, AllowedChildren>
 
 export interface RemoteRootOptions<KnownComponentType extends RemoteComponentType> {

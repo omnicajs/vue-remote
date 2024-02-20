@@ -1,9 +1,9 @@
 <template>
-  <input
-      type="text"
-      :value="value"
-      @input="$emit('update:value', $event.target.value)"
-  />
+    <input
+        type="text"
+        :value="value"
+        @input="$emit('update:value', $event.target.value)"
+    />
 </template>
 
 <script lang="ts" setup>
