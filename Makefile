@@ -30,6 +30,14 @@ else
 	$(YARN) test
 endif
 
+.PHONY: e2e
+e2e: ## Runs e2e autotests
+	$(TARGET_HEADER)
+	docker-compose run --rm -e SERVER=server node yarn e2e:build
+	docker-compose run --rm -e SERVER=server e2e
+	docker-compose stop server
+	docker-compose rm server -f
+
 .PHONY: help
 help: ## Calls recipes list
 	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk '\
