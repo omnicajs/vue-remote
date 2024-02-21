@@ -15,3 +15,8 @@ tsconfig.json
 yarn.lock
 
 Makefile
+
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
