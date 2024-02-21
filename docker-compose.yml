@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   node:
-    image: node:18
+    image: node:20
     user: node
     volumes:
       - ./:/project
