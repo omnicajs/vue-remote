@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test'
+import { captureCoverage } from './utils'
 import process from 'process'
 
 const SERVER = process.env.SERVER || 'localhost'
+
+captureCoverage(test)
 
 test('clear button removes text from input', async ({ page }) => {
   await page.goto(`http://${SERVER}:3000/host/events`)
