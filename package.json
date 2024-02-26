@@ -11,6 +11,7 @@
     "e2e:serve": "node ./tests/e2e/example/server.mjs",
     "e2e:test": "npx playwright test",
     "test": "jest --config jest.config.ts ./tests/integration",
+    "test:coverage": "jest --config jest.config.ts --coverage --coverageReporters=lcov",
     "nyc:merge:playwright": "nyc merge .nyc_output ./coverage/playwright-final.json && rm -rf .nyc_output",
     "nyc:report": "nyc report --reporter=html --reporter=lcov --temp-dir ./coverage",
     "release": "standard-version",
