@@ -4,6 +4,7 @@ on: [push, pull_request]
 
 jobs:
   tests:
+    name: Playwright tests queue
     timeout-minutes: 60
     runs-on: ubuntu-latest
     
@@ -37,6 +38,19 @@ jobs:
     
     - name: Run jest tests
       run: yarn test
+      
+    - name: Merge coverage results
+      run: npm run nyc:merge:playwright
+      
+    - name: Generate coverage report
+      run: npm run nyc:report
+      
+    - name: Upload Playwright coverage report
+      uses: actions/upload-artifact@v3
+      with:
+        name: playwright-coverage
+        path: ./coverage/playwright-final.json
+        retention-days: 30
       
     - uses: actions/upload-artifact@v3
       if: always()
