@@ -4,8 +4,8 @@ const path = require('node:path');
 const inputFolderName = 'artifacts';
 const outputFolderName = 'coverage-artifacts';
 
-const inputPath = path.join(__dirname, '..', inputFolderName);
-const outputPath = path.join(__dirname, '..', outputFolderName);
+const inputPath = path.join(__dirname, '../..', inputFolderName);
+const outputPath = path.join(__dirname, '../..', outputFolderName);
 
 if (!fs.existsSync(outputPath)) {
     fs.mkdirSync(outputPath);
@@ -13,9 +13,9 @@ if (!fs.existsSync(outputPath)) {
 
 function fixAssetPath(oldPath, entryPath) {
     const key = oldPath.split('\\').join('/');
-    const parts = key.split('/src/');
+    const parts = key.split('/dist/');
     parts.shift();
-    return path.join(entryPath, 'src', ...parts);
+    return path.join(entryPath, 'dist', ...parts);
 }
 
 function processItems() {
@@ -43,7 +43,7 @@ function processItems() {
         const artifact = fs.readFileSync(artifactPath, 'utf8');
         const artifactJson = JSON.parse(artifact);
         const newArtifact = {};
-        const correctDirName = path.join(__dirname, '..');
+        const correctDirName = path.join(__dirname, '../..');
 
         Object.keys(artifactJson).forEach((key) => {
             const newKey = fixAssetPath(key, correctDirName);
