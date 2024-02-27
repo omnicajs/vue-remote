@@ -1,5 +1,9 @@
 <template>
-  <input type="text" :value="value" @input="$emit('input')">
+    <input
+        type="text"
+        :value="value"
+        @input="$emit('input')"
+    />
 </template>
 
 <script lang="ts" setup>
@@ -7,8 +11,8 @@ defineProps({
   value: {
     type: String,
     default: '',
-  }
+  },
 })
 
-defineEmits(['update:value'])
+defineEmits(['input', 'update:value'])
 </script>

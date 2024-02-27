@@ -3,32 +3,32 @@ import type { Endpoint } from '@remote-ui/rpc'
 import type { Extension } from './extension'
 
 import {
-    createApp,
-    defineComponent,
-    h,
-    onBeforeUnmount,
-    onMounted,
-    ref,
+  createApp,
+  defineComponent,
+  h,
+  onBeforeUnmount,
+  onMounted,
+  ref,
 } from 'vue'
 
 import { createRemoteReceiver } from '@remote-ui/core'
 
 import {
-    createEndpoint,
-    fromIframe,
+  createEndpoint,
+  fromIframe,
 } from '@remote-ui/rpc'
 
 import {
-    AttachedRoot,
-    createProvider,
+  AttachedRoot,
+  createProvider,
 } from '../../../src/index'
 
 import VButton from '../../integration/fixtures/host/VButton.vue'
 import VInput from '../../integration/fixtures/host/VInput.vue'
 
 const provider = createProvider({
-    VButton,
-    VInput,
+  VButton,
+  VInput,
 })
 
 type EndpointApi = {
@@ -41,52 +41,53 @@ type EndpointApi = {
 }
 
 const RemoteApp = defineComponent({
-    name: 'RemoteApp',
+  name: 'RemoteApp',
 
-    props: {
-        src: {
-            type: String,
-            required: true,
+  props: {
+    src: {
+      type: String,
+      required: true,
+    },
+  },
+
+  setup (props) {
+    const iframe = ref<HTMLIFrameElement | null>(null)
+    const receiver = createRemoteReceiver()
+
+    let endpoint: Endpoint<Extension> | null = null
+
+    onMounted(() => {
+      endpoint = createEndpoint<EndpointApi>(fromIframe(iframe.value as HTMLIFrameElement, {
+        terminate: false,
+      }))
+    })
+
+    onBeforeUnmount(() => endpoint?.call.release())
+
+    return () => [
+      h(AttachedRoot, {
+        provider,
+        receiver,
+      }),
+
+      h('iframe', {
+        ref: iframe,
+        src: props.src,
+        style: { display: 'none' } as CSSStyleDeclaration,
+        onLoad: () => {
+          endpoint?.call?.run(receiver.receive, {
+            doSomethingOnHost (text: string) {
+              // some logic to interact with host application
+              console.log(text)
+            },
+          })
         },
-    },
-
-    setup (props) {
-        const iframe = ref<HTMLIFrameElement | null>(null)
-        const receiver = createRemoteReceiver()
-
-        let endpoint: Endpoint<Extension> | null = null
-
-        onMounted(() => {
-            endpoint = createEndpoint<EndpointApi>(fromIframe(iframe.value as HTMLIFrameElement, {
-                terminate: false,
-            }))
-        })
-
-        onBeforeUnmount(() => endpoint?.call.release())
-
-        return () => [
-            h(AttachedRoot, {
-                provider,
-                receiver,
-            }),
-
-            h('iframe', {
-                ref: iframe,
-                src: props.src,
-                style: { display: 'none' } as CSSStyleDeclaration,
-                onLoad: () => {
-                    endpoint?.call?.run(receiver.receive, {
-                        doSomethingOnHost (text: string) {
-                            // some logic to interact with host application
-                        },
-                    })
-                },
-            }),
-        ]
-    },
+      }),
+    ]
+  },
 })
 
 const app = createApp(RemoteApp, {
-    src: 'http://localhost:3000/remote/1'
+  src: 'http://localhost:3000/remote/1',
 })
 app.mount('#host')

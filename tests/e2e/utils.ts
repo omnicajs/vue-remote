@@ -3,151 +3,151 @@
  * @see original https://github.com/lifeart/demo-ember-vite/blob/master/e2e/utils/index.ts
  */
 
-import v8toIstanbul from 'v8-to-istanbul';
-import crypto from 'node:crypto';
-import fs from 'node:fs';
-import path from 'node:path';
-import type { test, BrowserContext, Browser, Page } from '@playwright/test';
+import v8toIstanbul from 'v8-to-istanbul'
+import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import type { test, BrowserContext, Browser, Page } from '@playwright/test'
 
-const __dirname = path.dirname(module.filename);
-const ROOT = path.join(__dirname, '../..');
-const coverageResultsTempDir = path.join(ROOT, '.nyc_output');
+const __dirname = path.dirname(module.filename)
+const ROOT = path.join(__dirname, '../..')
+const coverageResultsTempDir = path.join(ROOT, '.nyc_output')
 
 function shouldCaptureCoverageForFile(url: string) {
-    return url.includes('/dist/');
+  return url.includes('/dist/')
 }
 function filePathFromUrl(url: string) {
-    return path.join(__dirname, 'example/dist', url.split('/').pop() as string);
+  return path.join(__dirname, 'example/dist', url.split('/').pop() as string)
 }
 
 function UUID() {
-    return crypto.randomBytes(16).toString('hex');
+  return crypto.randomBytes(16).toString('hex')
 }
 
 function saveCoverage(result: string) {
-    if (!fs.existsSync(coverageResultsTempDir)) {
-        fs.mkdirSync(coverageResultsTempDir);
-    }
-    fs.writeFileSync(
-        path.join(coverageResultsTempDir, `playwright-${UUID()}-coverage.json`),
-        result
-    );
+  if (!fs.existsSync(coverageResultsTempDir)) {
+    fs.mkdirSync(coverageResultsTempDir)
+  }
+  fs.writeFileSync(
+    path.join(coverageResultsTempDir, `playwright-${UUID()}-coverage.json`),
+    result
+  )
 }
 
-const knownContexts = new WeakSet();
-const knownBrowsers = new WeakSet();
-const knownPages = new WeakSet();
-const pagesWithEnabledCoverage = new WeakSet();
+const knownContexts = new WeakSet()
+const knownBrowsers = new WeakSet()
+const knownPages = new WeakSet()
+const pagesWithEnabledCoverage = new WeakSet()
 
 export function captureCoverage(
-    testConstructor: typeof test,
-    options = {
-        reportAnonymousScripts: false,
-        resetOnNavigation: false,
-    }
+  testConstructor: typeof test,
+  options = {
+    reportAnonymousScripts: false,
+    resetOnNavigation: false,
+  }
 ) {
     // console.log('process.env.CI', process.env.CI);
 
-    async function stopCodeCoverage(page: Page) {
-        if (!pagesWithEnabledCoverage.has(page)) return;
-        const jsCoverage = await page.coverage.stopJSCoverage();
-        for (const entry of jsCoverage) {
-            try {
-                const source = entry.source;
-                if (!source) {
-                    continue;
-                }
-                if (!shouldCaptureCoverageForFile(entry.url)) {
-                    continue;
-                }
-                const fName = filePathFromUrl(entry.url);
+  async function stopCodeCoverage(page: Page) {
+    if (!pagesWithEnabledCoverage.has(page)) return
+    const jsCoverage = await page.coverage.stopJSCoverage()
+    for (const entry of jsCoverage) {
+      try {
+        const source = entry.source
+        if (!source) {
+          continue
+        }
+        if (!shouldCaptureCoverageForFile(entry.url)) {
+          continue
+        }
+        const fName = filePathFromUrl(entry.url)
                 // here we need to replace sourceMappingURL with new one if needed
                 // const source = entry.source?.replace('sourceMappingURL=', `sourceMappingURL=${newRef}/`);
-                const converter = v8toIstanbul(fName, 0, {
-                    source,
-                });
-                await converter.load();
-                converter.applyCoverage(entry.functions);
-                const result = converter.toIstanbul();
-                const keys = Object.keys(result);
-                if (keys.length) {
-                    saveCoverage(JSON.stringify(result));
-                }
-            } catch (e) {
-                console.error(
-                    `Unable to process coverage for ${entry.scriptId}:${entry.url}`
-                );
-            }
+        const converter = v8toIstanbul(fName, 0, {
+          source,
+        })
+        await converter.load()
+        converter.applyCoverage(entry.functions)
+        const result = converter.toIstanbul()
+        const keys = Object.keys(result)
+        if (keys.length) {
+          saveCoverage(JSON.stringify(result))
         }
-
-        pagesWithEnabledCoverage.delete(page);
+      } catch (e) {
+        console.error(
+          `Unable to process coverage for ${entry.scriptId}:${entry.url}`
+        )
+      }
     }
-    async function startCodeCoverage(page: Page) {
-        if (pagesWithEnabledCoverage.has(page)) return;
-        pagesWithEnabledCoverage.add(page);
+
+    pagesWithEnabledCoverage.delete(page)
+  }
+  async function startCodeCoverage(page: Page) {
+    if (pagesWithEnabledCoverage.has(page)) return
+    pagesWithEnabledCoverage.add(page)
         // https://playwright.dev/docs/api/class-coverage#coverage-start-js-coverage-option-reset-on-navigation
         // we assume that we testing our SPA, and there is no needs to reset coverage between page navigations
-        await page.coverage.startJSCoverage(options);
-    }
+    await page.coverage.startJSCoverage(options)
+  }
 
-    function patchPageClose(page: Page) {
-        if (knownPages.has(page)) return page;
-        const originalClose = page.close.bind(page);
-        page.close = async function () {
-            await stopCodeCoverage(page);
-            return await originalClose();
-        };
-        knownPages.add(page);
-        return page;
+  function patchPageClose(page: Page) {
+    if (knownPages.has(page)) return page
+    const originalClose = page.close.bind(page)
+    page.close = async function () {
+      await stopCodeCoverage(page)
+      return await originalClose()
     }
+    knownPages.add(page)
+    return page
+  }
 
-    function patchNewPage(context: BrowserContext) {
-        if (knownContexts.has(context)) return;
-        const originalCreatePage = context.newPage.bind(context);
-        context.newPage = async function () {
-            const page = await originalCreatePage();
-            knownContexts.add(page.context());
-            page.on('load', async () => {
-                await startCodeCoverage(page);
-            });
-            return patchPageClose(page);
-        };
-        knownContexts.add(context);
+  function patchNewPage(context: BrowserContext) {
+    if (knownContexts.has(context)) return
+    const originalCreatePage = context.newPage.bind(context)
+    context.newPage = async function () {
+      const page = await originalCreatePage()
+      knownContexts.add(page.context())
+      page.on('load', async () => {
+        await startCodeCoverage(page)
+      })
+      return patchPageClose(page)
     }
+    knownContexts.add(context)
+  }
 
-    function patchNewContext(browser: Browser) {
-        if (knownBrowsers.has(browser)) return;
-        const originalCreateContext = browser.newContext.bind(browser);
-        browser.newContext = async function () {
-            const context = await originalCreateContext();
-            patchNewPage(context);
-            knownContexts.add(context);
-            return context;
-        };
-        knownBrowsers.add(browser);
+  function patchNewContext(browser: Browser) {
+    if (knownBrowsers.has(browser)) return
+    const originalCreateContext = browser.newContext.bind(browser)
+    browser.newContext = async function () {
+      const context = await originalCreateContext()
+      patchNewPage(context)
+      knownContexts.add(context)
+      return context
     }
+    knownBrowsers.add(browser)
+  }
 
-    testConstructor.beforeEach(async ({ browser }) => {
-        if (browser.browserType().name() !== 'chromium') {
+  testConstructor.beforeEach(async ({ browser }) => {
+    if (browser.browserType().name() !== 'chromium') {
             // Skipping coverage for non-chromium browsers
-            return;
-        }
+      return
+    }
         // check for browser type
-        patchNewContext(browser);
-        browser.contexts().forEach((context) => {
-            patchNewPage(context);
-            context.pages().forEach((page) => {
-                patchPageClose(page);
-            });
-        });
-    });
+    patchNewContext(browser)
+    browser.contexts().forEach((context) => {
+      patchNewPage(context)
+      context.pages().forEach((page) => {
+        patchPageClose(page)
+      })
+    })
+  })
 
-    testConstructor.afterEach(async ({ context, browser }) => {
-        if (browser.browserType().name() !== 'chromium') {
-            return;
-        }
-        for (const page of context.pages()) {
-            await stopCodeCoverage(page);
-        }
-    });
+  testConstructor.afterEach(async ({ context, browser }) => {
+    if (browser.browserType().name() !== 'chromium') {
+      return
+    }
+    for (const page of context.pages()) {
+      await stopCodeCoverage(page)
+    }
+  })
 }

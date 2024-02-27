@@ -47,8 +47,8 @@ export default [{
   },
   
   plugins: [
-    clean({ targets: path.join(__dirname, '/dist'), }),
-      ...plugins,
+    clean({ targets: path.join(__dirname, '/dist') }),
+    ...plugins,
   ],
 }, 
 {
