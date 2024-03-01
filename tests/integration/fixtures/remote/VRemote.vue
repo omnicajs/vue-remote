@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts">
-import VButton from './VButton'
+import { VButton }  from './components'
 
 export default {
   components: {
@@ -14,4 +14,4 @@ export default {
 
   emits: ['click'],
 }
-</script>
+</script>  
