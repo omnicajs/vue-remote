@@ -13,4 +13,6 @@ export default {
   transform: {
     '^.+\\.vue$': '@vue/vue3-jest',
   },
+  collectCoverageFrom: ['**/src/**'],
+  coverageDirectory: './coverage',
 } as Config.InitialOptions
