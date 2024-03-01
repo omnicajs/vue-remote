@@ -11,11 +11,11 @@ import {
 
 import type {
   SerializedMouseEvent,
-} from '../types/events'
+} from '../../types/events'
 
 import type {
   None,
-} from '../types/scaffolding'
+} from '../../types/scaffolding'
 
 import {
   afterEach,
