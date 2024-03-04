@@ -22,7 +22,7 @@ function shouldCaptureCoverageForFile(url: string) {
   return url.includes('/dist/')
 }
 function filePathFromUrl(url: string) {
-  return path.join(__dirname, 'example/dist', url.split('/').pop() as string)
+  return path.join(__dirname, 'cases/dist', url.split('/').pop() as string)
 }
 
 function UUID() {
