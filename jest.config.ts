@@ -11,6 +11,6 @@ export default {
     customExportConditions: ['node', 'node-addons'],
   },
   transform: {
-    '^.+\\.vue$': '@vue/vue3-jest'
+    '^.+\\.vue$': '@vue/vue3-jest',
   },
 } as Config.InitialOptions
