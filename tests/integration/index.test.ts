@@ -2,20 +2,20 @@ import type {
   RemoteReceiver,
 } from '@remote-ui/core'
 
-import {
+import type {
   App,
   Component,
   ComponentPublicInstance,
   MethodOptions,
-} from '@vue/runtime-core'
+} from 'vue'
 
 import type {
   SerializedMouseEvent,
-} from '../../types/events'
+} from '~types/events'
 
 import type {
   None,
-} from '../../types/scaffolding'
+} from '~types/scaffolding'
 
 import {
   afterEach,
@@ -48,7 +48,7 @@ import VButton from './fixtures/host/VButton.vue'
 import VRemote from './fixtures/remote/VRemote.vue'
 
 describe('vue', () => {
-  let el: HTMLElement | null = null;
+  let el: HTMLElement | null = null
 
   const createHostApp = (receiver: RemoteReceiver, components: {
     [key: string]: Component<NonNullable<unknown>>;
@@ -119,17 +119,17 @@ describe('vue', () => {
 
     const { vm } = await createRemoteApp<{
       increment (): void;
-    }>({
-      setup (_, { expose }) {
-        const count = ref(0)
+        }>({
+          setup (_, { expose }) {
+            const count = ref(0)
 
-        expose({
-          increment: () => count.value++,
-        })
+            expose({
+              increment: () => count.value++,
+            })
 
-        return () => h('span', count.value)
-      },
-    }, receiver)
+            return () => h('span', count.value)
+          },
+        }, receiver)
 
     expect(el?.innerHTML).toBe('<span>0</span>')
 

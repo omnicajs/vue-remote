@@ -9,7 +9,7 @@ defineProps({
   disabled: {
     type: Boolean,
     default: false,
-  }
+  },
 })
 
 defineEmits(['click'])

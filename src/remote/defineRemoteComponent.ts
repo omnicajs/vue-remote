@@ -1,11 +1,11 @@
 import type { EmitsOptions } from 'vue'
 
 import type {
-    DefineComponent,
-    RemoteComponentType,
-} from '../../types/remote'
+  DefineComponent,
+  RemoteComponentType,
+} from '~types/remote'
 
-import type { None } from '../../types/scaffolding'
+import type { None } from '~types/scaffolding'
 
 import { defineComponent, h } from 'vue'
 import { toRemoteSlots } from './slots'
@@ -19,17 +19,17 @@ const fallthroughEvents = <Emits extends EmitsOptions | undefined = undefined>(
   emits: Emits,
   emit: EventEmit
 ): Record<string, EventHandler> => {
-    if (emits === undefined) {
-        return {}
-    }
+  if (emits === undefined) {
+    return {}
+  }
 
-    const events: string[] = Array.isArray(emits) ? emits : Object.keys(emits)
+  const events: string[] = Array.isArray(emits) ? emits : Object.keys(emits)
 
-    return events.reduce((processed, event) => {
-        processed['on' + capitalize(event)] = (...args: unknown[]) => emit(event, ...args)
+  return events.reduce((processed, event) => {
+    processed['on' + capitalize(event)] = (...args: unknown[]) => emit(event, ...args)
 
-        return processed
-    }, {} as Record<string, EventHandler>)
+    return processed
+  }, {} as Record<string, EventHandler>)
 }
 
 export default <
@@ -47,13 +47,13 @@ export default <
   AllowedChildren,
   Emits
 > => defineComponent({
-    name: type,
-    inheritAttrs: false,
-    ...(emits ? { emits } : {}),
-    setup (_, { attrs, emit, slots: internalSlots }) {
-        return () => h(type, {
-            ...attrs,
-            ...fallthroughEvents(emits, emit),
-        }, toRemoteSlots(slots, internalSlots))
-    },
+  name: type,
+  inheritAttrs: false,
+  ...(emits ? { emits } : {}),
+  setup (_, { attrs, emit, slots: internalSlots }) {
+    return () => h(type, {
+      ...attrs,
+      ...fallthroughEvents(emits, emit),
+    }, toRemoteSlots(slots, internalSlots))
+  },
 })
