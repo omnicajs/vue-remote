@@ -18,7 +18,8 @@
         "moduleResolution": "node",
         "paths": {
             "@/*": ["./src/*"],
-            "~types/*": ["./types/*"]
+            "~types/*": ["./types/*"],
+            "~tests/*": ["./tests/*"]
         },
         "resolveJsonModule": true,
         "skipLibCheck": true,
