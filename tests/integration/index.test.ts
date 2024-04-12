@@ -11,6 +11,7 @@ import type {
 
 import type {
   SerializedMouseEvent,
+  SerializedFocusEvent,
 } from '~types/events'
 
 import type {
@@ -46,6 +47,9 @@ import createRemoteRenderer from '@/remote/createRemoteRenderer'
 
 import VButton from './fixtures/host/VButton.vue'
 import VRemote from './fixtures/remote/VRemote.vue'
+
+Object.defineProperty(window, 'DragEvent', { value: class DragEvent {} }) // fix ReferenceError: DragEvent is not defined
+Object.defineProperty(window, 'PointerEvent', { value: class PointerEvent {} }) // fix ReferenceError: PointerEvent is not defined
 
 describe('vue', () => {
   let el: HTMLElement | null = null
@@ -159,6 +163,11 @@ describe('vue', () => {
     expect(onClick).toHaveBeenCalledWith({
       type: 'click',
       bubbles: true,
+      cancelable: true,
+      composed: true,
+      defaultPrevented: false,
+      eventPhase: 2,
+      isTrusted: false,
       button: 0,
       clientX: 0,
       clientY: 0,
@@ -191,5 +200,36 @@ describe('vue', () => {
     await receiver.flush()
 
     expect(onClick).toHaveBeenCalledTimes(2)
+  })
+
+  test('processes FocusEvent on elements', async () => {
+    const receiver = createRemoteReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const onClick = jest.fn()
+
+    await createRemoteApp({
+      render: () => h('button', { onClick }, 'Click me'),
+    }, receiver)
+    
+    const eventDict = {
+      relatedTarget: null,
+    }
+    
+    el?.querySelector('button')?.dispatchEvent(new FocusEvent('click', eventDict))
+    await receiver.flush()
+
+    expect(onClick).toHaveBeenCalledTimes(1)
+    expect(onClick).toHaveBeenCalledWith({
+      type: 'click',
+      bubbles: false,
+      cancelable: false,
+      composed: false,
+      defaultPrevented: false,
+      eventPhase: 2,
+      isTrusted: false,
+      ...eventDict,
+    } as SerializedFocusEvent)
   })
 })
