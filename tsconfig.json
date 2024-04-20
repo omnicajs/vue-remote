@@ -23,7 +23,7 @@
         },
         "resolveJsonModule": true,
         "skipLibCheck": true,
-        "sourceMap": true,
+        "sourceMap": false,
         "strict": true,
         "target": "es2016",
         "types": [

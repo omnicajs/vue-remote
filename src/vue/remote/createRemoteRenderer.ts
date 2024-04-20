@@ -1,20 +1,22 @@
 import type {
+  RemoteComment,
   RemoteComponent,
   RemoteRoot,
   RemoteText,
-} from '@remote-ui/core'
+} from '@/dom/remote'
 
 import { createRenderer } from 'vue'
 
 import {
-  isRemoteText,
   isRemoteComponent,
-} from '@remote-ui/core'
-
-import { InternalNodeType } from '@/internals'
+  isRemoteText,
+} from '@/dom/remote'
 
 type Component<Root extends RemoteRoot = RemoteRoot> = RemoteComponent<string, Root>
-type Node<Root extends RemoteRoot = RemoteRoot> = Component<Root> | RemoteText<Root>
+type Node<Root extends RemoteRoot = RemoteRoot> =
+  | Component<Root>
+  | RemoteComment<Root>
+  | RemoteText<Root>
 
 const nextSibling = <Root extends RemoteRoot = RemoteRoot>(node: Node<Root>) => {
   const { parent } = node
@@ -36,7 +38,7 @@ const setElementText = <Root extends RemoteRoot = RemoteRoot>(
   if (node && isRemoteText(node)) {
     node.update(text)
   } else {
-    element.replaceChildren(text)
+    element.replace(text)
   }
 }
 
@@ -60,14 +62,14 @@ export default <Root extends RemoteRoot = RemoteRoot>(root: Root) => createRende
       throw new Error('Unexpected: Attempt to patch props on a root node')
     }
 
-    element.updateProps({ [key]: next })
+    element.updateProperties({ [key]: next })
   },
 
   insert: (child, parent, anchor) => parent.insertBefore(child, anchor),
   remove: node => node.parent?.removeChild(node),
   createElement: type => root.createComponent(type) as Component<Root> | Root,
   createText: text => root.createText(text) as Node<Root>,
-  createComment: text =>  root.createComponent(InternalNodeType.RemoteComment, { text }) as Component<Root>,
+  createComment: text => root.createComment(text) as Node<Root>,
   parentNode: node => node.parent,
   nextSibling,
   setText,

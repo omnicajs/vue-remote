@@ -1,7 +1,11 @@
 .github
 .idea
 /node_modules
-tests
+/blob-report/
+/playwright/.cache/
+/playwright-report/
+/tests
+/test-results/
 
 .commitlintrc.json
 .gitignore
@@ -15,8 +19,3 @@ tsconfig.json
 yarn.lock
 
 Makefile
-
-/test-results/
-/playwright-report/
-/blob-report/
-/playwright/.cache/

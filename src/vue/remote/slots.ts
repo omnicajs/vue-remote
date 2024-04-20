@@ -2,7 +2,7 @@ import type { Slots } from 'vue'
 
 import { h } from 'vue'
 
-import { InternalNodeType } from '@/internals'
+import { REMOTE_SLOT } from '@/vue/internals'
 
 export const toRemoteSlots = (named: string[], slots: Slots) => {
   const actual = named.filter(slotName => slotName in slots)
@@ -13,7 +13,7 @@ export const toRemoteSlots = (named: string[], slots: Slots) => {
   return {
     default: () => [
       ...('default' in slots ? [slots.default?.()] : []),
-      ...actual.map(slotName => h(InternalNodeType.RemoteSlot, { name: slotName }, {
+      ...actual.map(slotName => h(REMOTE_SLOT, { name: slotName }, {
         default: slots[slotName],
       })),
     ],

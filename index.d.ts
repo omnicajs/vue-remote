@@ -12,7 +12,7 @@ import type {
   RemoteRoot,
 } from '@remote-ui/core'
 
-import type { Provider } from './types/host'
+import type { Provider } from './types/vue/host'
 
 import type {
   RemoteComponentType,
@@ -20,11 +20,6 @@ import type {
 } from './types/remote'
 
 import type { None } from './types/scaffolding'
-
-export enum InternalNodeType {
-  RemoteComment = 'RemoteComment',
-  RemoteSlot = 'RemoteSlot',
-}
 
 export declare const AttachedRoot: DefineComponent<{
   provider: Provider;
