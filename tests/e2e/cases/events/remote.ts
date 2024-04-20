@@ -1,5 +1,5 @@
-import type { RemoteChannel } from '@remote-ui/core'
 import type { Component } from 'vue'
+import type { Channel } from '@/dom/remote'
 
 import {
   defineComponent,
@@ -18,11 +18,11 @@ import {
   createRemoteRenderer,
   createRemoteRoot,
   defineRemoteComponent,
-} from '@/index'
+} from '@/vue/remote'
 
 const createApp = async <
   Props extends Record<string, unknown> | undefined = undefined
->(channel: RemoteChannel, component: Component<Props>) => {
+>(channel: Channel, component: Component<Props>) => {
   const remoteRoot = createRemoteRoot(channel, {
     components: [
       'VButton',

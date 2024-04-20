@@ -1,6 +1,4 @@
-import type {
-  RemoteReceiver,
-} from '@remote-ui/core'
+import type { Receiver } from '@/dom/host'
 
 import type {
   App,
@@ -23,11 +21,11 @@ import {
   beforeEach,
   describe,
   expect,
-  jest,
   test,
-} from '@jest/globals'
+  vi,
+} from 'vitest'
 
-import AttachedRoot from '@/host/AttachedRoot'
+import { HostedTree } from '@/vue/host'
 
 import {
   createApp,
@@ -36,14 +34,10 @@ import {
   ref,
 } from 'vue'
 
-import {
-  createRemoteRoot,
-  createRemoteReceiver,
-} from '@remote-ui/core'
-
-import createProvider from '@/host/createProvider'
-
-import createRemoteRenderer from '@/remote/createRemoteRenderer'
+import { createReceiver } from '@/dom/host'
+import { createProvider } from '@/vue/host'
+import { createRemoteRoot } from '@/dom/remote'
+import { createRemoteRenderer } from '@/vue/remote'
 
 import VButton from './fixtures/host/VButton.vue'
 import VRemote from './fixtures/remote/VRemote.vue'
@@ -54,13 +48,13 @@ Object.defineProperty(window, 'PointerEvent', { value: class PointerEvent {} }) 
 describe('vue', () => {
   let el: HTMLElement | null = null
 
-  const createHostApp = (receiver: RemoteReceiver, components: {
+  const createHostApp = (receiver: Receiver, components: {
     [key: string]: Component<NonNullable<unknown>>;
   } = {}) => {
     const provider = createProvider(components)
 
     return createApp({
-      render: () => h(AttachedRoot, {
+      render: () => h(HostedTree, {
         provider,
         receiver,
       }),
@@ -69,7 +63,7 @@ describe('vue', () => {
 
   const createRemoteApp = async <M extends MethodOptions>(
     component: Component<None, None, None, None, M>,
-    receiver: RemoteReceiver
+    receiver: Receiver
   ): Promise<{
     app: App,
     vm: ComponentPublicInstance<None, None, None, None, M>,
@@ -105,7 +99,7 @@ describe('vue', () => {
     ${'div'}  | ${'<div>Test content</div>'}
     ${'span'} | ${'<span>Test content</span>'}
   `('renders <$tag> element', async ({ tag, expected }) => {
-    const receiver = createRemoteReceiver()
+    const receiver = createReceiver()
 
     createHostApp(receiver).mount(el as HTMLElement)
 
@@ -117,23 +111,21 @@ describe('vue', () => {
   })
 
   test('patches text when reactive data is changed', async () => {
-    const receiver = createRemoteReceiver()
+    const receiver = createReceiver()
 
     createHostApp(receiver).mount(el as HTMLElement)
 
-    const { vm } = await createRemoteApp<{
-      increment (): void;
-        }>({
-          setup (_, { expose }) {
-            const count = ref(0)
+    const { vm } = await createRemoteApp<{ increment (): void; }>({
+      setup (_, { expose }) {
+        const count = ref(0)
 
-            expose({
-              increment: () => count.value++,
-            })
+        expose({
+          increment: () => count.value++,
+        })
 
-            return () => h('span', count.value)
-          },
-        }, receiver)
+        return () => h('span', count.value)
+      },
+    }, receiver)
 
     expect(el?.innerHTML).toBe('<span>0</span>')
 
@@ -145,43 +137,43 @@ describe('vue', () => {
     expect(el?.innerHTML).toBe('<span>1</span>')
   })
 
-  test('processes click events on elements', async () => {
-    const receiver = createRemoteReceiver()
+  test('processes clicks on elements', async () => {
+    const receiver = createReceiver()
 
     createHostApp(receiver).mount(el as HTMLElement)
 
-    const onClick = jest.fn()
+    const onClick = vi.fn()
 
     await createRemoteApp({
       render: () => h('button', { onClick }, 'Click me'),
     }, receiver)
 
-    await el?.querySelector('button')?.click()
+    el?.querySelector('button')?.click()
     await receiver.flush()
 
     expect(onClick).toHaveBeenCalledTimes(1)
     expect(onClick).toHaveBeenCalledWith({
       type: 'click',
       bubbles: true,
+      button: 0,
       cancelable: true,
+      clientX: 0,
+      clientY: 0,
       composed: true,
       defaultPrevented: false,
       eventPhase: 2,
       isTrusted: false,
-      button: 0,
-      clientX: 0,
-      clientY: 0,
     } as SerializedMouseEvent)
   })
 
   test('processes events on components', async () => {
-    const receiver = createRemoteReceiver()
+    const receiver = createReceiver()
 
     createHostApp(receiver, {
       VButton,
     }).mount(el as HTMLElement)
 
-    const onClick = jest.fn()
+    const onClick = vi.fn()
 
     await createRemoteApp({
       render () {
@@ -191,33 +183,32 @@ describe('vue', () => {
 
     expect(el?.innerHTML).toBe('<button>Click me</button>')
 
-    await el?.querySelector('button')?.click()
+    el?.querySelector('button')?.click()
     await receiver.flush()
 
     expect(onClick).toHaveBeenCalledTimes(1)
 
-    await el?.querySelector('button')?.click()
+    el?.querySelector('button')?.click()
     await receiver.flush()
 
     expect(onClick).toHaveBeenCalledTimes(2)
   })
 
   test('processes FocusEvent on elements', async () => {
-    const receiver = createRemoteReceiver()
+    const receiver = createReceiver()
 
     createHostApp(receiver).mount(el as HTMLElement)
 
-    const onClick = jest.fn()
+    const onClick = vi.fn()
 
     await createRemoteApp({
       render: () => h('button', { onClick }, 'Click me'),
     }, receiver)
-    
-    const eventDict = {
+
+    el?.querySelector('button')?.dispatchEvent(new FocusEvent('click', {
       relatedTarget: null,
-    }
-    
-    el?.querySelector('button')?.dispatchEvent(new FocusEvent('click', eventDict))
+    }))
+
     await receiver.flush()
 
     expect(onClick).toHaveBeenCalledTimes(1)
@@ -229,7 +220,47 @@ describe('vue', () => {
       defaultPrevented: false,
       eventPhase: 2,
       isTrusted: false,
-      ...eventDict,
+      relatedTarget: null,
     } as SerializedFocusEvent)
+  })
+
+  test('calls methods of elements', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const onClick = vi.fn()
+
+    const { vm } = await createRemoteApp<{ click: () => Promise<void> }>({
+      setup (_, { expose }) {
+        const button = ref<{ invoke: (method: string) => Promise<void> } | null>(null)
+
+        expose({
+          click: () => button.value?.invoke('click') ?? Promise.resolve(),
+        })
+
+        return () => h('button', {
+          ref: button,
+          onClick,
+        }, 'Click me')
+      },
+    }, receiver)
+
+    await vm.click()
+    await receiver.flush()
+
+    expect(onClick).toHaveBeenCalledTimes(1)
+    expect(onClick).toHaveBeenCalledWith({
+      type: 'click',
+      bubbles: true,
+      button: 0,
+      cancelable: true,
+      clientX: 0,
+      clientY: 0,
+      composed: true,
+      defaultPrevented: false,
+      eventPhase: 2,
+      isTrusted: false,
+    } as SerializedMouseEvent)
   })
 })

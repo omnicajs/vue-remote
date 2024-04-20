@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import type { Provider } from '~types/host'
+import type { Provider } from '~types/vue/host'
 
 export default (components: {
   [key: string]: Component<NonNullable<unknown>>;

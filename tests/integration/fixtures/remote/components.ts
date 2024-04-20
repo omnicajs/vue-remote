@@ -1,4 +1,4 @@
-import defineRemoteComponent from '@/remote/defineRemoteComponent'
+import defineRemoteComponent from '@/vue/remote/defineRemoteComponent'
 
 const VButton = defineRemoteComponent('VButton', [
   'click',

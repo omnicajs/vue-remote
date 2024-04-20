@@ -1,6 +1,6 @@
 # `@omnicajs/vue-remote`
 
-Proxy renderer for [Vue.js v3](https://v3.vuejs.org) based on `@remote-ui/core` and designed to provide necessary tools
+Proxy renderer for [Vue.js v3](https://v3.vuejs.org) based on `@remote-ui/rpc` and designed to provide necessary tools
 for embedding remote applications into your main application.
 
 ## Installation
@@ -25,7 +25,7 @@ Host application:
 
 ```typescript
 import type { PropType } from 'vue'
-import type { RemoteChannel } from '@remote-ui/core'
+import type { Channel } from '@omnicejs/vue-remote/host'
 import type { Endpoint } from '@remote-ui/rpc'
 
 import {
@@ -36,17 +36,16 @@ import {
   ref,
 } from 'vue'
 
-import { createRemoteReceiver } from '@remote-ui/core'
-
 import {
   createEndpoint,
   fromIframe,
 } from '@remote-ui/rpc'
 
 import {
-  AttachedRoot,
+  HostedTree,
   createProvider,
-} from '@omnicajs/vue-remote'
+  createReceiver,
+} from '@omnicajs/vue-remote/host'
 
 const provider = createProvider({
   VButton: defineComponent({
@@ -127,11 +126,7 @@ export default defineComponent({
     onBeforeUnmount(() => endpoint?.call.release())
 
     return () => [
-      h(AttachedRoot, {
-        provider,
-        receiver,
-      }),
-
+      h(HostedTree, { provider, receiver }),
       h('iframe', {
         ref: iframe,
         src: props.src,
@@ -233,19 +228,19 @@ endpoint.expose({
 
 ### Host environment
 
-#### `AttachedRoot`
+#### `HostedTree`
 
 This component is used to interpret the instructions given from remote applications and transfer them into virtual dom,
 that is processed by vue on the host into a real DOM.
 
 Consumes:
-* provider &ndash; instance of [`Provider`](./types/host.d.ts); used to determine what component should be used to
+* provider &ndash; instance of [`Provider`](types/vue/host.d.ts); used to determine what component should be used to
   render, if the given instruction doesn't belong to native DOM elements or vue slots;
 * receiver &ndash; a channel to communicate with remote application.
 
 #### `createProvider(keyValuePairs)`
 
-Creates provider consumed by `AttachedRoot`. The only argument contains key-value pairs, where key is a component name
+Creates provider consumed by `HostedTree`. The only argument contains key-value pairs, where key is a component name
 and value is the component constructor. You can call `createProvider` without that argument, if your remote app doesn't
 rely on any host's component.
 
@@ -254,19 +249,13 @@ rely on any host's component.
 #### `createRemoteRenderer()`
 
 This method creates proxy renderer for Vue.js v3 that outputs instructions
-to a [`@remote-ui/core` `RemoteRoot`](https://github.com/Shopify/remote-ui/blob/main/packages/core#remoteroot) object.
+to a [`@omnicajs/vue-remote/remote` `RemoteRoot`](https://github.com/omnicajs/vue-remote/blob/main/src/dom/remote/tree.ts) object.
 The key feature of the library that provides a possibility to inject 3d-party logic through an isolated sandbox (iframe
 for example, but not limited to).
 
 To run a Vue application, you should call this method supplying a remote root (`RemoteRoot`).
 
 #### `createRemoteRoot()`
-
-This method wraps the original `createRemoteRoot` from `@remote-ui/core` and adds some additional, available by default
-"components" that are HTML/MathML/SVG elements tags. Also, it adds two special components:
-
-* `RemoteComment` is used to transfer comment nodes
-* `RemoteSlot` is used to transfer named slots' contents
 
 Creates a `RemoteRoot` object consumed by the `createRemoteRenderer()` method.
 
@@ -278,7 +267,7 @@ example above to define `VButton` & `VInput` components.
 Also, you can specify the remote component’s prop types, which become the prop types of the generated Vue component:
 
 ```typescript
-import defineRemoteComponent from '@/remote/defineRemoteComponent'
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
 
 export default defineRemoteComponent<'VButton', {
   appearance?: 'elevated' | 'outline' | 'text' | 'tonal'

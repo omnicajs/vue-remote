@@ -3,18 +3,26 @@
  * @see original https://github.com/lifeart/demo-ember-vite/blob/master/e2e/utils/index.ts
  */
 
-import v8toIstanbul from 'v8-to-istanbul'
+import type {
+  Browser,
+  BrowserContext,
+  Page,
+  test,
+} from '@playwright/test'
+
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import type { test, BrowserContext, Browser, Page } from '@playwright/test'
+import url from 'node:url'
+
+import v8toIstanbul from 'v8-to-istanbul'
 
 type Options = {
   reportAnonymousScripts: boolean;
   resetOnNavigation: boolean;
 }
 
-const __dirname = path.dirname(module.filename)
+const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 const ROOT = path.join(__dirname, '../..')
 const coverageResultsTempDir = path.join(ROOT, 'coverage')
 

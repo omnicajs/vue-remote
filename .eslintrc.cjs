@@ -119,7 +119,7 @@ module.exports = {
       '@typescript-eslint/no-var-requires': 'off',
     },
   }, {
-    files: ['*.test.ts'],
+    files: ['*.e2e.ts', '*.test.ts'],
     rules: {
       'max-lines-per-function': 'off',
     },

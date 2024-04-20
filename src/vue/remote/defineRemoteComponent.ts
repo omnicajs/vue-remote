@@ -1,11 +1,16 @@
-import type { EmitsOptions } from 'vue'
+import type {
+  Component,
+  EmitsOptions,
+  MethodOptions,
+} from 'vue'
+
+import type { SchemaType } from '@/dom/remote'
 
 import type {
-  DefineComponent,
-  RemoteComponentType,
-} from '~types/remote'
-
-import type { None } from '~types/scaffolding'
+  None,
+  Unknown,
+  UnknownMethods,
+} from '~types/scaffolding'
 
 import { defineComponent, h } from 'vue'
 import { toRemoteSlots } from './slots'
@@ -34,18 +39,21 @@ const fallthroughEvents = <Emits extends EmitsOptions | undefined = undefined>(
 
 export default <
   Type extends string,
-  Props = None,
-  AllowedChildren extends RemoteComponentType | boolean = true,
+  Props extends Unknown = None,
+  Methods extends UnknownMethods = None,
+  Children extends SchemaType<string> | boolean = true,
   Emits extends EmitsOptions | undefined = undefined
 > (
-  type: Type | RemoteComponentType<Type, Props, AllowedChildren>,
+  type: Type | SchemaType<Type, Props, Methods, Children>,
   emits: Emits | undefined = undefined,
   slots: string[] = []
-): DefineComponent<
-  Type,
+): Component<
+  Unknown,
   Props,
-  AllowedChildren,
-  Emits
+  None,
+  None,
+  MethodOptions,
+  Emits extends undefined ? None : Emits
 > => defineComponent({
   name: type,
   inheritAttrs: false,

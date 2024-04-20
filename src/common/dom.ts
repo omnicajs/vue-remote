@@ -37,20 +37,20 @@ const SVGTagList: string[] = [
   'symbol', 'text', 'textPath', 'title', 'tref', 'tspan', 'use', 'view', 'vkern',
 ]
 
-const isHTMLElement = (tag: string) => HTMLTagList.includes(tag)
-const isMathMLElement = (tag: string) => MathMLTagList.includes(tag)
-const isSVGElement = (tag: string) => SVGTagList.includes(tag)
+const isHTMLTag = (tag: string) => HTMLTagList.includes(tag)
+const isMathMLTag = (tag: string) => MathMLTagList.includes(tag)
+const isSVGTag = (tag: string) => SVGTagList.includes(tag)
 
-const isElement = (tag: string) => isHTMLElement(tag) ||
-  isMathMLElement(tag) ||
-  isSVGElement(tag)
+const isDOMTag = (tag: string) => isHTMLTag(tag) ||
+  isMathMLTag(tag) ||
+  isSVGTag(tag)
 
 export {
   HTMLTagList,
   MathMLTagList,
   SVGTagList,
-  isElement,
-  isHTMLElement,
-  isMathMLElement,
-  isSVGElement,
+  isDOMTag,
+  isHTMLTag,
+  isMathMLTag,
+  isSVGTag,
 }

@@ -1,4 +1,4 @@
-import type { RemoteChannel } from '@remote-ui/core'
+import type { Channel } from '@/dom/host'
 import type { Endpoint } from '@remote-ui/rpc'
 
 import {
@@ -10,28 +10,25 @@ import {
   ref,
 } from 'vue'
 
-import { createRemoteReceiver } from '@remote-ui/core'
-
 import {
   createEndpoint,
   fromIframe,
 } from '@remote-ui/rpc'
 
 import {
-  AttachedRoot,
+  HostedTree,
   createProvider,
-} from '@/index'
+  createReceiver,
+} from '@/vue/host'
 
 const provider = createProvider()
 
 type EndpointApi = {
-    run (channel: RemoteChannel): Promise<void>;
+    run (channel: Channel): Promise<void>;
     release (): void;
 }
 
 const RemoteApp = defineComponent({
-  name: 'RemoteApp',
-
   props: {
     src: {
       type: String,
@@ -41,7 +38,7 @@ const RemoteApp = defineComponent({
 
   setup (props) {
     const iframe = ref<HTMLIFrameElement | null>(null)
-    const receiver = createRemoteReceiver()
+    const receiver = createReceiver()
 
     let endpoint: Endpoint<EndpointApi> | null = null
 
@@ -54,11 +51,7 @@ const RemoteApp = defineComponent({
     onBeforeUnmount(() => endpoint?.call.release())
 
     return () => [
-      h(AttachedRoot, {
-        provider,
-        receiver,
-      }),
-
+      h(HostedTree, { provider, receiver }),
       h('iframe', {
         ref: iframe,
         src: props.src,

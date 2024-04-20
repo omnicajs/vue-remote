@@ -82,72 +82,62 @@ export const serializeKeyboardEvent = (event: KeyboardEvent): SerializedKeyboard
   }
 }
 
-export const serializeMouseEvent = (event: MouseEvent): SerializedMouseEvent => {
-  return {
-    ...serializeBaseEvent(event),
-    clientX: event.clientX,
-    clientY: event.clientY,
-    button: event.button,
-  }
-}
+export const serializeMouseEvent = (event: MouseEvent): SerializedMouseEvent => ({
+  ...serializeBaseEvent(event),
+  clientX: event.clientX,
+  clientY: event.clientY,
+  button: event.button,
+})
 
-export const serializePointerEvent = (event: PointerEvent): SerializedPointerEvent => {
-  return {
-    ...serializeMouseEvent(event),
-    height: event.height,
-    isPrimary: event.isPrimary,
-    pointerId: event.pointerId,
-    pointerType: event.pointerType,
-    pressure: event.pressure,
-    tangentialPressure: event.tangentialPressure,
-    tiltX: event.tiltX,
-    tiltY: event.tiltY,
-    twist: event.twist,
-    width: event.width,
-  }
-}
+export const serializePointerEvent = (event: PointerEvent): SerializedPointerEvent => ({
+  ...serializeMouseEvent(event),
+  height: event.height,
+  isPrimary: event.isPrimary,
+  pointerId: event.pointerId,
+  pointerType: event.pointerType,
+  pressure: event.pressure,
+  tangentialPressure: event.tangentialPressure,
+  tiltX: event.tiltX,
+  tiltY: event.tiltY,
+  twist: event.twist,
+  width: event.width,
+})
 
-export const serializeTouchList = (touchList: TouchList): SerializedTouch[] => {
-  return [...touchList].map(touch => ({
-    clientX: touch.clientX,   
-    clientY: touch.clientY,
-    force: touch.force,    
-    identifier: touch.identifier,
-    pageX: touch.pageX,
-    pageY: touch.pageY,
-    radiusX: touch.radiusX,
-    radiusY: touch.radiusY,
-    rotationAngle: touch.rotationAngle,
-    screenX: touch.screenX, 
-    screenY: touch.screenY,
-  }))
-}
+export const serializeTouchList = (touchList: TouchList): SerializedTouch[] => [...touchList].map(touch => ({
+  clientX: touch.clientX,
+  clientY: touch.clientY,
+  force: touch.force,
+  identifier: touch.identifier,
+  pageX: touch.pageX,
+  pageY: touch.pageY,
+  radiusX: touch.radiusX,
+  radiusY: touch.radiusY,
+  rotationAngle: touch.rotationAngle,
+  screenX: touch.screenX,
+  screenY: touch.screenY,
+}))
 
-export const serializeTouchEvent = (event: TouchEvent): SerializedTouchEvent => {
-  return {
-    ...serializeBaseEvent(event),
-    altKey: event.altKey,
-    changedTouches: serializeTouchList(event.changedTouches),
-    ctrlKey: event.ctrlKey,
-    metaKey: event.metaKey,
-    shiftKey: event.shiftKey,
-    targetTouches: serializeTouchList(event.targetTouches),
-    touches: serializeTouchList(event.touches),
-  }
-}
+export const serializeTouchEvent = (event: TouchEvent): SerializedTouchEvent => ({
+  ...serializeBaseEvent(event),
+  altKey: event.altKey,
+  changedTouches: serializeTouchList(event.changedTouches),
+  ctrlKey: event.ctrlKey,
+  metaKey: event.metaKey,
+  shiftKey: event.shiftKey,
+  targetTouches: serializeTouchList(event.targetTouches),
+  touches: serializeTouchList(event.touches),
+})
 
-export const serializeWheelEvent = (event: WheelEvent): SerializedWheelEvent => {
-  return {
-    ...serializeMouseEvent(event),
-    deltaMode: event.deltaMode,
-    deltaX: event.deltaX,
-    deltaY: event.deltaY,
-    deltaZ: event.deltaZ,
-    DOM_DELTA_PIXEL: event.DOM_DELTA_PIXEL,
-    DOM_DELTA_LINE: event.DOM_DELTA_LINE,
-    DOM_DELTA_PAGE: event.DOM_DELTA_PAGE,
-  }
-}
+export const serializeWheelEvent = (event: WheelEvent): SerializedWheelEvent => ({
+  ...serializeMouseEvent(event),
+  deltaMode: event.deltaMode,
+  deltaX: event.deltaX,
+  deltaY: event.deltaY,
+  deltaZ: event.deltaZ,
+  DOM_DELTA_PIXEL: event.DOM_DELTA_PIXEL,
+  DOM_DELTA_LINE: event.DOM_DELTA_LINE,
+  DOM_DELTA_PAGE: event.DOM_DELTA_PAGE,
+})
 
 export const serializeEvent = <E extends Event>(event: E): SerializedEventType<E> => {
   if (event instanceof InputEvent) {
