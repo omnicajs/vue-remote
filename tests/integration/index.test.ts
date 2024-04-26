@@ -31,6 +31,7 @@ import {
   createApp,
   h,
   nextTick,
+  shallowRef,
   ref,
 } from 'vue'
 
@@ -54,10 +55,16 @@ describe('vue', () => {
     const provider = createProvider(components)
 
     return createApp({
-      render: () => h(HostedTree, {
-        provider,
-        receiver,
-      }),
+      setup (_, { expose }) {
+        const _receiver = shallowRef(receiver)
+        expose({
+          setReceiver: (receiver: Receiver) => _receiver.value = receiver,
+        })
+        return () => h(HostedTree, {
+          provider,
+          receiver: _receiver.value,
+        })
+      },
     })
   }
 
@@ -262,5 +269,38 @@ describe('vue', () => {
       eventPhase: 2,
       isTrusted: false,
     } as SerializedMouseEvent)
+  })
+
+  test('can reuse existing HostingTree if receiver was replaced', async () => {
+    const receiver1 = createReceiver()
+    const receiver2 = createReceiver()
+
+    const host1 = createHostApp(receiver1)
+    const host2 = createHostApp(receiver2)
+
+    const vm = host1.mount(el as HTMLElement) as ComponentPublicInstance<None, None, None, None, {
+      setReceiver (receiver: Receiver): void;
+    }>
+
+    host2.mount(document.createElement('div'))
+
+    await createRemoteApp({
+      render: () => h('div', 'HTMLDivElement'),
+    }, receiver1)
+
+    await createRemoteApp({
+      render: () => h('span', 'HTMLSpanElement'),
+    }, receiver2)
+
+    await receiver1.flush()
+    await receiver2.flush()
+
+    expect(el?.innerHTML).toBe('<div>HTMLDivElement</div>')
+
+    vm.setReceiver(receiver2)
+
+    await nextTick()
+
+    expect(el?.innerHTML).toBe('<span>HTMLSpanElement</span>')
   })
 })
