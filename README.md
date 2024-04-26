@@ -1,5 +1,9 @@
 # `@omnicajs/vue-remote`
 
+[![codecov](https://codecov.io/gh/omnicajs/vue-remote/branch/main/graph/badge.svg)](https://codecov.io/gh/omnicajs/vue-remote)
+[![Tests Status](https://github.com/omnicajs/vue-remote/actions/workflows/tests.yml/badge.svg)](https://github.com/omnicajs/vue-remote/actions)
+[![npm version](https://badge.fury.io/js/%40omnicajs%2Fvue-remote.svg)](https://www.npmjs.com/package/@omnicajs/vue-remoteomnicajs/vue-remote)
+
 Proxy renderer for [Vue.js v3](https://v3.vuejs.org) based on `@remote-ui/rpc` and designed to provide necessary tools
 for embedding remote applications into your main application.
 
