@@ -11,6 +11,7 @@ export type {
   RemoteRoot,
   RemoteRootOptions,
   RemoteText,
+  SupportedBy,
 } from '@/dom/remote'
 
 export { default as createRemoteRenderer } from '@/vue/remote/createRemoteRenderer'

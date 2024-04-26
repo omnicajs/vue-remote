@@ -1,81 +1,37 @@
-import type { Component } from 'vue'
-import type { Channel } from '@/dom/remote'
-
 import {
   defineComponent,
   h,
   ref,
 } from 'vue'
 
-import {
-  createEndpoint,
-  fromInsideIframe,
-  release,
-  retain,
-} from '@remote-ui/rpc'
+import { defineRemoteComponent } from '@/vue/remote'
 
-import {
-  createRemoteRenderer,
-  createRemoteRoot,
-  defineRemoteComponent,
-} from '@/vue/remote'
+import { keysOf } from '@/common/scaffolding'
 
-const createApp = async <
-  Props extends Record<string, unknown> | undefined = undefined
->(channel: Channel, component: Component<Props>) => {
-  const remoteRoot = createRemoteRoot(channel, {
-    components: [
-      'VButton',
-      'VInput',
-    ],
-  })
-
-  await remoteRoot.mount()
-
-  const app = createRemoteRenderer(remoteRoot).createApp(component)
-
-  app.mount(remoteRoot)
-
-  return app
-}
-
-let onRelease = () => {}
-
-const endpoint = createEndpoint(fromInsideIframe())
+import { run } from '~tests/e2e/scaffolding/remote'
 
 const VButton = defineRemoteComponent('VButton')
 const VInput = defineRemoteComponent('VInput', [
   'update:value',
 ] as unknown as {
-    'update:value': (value: string) => true,
+  'update:value': (value: string) => true,
 })
 
-endpoint.expose({
-  async run (channel) {
-    retain(channel)
+run(defineComponent({
+  setup () {
+    const text = ref('')
 
-    const app = await createApp(channel, defineComponent({
-      setup () {
-        const text = ref('')
-
-        return () => [
-          h(VInput, { 'onUpdate:value': (value: string) => text.value = value, value: text.value, placeholder: 'vue-remote' }),
-          h(VButton, { onClick: () => {
-            text.value = ''
-            console.log('text.value', text.value)
-          } }, 'Clear'),
-        ]
-      },
-    }))
-
-    onRelease = () => {
-      release(channel)
-
-      app.unmount()
-    }
+    return () => [
+      h(VInput, {
+        'onUpdate:value': (value: string) => text.value = value,
+        value: text.value,
+        placeholder: 'vue-remote',
+      }),
+      h(VButton, {
+        onClick: () => text.value = '',
+      }, 'Clear'),
+    ]
   },
-
-  release () {
-    onRelease()
-  },
+}), {
+  components: keysOf({ VButton, VInput }),
 })
