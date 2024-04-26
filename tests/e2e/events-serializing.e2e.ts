@@ -38,6 +38,7 @@ test('serialized InputEvent', async ({ page }) => {
 test('serialized FocusEvent', async ({ page }) => {
   await page.goto(`http://${SERVER}:3000/host/events-serializing`)
   await page.getByPlaceholder('vue-remote').focus()
+  await new Promise(resolve => setTimeout(resolve, 100))
 
   expect(await getSerializedEvent(page, 'focus')).toEqual(expect.objectContaining({
     type: 'focus',

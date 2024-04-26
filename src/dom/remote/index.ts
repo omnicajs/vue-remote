@@ -13,10 +13,12 @@ export type {
   RemoteComment,
   RemoteComponent,
   RemoteComponentDescriptor,
+  RemoteComponentOption,
   RemoteFragment,
   RemoteRoot,
   RemoteRootOptions,
   RemoteText,
+  SchemaOf,
   SupportedBy,
 } from './tree'
 

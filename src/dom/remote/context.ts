@@ -2,9 +2,11 @@ import type { Channel } from '@/dom/common/channel'
 
 import type {
   RemoteComponent,
+  RemoteComponentOption,
   RemoteFragment,
   RemoteRoot,
   RemoteRootOptions,
+  SchemaOf,
   SupportedBy,
   UnknownChild,
   UnknownNode,
@@ -420,7 +422,7 @@ const addInvokeMethod = (context: TreeData) => addMethod<InvokeMethod>(context, 
   })
 })
 
-const createRemoteRootData = <S extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>>(
+const createRemoteRootData = <S extends RemoteComponentOption = RemoteComponentOption>(
   channel: Channel,
   { components, strict = true }: RemoteRootOptions<S> = {}
 ) => {
@@ -438,13 +440,13 @@ const createRemoteRootData = <S extends SupportedBy<RemoteRoot> = SupportedBy<Re
     progenitors: new WeakMap(),
     components: new WeakMap(),
     fragments: new WeakMap(),
-  } as TreeData<RemoteRoot<S>>
+  } as TreeData<RemoteRoot<SchemaOf<S>>>
 }
 
-export const createTreeContext = <S extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>>(
+export const createTreeContext = <S extends RemoteComponentOption = RemoteComponentOption>(
   channel: Channel,
   options: RemoteRootOptions<S> = {}
-): TreeContext<RemoteRoot<S>> => {
+): TreeContext<RemoteRoot<SchemaOf<S>>> => {
   const context = createRemoteRootData(channel, options)
 
   let lastId = 0
@@ -472,5 +474,5 @@ export const createTreeContext = <S extends SupportedBy<RemoteRoot> = SupportedB
   addReplaceMethod(context)
   addInvokeMethod(context)
 
-  return context as TreeContext<RemoteRoot<S>>
+  return context as TreeContext<RemoteRoot<SchemaOf<S>>>
 }

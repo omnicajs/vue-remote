@@ -1,8 +1,9 @@
 import type {
   Channel,
+  RemoteComponentOption,
   RemoteRoot,
   RemoteRootOptions,
-  SupportedBy,
+  SchemaOf,
 } from '@/dom/remote'
 
 import { createRemoteRoot as _createRemoteRoot } from '@/dom/remote'
@@ -15,10 +16,10 @@ import {
 
 import { REMOTE_SLOT } from '@/vue/internals'
 
-export default <Supports extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>>(
+export default <Supports extends RemoteComponentOption = RemoteComponentOption>(
   channel: Channel,
   options: RemoteRootOptions<Supports> = {}
-): RemoteRoot<Supports> => _createRemoteRoot(channel, {
+): RemoteRoot<SchemaOf<Supports>> => _createRemoteRoot(channel, {
   ...options,
   components: [
     ...HTMLTagList,
@@ -27,4 +28,4 @@ export default <Supports extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoo
     REMOTE_SLOT,
     ...(options.components ?? []),
   ] as RemoteRootOptions<Supports>['components'],
-}) as RemoteRoot<Supports>
+}) as RemoteRoot<SchemaOf<Supports>>
