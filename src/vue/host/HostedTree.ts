@@ -39,14 +39,17 @@ export default /*#__PURE__*/ defineComponent({
     watch(() => props.receiver, () => receiver.value = props.receiver)
 
     const root = shallowRef(receiver.value.tree.root)
-    watch(receiver, () => root.value = receiver.value.tree.root)
+    const tree = shallowRef(useReceived(receiver, root))
+    watch(receiver, () => {
+      tree.value.release()
+      root.value = receiver.value.tree.root
+      tree.value = useReceived(receiver, root)
+    })
 
-    const tree = useReceived(receiver, root)
+    onMounted(tree.value.update)
+    onUnmounted(tree.value.release)
 
-    onMounted(tree.update)
-    onUnmounted(tree.release)
-
-    return () => tree.children.value
+    return () => tree.value.children.value
       .filter(({ node }) => !isReceivedText(node.value) || node.value.text.length > 0)
       .map(root => render(root, props.provider))
   },
