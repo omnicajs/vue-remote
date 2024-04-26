@@ -3,9 +3,10 @@ import type { Channel } from '@/dom/common/channel'
 import type { TreeContext } from '@/dom/remote/context'
 
 import type {
+  RemoteComponentOption,
   RemoteRoot,
   RemoteRootOptions,
-  SupportedBy,
+  SchemaOf,
 } from '@/dom/remote/tree'
 
 import { createTreeContext } from '@/dom/remote/context'
@@ -34,11 +35,11 @@ import {
 } from '@/dom/common/tree'
 
 export function createRemoteRoot<
-  Supports extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>
+  Supports extends RemoteComponentOption = RemoteComponentOption
 >(channel: Channel, {
   components,
   strict = true,
-}: RemoteRootOptions<Supports> = {}): RemoteRoot<Supports> {
+}: RemoteRootOptions<Supports> = {}): RemoteRoot<SchemaOf<Supports>> {
   const context = createTreeContext(channel, {
     components,
     strict,
@@ -50,7 +51,7 @@ export function createRemoteRoot<
     get id () { return ROOT_ID },
     get children () { return context.children },
     removeChild: (child) => context.removeChild(root, child),
-  } as RemoteRoot<Supports>
+  } as RemoteRoot<SchemaOf<Supports>>
 
   addCreateCommentMethod(root, context)
   addCreateComponentMethod(root, context)

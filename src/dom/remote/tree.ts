@@ -122,10 +122,10 @@ export interface RemoteRoot<
 }
 
 export interface RemoteRootOptions<
-  Supports extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>
+  Supports extends RemoteComponentOption = RemoteComponentOption
 > {
   readonly strict?: boolean;
-  readonly components?: ReadonlyArray<Supports | RemoteComponentDescriptor<Supports>>;
+  readonly components?: ReadonlyArray<Supports>;
 }
 
 export interface RemoteComment<Root extends RemoteRoot = RemoteRoot> extends RemoteNode {
@@ -139,8 +139,18 @@ export interface RemoteComment<Root extends RemoteRoot = RemoteRoot> extends Rem
   serialize (): SerializedComment;
 }
 
+export type RemoteComponentOption<
+  Type extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>
+> = Type | RemoteComponentDescriptor<Type>
+
+export type SchemaOf<D> = D extends RemoteComponentDescriptor<infer S1>
+  ? S1
+  : D extends RemoteComponentOption<infer S2>
+    ? S2
+    : never
+
 export interface RemoteComponentDescriptor<
-  Type extends SchemaType<string, Unknown, UnknownMethods, UnknownType>
+  Type extends SupportedBy<RemoteRoot>
 > {
   type: Type;
   hasProperty (name: string | keyof PropertiesOf<Type>): name is keyof PropertiesOf<Type>;
