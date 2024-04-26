@@ -1,11 +1,11 @@
 import type {
   RemoteFragmentData,
-  RemoteRootContext,
+  TreeContext,
 } from '@/dom/remote/context'
 
 import type {
   RemoteFragment,
-  UnknownRoot,
+  RemoteRoot,
 } from '@/dom/remote/tree'
 
 import {
@@ -17,9 +17,9 @@ import { capture } from '@/common/scaffolding'
 
 import { KIND_FRAGMENT } from '@/dom/common/tree'
 
-export const createRemoteFragment = <Root extends UnknownRoot>(
+export const createRemoteFragment = <Root extends RemoteRoot>(
   root: Root,
-  context: RemoteRootContext
+  context: TreeContext<Root>
 ) => {
   const id = context.nextId()
   const data: RemoteFragmentData = { children: capture([], context.strict) }

@@ -41,7 +41,7 @@ export default <
   Type extends string,
   Props extends Unknown = None,
   Methods extends UnknownMethods = None,
-  Children extends SchemaType<string> | boolean = true,
+  Children extends SchemaType<string, Unknown> = never,
   Emits extends EmitsOptions | undefined = undefined
 > (
   type: Type | SchemaType<Type, Props, Methods, Children>,

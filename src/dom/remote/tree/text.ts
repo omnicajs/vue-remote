@@ -1,17 +1,17 @@
-import type { RemoteRootContext } from '@/dom/remote/context'
+import type { TreeContext } from '@/dom/remote/context'
 
 import type {
+  RemoteRoot,
   RemoteText,
-  UnknownRoot,
 } from '@/dom/remote/tree'
 
 import { ACTION_UPDATE_TEXT } from '@/dom/common/channel'
 import { KIND_TEXT } from '@/dom/common/tree'
 
-export const createRemoteText = <Root extends UnknownRoot>(
+export const createRemoteText = <Root extends RemoteRoot>(
   content: string,
   root: Root,
-  context: RemoteRootContext
+  context: TreeContext
 ) => {
   const id = context.nextId()
   const data = { text: content }

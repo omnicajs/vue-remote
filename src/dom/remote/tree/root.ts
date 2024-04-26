@@ -1,17 +1,14 @@
 import type { Channel } from '@/dom/common/channel'
 
-import type { RemoteRootContext } from '@/dom/remote/context'
-
-import type { UnknownType } from '@/dom/remote/schema'
+import type { TreeContext } from '@/dom/remote/context'
 
 import type {
-  Accepts,
-  RemoteComponentDescriptor,
   RemoteRoot,
   RemoteRootOptions,
+  SupportedBy,
 } from '@/dom/remote/tree'
 
-import { createRemoteRootContext } from '@/dom/remote/context'
+import { createTreeContext } from '@/dom/remote/context'
 
 import { createRemoteComment } from '@/dom/remote/tree/comment'
 import { createRemoteComponent } from '@/dom/remote/tree/component'
@@ -37,13 +34,12 @@ import {
 } from '@/dom/common/tree'
 
 export function createRemoteRoot<
-  Supports extends UnknownType = UnknownType,
-  Children extends Supports | boolean = true,
+  Supports extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>
 >(channel: Channel, {
   components,
   strict = true,
-}: RemoteRootOptions<Supports> = {}): RemoteRoot<Supports, Children> {
-  const context = createRemoteRootContext(channel, {
+}: RemoteRootOptions<Supports> = {}): RemoteRoot<Supports> {
+  const context = createTreeContext(channel, {
     components,
     strict,
   })
@@ -54,10 +50,10 @@ export function createRemoteRoot<
     get id () { return ROOT_ID },
     get children () { return context.children },
     removeChild: (child) => context.removeChild(root, child),
-  } as RemoteRoot<Supports, Children>
+  } as RemoteRoot<Supports>
 
   addCreateCommentMethod(root, context)
-  addCreateComponentMethod(root, context, components)
+  addCreateComponentMethod(root, context)
   addCreateFragmentMethod(root, context)
   addCreateTextMethod(root, context)
 
@@ -70,27 +66,15 @@ export function createRemoteRoot<
   return root
 }
 
-function addCreateCommentMethod<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true
->(
-  root: RemoteRoot<Components, Children>,
-  context: RemoteRootContext
-) {
-  addMethod<RemoteRoot<Components, Children>['createComment']>(root, 'createComment', (text = '') => {
+function addCreateCommentMethod<R extends RemoteRoot>(root: R, context: TreeContext<R>) {
+  addMethod<R['createComment']>(root, 'createComment', (text = '') => {
     return createRemoteComment(text, root, context)
   })
 }
 
-function addCreateComponentMethod<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true
->(
-  root: RemoteRoot<Components, Children>,
-  context: RemoteRootContext,
-  components: ReadonlyArray<Components | RemoteComponentDescriptor<Components>> | undefined
-) {
-  addMethod<RemoteRoot<Components, Children>['createComponent']>(root, 'createComponent', (type, ...rest) => {
+function addCreateComponentMethod<R extends RemoteRoot>(root: R, context: TreeContext<R>) {
+  addMethod<R['createComponent']>(root, 'createComponent', (type, ...rest) => {
+    const components = root.options.components
     if (components && !components.some(c => c === type || c.type === type)) {
       throw new Error(`Unsupported component: ${type}`)
     }
@@ -100,42 +84,24 @@ function addCreateComponentMethod<
     const [properties, children, ...restChildren] = rest
 
     return createRemoteComponent(_type, properties, [
-      ...arraify(children ?? []) as Accepts<Children, RemoteRoot<Components, Children>, true>[],
+      ...arraify(children ?? []) as R['children'],
       ...restChildren,
     ], root, context)
   })
 }
 
-function addCreateFragmentMethod<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true
->(
-  root: RemoteRoot<Components, Children>,
-  context: RemoteRootContext
-) {
+function addCreateFragmentMethod<R extends RemoteRoot>(root: R, context: TreeContext<R>) {
   addMethod(root, 'createFragment', () => createRemoteFragment(root, context))
 }
 
-function addCreateTextMethod<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true
->(
-  root: RemoteRoot<Components, Children>,
-  context: RemoteRootContext
-) {
-  addMethod<RemoteRoot<Components, Children>['createText']>(root, 'createText', (text = '') => {
+function addCreateTextMethod<R extends RemoteRoot>(root: R, context: TreeContext<R>) {
+  addMethod<R['createText']>(root, 'createText', (text = '') => {
     return createRemoteText(text, root, context)
   })
 }
 
-function addMountMethod<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true
->(
-  root: RemoteRoot<Components, Children>,
-  context: RemoteRootContext
-) {
-  addMethod(root, 'mount', () => {
+function addMountMethod<R extends RemoteRoot>(root: R, context: TreeContext<R>) {
+  addMethod<R['mount']>(root, 'mount', () => {
     if (context.mounted) {
       return Promise.resolve()
     }
@@ -149,26 +115,20 @@ function addMountMethod<
   })
 }
 
-function addAppendMethod<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true
->(
-  root: RemoteRoot<Components, Children>,
-  context: RemoteRootContext
+function addAppendMethod<R extends RemoteRoot>(
+  root: R,
+  context: TreeContext
 ) {
-  addMethod<RemoteRoot<Components, Children>['append']>(root, 'append', (...children) => {
+  addMethod<R['append']>(root, 'append', (...children) => {
     context.append(root, normalizeChildren(children, root))
   })
 }
 
-function addInsertMethod<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true
->(
-  root: RemoteRoot<Components, Children>,
-  context: RemoteRootContext
+function addInsertMethod<R extends RemoteRoot>(
+  root: R,
+  context: TreeContext
 ) {
-  addMethod<RemoteRoot<Components, Children>['insertBefore']>(root, 'insertBefore', (
+  addMethod<R['insertBefore']>(root, 'insertBefore', (
     child,
     before
   ) => {
@@ -176,14 +136,11 @@ function addInsertMethod<
   })
 }
 
-function addReplaceMethod<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true
->(
-  root: RemoteRoot<Components, Children>,
-  context: RemoteRootContext
+function addReplaceMethod<R extends RemoteRoot>(
+  root: R,
+  context: TreeContext
 ) {
-  addMethod<RemoteRoot<Components, Children>['replace']>(root, 'replace', (...children) => {
+  addMethod<R['replace']>(root, 'replace', (...children) => {
     context.replace(root, normalizeChildren(children, root))
   })
 }

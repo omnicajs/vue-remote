@@ -1,23 +1,23 @@
 import type {
   SchemaType,
   PropertiesOf,
-  UnknownType,
+  UnknownType, ChildrenOf,
 } from '@/dom/remote/schema'
 
 import type {
   RemoteComponentData,
-  RemoteRootContext,
+  TreeContext,
 } from '@/dom/remote/context'
 
 import type { FunctionProxyUpdate } from '@/dom/remote/proxy'
 
 import type {
-  Accepts,
+  RemoteComment,
   RemoteComponent,
   RemoteComponentDescriptor,
   RemoteRoot,
-  UnknownComponent,
-  UnknownParent,
+  RemoteText,
+  SupportedBy,
 } from '@/dom/remote/tree'
 
 import type {
@@ -47,16 +47,17 @@ import { ACTION_UPDATE_PROPERTIES } from '@/dom/common/channel'
 import { KIND_COMPONENT } from '@/dom/common/tree'
 
 // eslint-disable-next-line max-lines-per-function
-export function createRemoteComponent <
-  Supports extends UnknownType,
-  Children extends Supports | boolean,
-  Type extends Supports
->(
-  type: Type | RemoteComponentDescriptor<Type>,
-  properties: PropertiesOf<Type> | null | undefined,
-  children: Accepts<Children, RemoteRoot<Supports, Children>, true>[],
-  root: RemoteRoot<Supports, Children>,
-  context: RemoteRootContext
+export function createRemoteComponent <R extends RemoteRoot, T extends SupportedBy<R>>(
+  type: T | RemoteComponentDescriptor<T>,
+  properties: PropertiesOf<T> | null | undefined,
+  children: Array<
+    | RemoteComment<R>
+    | RemoteComponent<ChildrenOf<T>, R>
+    | RemoteText<R>
+    | string
+  >,
+  root: R,
+  context: TreeContext
 ) {
   const id = context.nextId()
   const descriptor = typeof type === 'object' && 'type' in type ? type : null
@@ -89,7 +90,7 @@ export function createRemoteComponent <
 
     removeChild: (child) => context.removeChild(node, child),
 
-    remove: () => (node.parent as UnknownParent | null)?.removeChild(node),
+    remove: () => node.parent ? context.removeChild(node.parent, node) : null,
 
     invoke: (method, ...payload) => !descriptor || descriptor?.hasMethod(method)
       ? context.invoke(node, method, payload)
@@ -102,7 +103,7 @@ export function createRemoteComponent <
       properties: data.properties.serializable,
       children: data.children.map(c => c.serialize()),
     }),
-  } as RemoteComponent<Type, RemoteRoot<Supports, Children>>
+  } as RemoteComponent<T, R>
 
   context.collect(node)
   context.components.set(node, data)
@@ -115,13 +116,13 @@ export function defineRemoteComponent<
   Type extends string,
   Properties extends Unknown = None,
   Methods extends UnknownMethods = None,
-  Children extends UnknownType | boolean = true
+  Children extends UnknownType | false = false
 >(
   type: Type,
   properties: Array<keyof Properties> = [],
   methods: Array<keyof Methods> = [],
-  children: Supported<Children> = true as Supported<Children>
-): RemoteComponentDescriptor<SchemaType<Type, Properties, Methods, Children>> {
+  children: Supported<Children> = false as Supported<Children>
+): RemoteComponentDescriptor<SchemaType<Type, Properties, Methods, Children extends false ? never : Children>> {
   return {
     type,
     hasProperty (name): name is keyof keyof Properties {
@@ -132,7 +133,7 @@ export function defineRemoteComponent<
     },
     supports: type => typeof children === 'boolean'
       ? children
-      : (children as SchemaType<string>[]).includes(type as SchemaType<string>),
+      : children.length === 0 || (children as SchemaType<string>[]).includes(type as SchemaType<string>),
   }
 }
 
@@ -152,15 +153,16 @@ const RESERVED = ['children']
 
 const notReserved = (name: string) => !RESERVED.includes(name)
 
-function createRemoteComponentData <
-  Supports extends UnknownType,
-  Children extends Supports | boolean,
-  Type extends Supports
->(
-  properties: PropertiesOf<Type> | null | undefined,
-  children: Accepts<Children, RemoteRoot<Supports, Children>, true>[],
-  root: RemoteRoot<Supports, Children>,
-  context: RemoteRootContext
+function createRemoteComponentData <S extends SupportedBy<RemoteRoot>, T extends S>(
+  properties: PropertiesOf<T> | null | undefined,
+  children: Array<
+    | RemoteComment<RemoteRoot<S>>
+    | RemoteComponent<ChildrenOf<T>, RemoteRoot<S>>
+    | RemoteText<RemoteRoot<S>>
+    | string
+  >,
+  root: RemoteRoot<S>,
+  context: TreeContext
 ): RemoteComponentData {
   const original: Unknown = properties ?? {}
   const serializable: Unknown = {}
@@ -179,9 +181,9 @@ function createRemoteComponentData <
 }
 
 // eslint-disable-next-line max-lines-per-function
-function updateProperties(
-  context: RemoteRootContext,
-  component: UnknownComponent,
+function updateProperties<R extends RemoteRoot>(
+  context: TreeContext<R>,
+  component: RemoteComponent<SupportedBy<R>, R>,
   properties: Unknown
 ) {
   const componentData = context.components.get(component)!

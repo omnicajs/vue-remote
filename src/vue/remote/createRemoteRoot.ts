@@ -1,9 +1,8 @@
 import type {
   Channel,
-  RemoteComponentDescriptor,
   RemoteRoot,
   RemoteRootOptions,
-  UnknownType,
+  SupportedBy,
 } from '@/dom/remote'
 
 import { createRemoteRoot as _createRemoteRoot } from '@/dom/remote'
@@ -16,13 +15,10 @@ import {
 
 import { REMOTE_SLOT } from '@/vue/internals'
 
-export default <
-  Supports extends UnknownType = UnknownType,
-  Children extends Supports | boolean = true
->(channel: Channel, options: RemoteRootOptions<Supports> = {}): RemoteRoot<
-  Supports,
-  Children
-> => _createRemoteRoot(channel, {
+export default <Supports extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>>(
+  channel: Channel,
+  options: RemoteRootOptions<Supports> = {}
+): RemoteRoot<Supports> => _createRemoteRoot(channel, {
   ...options,
   components: [
     ...HTMLTagList,
@@ -30,5 +26,5 @@ export default <
     ...SVGTagList,
     REMOTE_SLOT,
     ...(options.components ?? []),
-  ] as Array<Supports | RemoteComponentDescriptor<Supports>>,
-}) as RemoteRoot<Supports, Children>
+  ] as RemoteRootOptions<Supports>['components'],
+}) as RemoteRoot<Supports>

@@ -1,13 +1,12 @@
 import type { Channel } from '@/dom/common/channel'
 
-import type { UnknownType } from './schema'
-
 import type {
+  RemoteComponent,
   RemoteFragment,
   RemoteRoot,
   RemoteRootOptions,
+  SupportedBy,
   UnknownChild,
-  UnknownComponent,
   UnknownNode,
   UnknownParent,
 } from '@/dom/remote/tree'
@@ -43,28 +42,22 @@ export interface RemoteFragmentData {
   children: ReadonlyArray<UnknownChild>;
 }
 
-export interface RemoteRootData<
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true,
-> {
+export interface TreeData<R extends RemoteRoot = RemoteRoot> {
   strict: boolean;
   mounted: boolean;
   channel: Channel;
   nodes: WeakSet<UnknownNode>;
   progenitors: WeakMap<UnknownNode, UnknownParent>;
   parents: WeakMap<UnknownNode, UnknownParent>;
-  components: WeakMap<UnknownComponent, RemoteComponentData>;
+  components: WeakMap<RemoteComponent<SupportedBy<R>, R>, RemoteComponentData>;
   fragments: WeakMap<
-    RemoteFragment<RemoteRoot<Components, Children>>,
+    RemoteFragment<R>,
     RemoteFragmentData
   >;
-  children: RemoteRoot<Components, Children>['children'];
+  children: R['children'];
 }
 
-export interface RemoteRootContext<
-  Supports extends UnknownType = UnknownType,
-  Children extends Supports | boolean = true,
-> extends RemoteRootData<Supports, Children> {
+export interface TreeContext<R extends RemoteRoot = RemoteRoot> extends TreeData<R> {
   nextId (): string;
 
   collect (node: UnknownNode): void
@@ -98,7 +91,7 @@ export interface RemoteRootContext<
   ): void;
 
   invoke (
-    node: UnknownComponent,
+    node: RemoteComponent<SupportedBy<R>, R>,
     method: string,
     payload: unknown[]
   ): Promise<unknown>
@@ -118,7 +111,7 @@ const traverse = (element: UnknownNode, each: (item: UnknownNode) => void) => {
 }
 
 function attach (
-  context: RemoteRootData,
+  context: TreeData,
   parent: UnknownParent,
   node: UnknownNode
 ) {
@@ -142,7 +135,7 @@ function attach (
   })
 }
 
-function attachFragments (context: RemoteRootData, node: UnknownNode) {
+function attachFragments (context: TreeData, node: UnknownNode) {
   if (node.kind === KIND_COMPONENT) {
     Object.values(node.properties).forEach(prop => {
       if (isRemoteFragment(prop)) {
@@ -152,7 +145,7 @@ function attachFragments (context: RemoteRootData, node: UnknownNode) {
   }
 }
 
-function detach (context: RemoteRootData, node: UnknownNode) {
+function detach (context: TreeData, node: UnknownNode) {
   const { progenitors, parents } = context
 
   progenitors.delete(node)
@@ -166,7 +159,7 @@ function detach (context: RemoteRootData, node: UnknownNode) {
   detachFragments(context, node)
 }
 
-function detachFragments (context: RemoteRootData, node: UnknownNode) {
+function detachFragments (context: TreeData, node: UnknownNode) {
   if (node.kind !== KIND_COMPONENT) {
     return
   }
@@ -181,7 +174,7 @@ function detachFragments (context: RemoteRootData, node: UnknownNode) {
 }
 
 const update = (
-  context: RemoteRootData,
+  context: TreeData,
   node: UnknownChild | UnknownParent,
   remote: (channel: Channel) => void | Promise<void>,
   local: () => void
@@ -206,9 +199,9 @@ const update = (
   local()
 }
 
-type ParentData = RemoteRootData | RemoteComponentData | RemoteFragmentData
+type ParentData = TreeData | RemoteComponentData | RemoteFragmentData
 
-function dataOf (context: RemoteRootData, parent: UnknownParent): ParentData | undefined {
+function dataOf (context: TreeData, parent: UnknownParent): ParentData | undefined {
   switch (parent?.kind) {
     case KIND_COMPONENT:
       return context.components.get(parent)
@@ -236,7 +229,7 @@ const remoteFromArray = <T>(target: T[] | readonly T[], index: number) => {
 }
 
 const insert = (
-  context: RemoteRootData,
+  context: TreeData,
   parent: UnknownParent,
   child: UnknownChild,
   before: UnknownChild | undefined | null = null
@@ -269,7 +262,7 @@ const insert = (
 }
 
 const appendChild = (
-  context: RemoteRootData,
+  context: TreeData,
   parent: UnknownParent,
   child: UnknownChild
 ) => {
@@ -294,7 +287,7 @@ const appendChild = (
 }
 
 const insertBefore = (
-  context: RemoteRootData,
+  context: TreeData,
   parent: UnknownParent,
   child: UnknownChild,
   before: UnknownChild | undefined | null
@@ -325,7 +318,7 @@ const insertBefore = (
 
 /** @TODO: Объединение удаления нескольких узлов в один запрос */
 const removeChild = (
-  context: RemoteRootData,
+  context: TreeData,
   parent: UnknownParent,
   child: UnknownChild
 ) => {
@@ -345,16 +338,16 @@ const removeChild = (
   })
 }
 
-const addAttachMethod = (context: RemoteRootData) => addMethod(context, 'attach', (
+const addAttachMethod = (context: TreeData) => addMethod(context, 'attach', (
   parent: UnknownParent,
   node: UnknownNode
 ) => attach(context, parent, node))
 
-const addDetachMethod = (context: RemoteRootData) => addMethod(context, 'detach', (
+const addDetachMethod = (context: TreeData) => addMethod(context, 'detach', (
   node: UnknownNode
 ) => detach(context, node))
 
-const addAppendMethod = (context: RemoteRootData) => addMethod(context, 'append', (
+const addAppendMethod = (context: TreeData) => addMethod(context, 'append', (
   parent: UnknownParent,
   children: UnknownChild[]
 ) => {
@@ -363,13 +356,13 @@ const addAppendMethod = (context: RemoteRootData) => addMethod(context, 'append'
   }
 })
 
-const addUpdateMethod = (context: RemoteRootData) => addMethod(context, 'update', (
+const addUpdateMethod = (context: TreeData) => addMethod(context, 'update', (
   node: UnknownChild | UnknownParent,
   remote: (channel: Channel) => void | Promise<void>,
   local: () => void
 ) => update(context, node, remote, local))
 
-const addReplaceMethod = (context: RemoteRootData) => addMethod(context, 'replace', (
+const addReplaceMethod = (context: TreeData) => addMethod(context, 'replace', (
   parent: UnknownParent,
   children: UnknownChild[]
 ) => {
@@ -382,9 +375,9 @@ const addReplaceMethod = (context: RemoteRootData) => addMethod(context, 'replac
   }
 })
 
-type CollectMethod = RemoteRootContext['collect']
+type CollectMethod = TreeContext['collect']
 
-const addCollectMethod = (context: RemoteRootData) => addMethod<CollectMethod>(context, 'collect', node => {
+const addCollectMethod = (context: TreeData) => addMethod<CollectMethod>(context, 'collect', node => {
   if (context.nodes.has(node)) {
     return
   }
@@ -404,9 +397,9 @@ const addCollectMethod = (context: RemoteRootData) => addMethod<CollectMethod>(c
   })
 })
 
-type InvokeMethod = RemoteRootContext['invoke']
+type InvokeMethod = TreeContext['invoke']
 
-const addInvokeMethod = (context: RemoteRootData) => addMethod<InvokeMethod>(context, 'invoke', (
+const addInvokeMethod = (context: TreeData) => addMethod<InvokeMethod>(context, 'invoke', (
   node,
   method,
   payload
@@ -427,13 +420,10 @@ const addInvokeMethod = (context: RemoteRootData) => addMethod<InvokeMethod>(con
   })
 })
 
-const createRemoteRootData = <
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true,
->(channel: Channel, {
-    components,
-    strict = true,
-  }: RemoteRootOptions<Components> = {}) => {
+const createRemoteRootData = <S extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>>(
+  channel: Channel,
+  { components, strict = true }: RemoteRootOptions<S> = {}
+) => {
   if (strict) {
     Object.freeze(components)
   }
@@ -448,16 +438,13 @@ const createRemoteRootData = <
     progenitors: new WeakMap(),
     components: new WeakMap(),
     fragments: new WeakMap(),
-  } as RemoteRootData<Components, Children>
+  } as TreeData<RemoteRoot<S>>
 }
 
-export const createRemoteRootContext = <
-  Components extends UnknownType = UnknownType,
-  Children extends Components | boolean = true,
->(
-    channel: Channel,
-    options: RemoteRootOptions<Components> = {}
-  ): RemoteRootContext<Components, Children> => {
+export const createTreeContext = <S extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>>(
+  channel: Channel,
+  options: RemoteRootOptions<S> = {}
+): TreeContext<RemoteRoot<S>> => {
   const context = createRemoteRootData(channel, options)
 
   let lastId = 0
@@ -485,5 +472,5 @@ export const createRemoteRootContext = <
   addReplaceMethod(context)
   addInvokeMethod(context)
 
-  return context as RemoteRootContext<Components, Children>
+  return context as TreeContext<RemoteRoot<S>>
 }

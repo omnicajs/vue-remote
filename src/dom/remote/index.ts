@@ -17,6 +17,7 @@ export type {
   RemoteRoot,
   RemoteRootOptions,
   RemoteText,
+  SupportedBy,
 } from './tree'
 
 export {
