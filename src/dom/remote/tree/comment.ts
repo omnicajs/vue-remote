@@ -1,17 +1,17 @@
-import type { RemoteRootContext } from '@/dom/remote/context'
+import type { TreeContext } from '@/dom/remote/context'
 
 import type {
   RemoteComment,
-  UnknownRoot,
+  RemoteRoot,
 } from '@/dom/remote/tree'
 
 import { ACTION_UPDATE_TEXT } from '@/dom/common/channel'
 import { KIND_COMMENT } from '@/dom/common/tree'
 
-export const createRemoteComment = <Root extends UnknownRoot>(
+export const createRemoteComment = <Root extends RemoteRoot>(
   content: string,
   root: Root,
-  context: RemoteRootContext
+  context: TreeContext
 ) => {
   const id = context.nextId()
   const data = { text: content }

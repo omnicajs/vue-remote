@@ -106,11 +106,15 @@ describe('dom/remote', () => {
     })
 
     test('throws error for not allowed components', () => {
-      const components = [defineRemoteComponent('VCard')]
+      const components = [
+        defineRemoteComponent('VCard'),
+        //defineRemoteComponent('VList'),
+      ]
       const root = createRemoteRoot(() => {}, { components })
 
       expect(() => {
         root.createComponent('VCard')
+        //root.createComponent('VList')
       }).not.toThrow()
 
       expect(() => {
