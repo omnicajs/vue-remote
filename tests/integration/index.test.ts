@@ -37,8 +37,10 @@ import {
 
 import { createReceiver } from '@/dom/host'
 import { createProvider } from '@/vue/host'
-import { createRemoteRoot } from '@/dom/remote'
-import { createRemoteRenderer } from '@/vue/remote'
+import {
+  createRemoteRoot,
+  createRemoteRenderer,
+} from '@/vue/remote'
 
 import VButton from './fixtures/host/VButton.vue'
 import VRemote from './fixtures/remote/VRemote.vue'
@@ -75,7 +77,9 @@ describe('vue', () => {
     app: App,
     vm: ComponentPublicInstance<None, None, None, None, M>,
   }> => {
-    const root = createRemoteRoot(receiver.receive)
+    const root = createRemoteRoot(receiver.receive, {
+      components: ['VButton'],
+    })
     const { createApp } = createRemoteRenderer(root)
 
     const app = createApp(component)
