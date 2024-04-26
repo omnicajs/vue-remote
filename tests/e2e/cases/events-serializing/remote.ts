@@ -1,6 +1,3 @@
-import type { Channel } from '@/dom/remote'
-import type { Component } from 'vue'
-
 import type {
   SerializedEvent,
   SerializedDragEvent,
@@ -13,6 +10,8 @@ import type {
   SerializedWheelEvent,
 } from '~types/events'
 
+import { run } from '~tests/e2e/scaffolding/remote'
+
 import {
   defineComponent,
   h,
@@ -20,78 +19,28 @@ import {
   reactive,  
 } from 'vue'
 
-import {
-  createEndpoint,
-  fromInsideIframe,
-  release,
-  retain,
-} from '@remote-ui/rpc'
+run(defineComponent({
+  setup () {
+    const text = ref('')
+    const events = reactive<SerializedEvent[]>([])
 
-import {
-  createRemoteRenderer,
-  createRemoteRoot,
-} from '@/vue/remote'
-
-const createApp = async <
-  Props extends Record<string, unknown> | undefined = undefined
->(channel: Channel, component: Component<Props>) => {
-  const remoteRoot = createRemoteRoot(channel, {
-    components: [
-      'VButton',
-      'VInput',
-    ],
-  })
-
-  await remoteRoot.mount()
-
-  const app = createRemoteRenderer(remoteRoot).createApp(component)
-
-  app.mount(remoteRoot)
-
-  return app
-}
-
-let onRelease = () => {}
-
-const endpoint = createEndpoint(fromInsideIframe())
-
-endpoint.expose({
-  async run (channel) {
-    retain(channel)
-
-    const app = await createApp(channel, defineComponent({
-      setup () {
-        const text = ref('')
-        const events = reactive<SerializedEvent[]>([])
-
-        return () => [
-          h('input', { 
-            onInput: (event: SerializedInputEvent) => {text.value = event.target.value; events.push(event)}, 
-            onFocus: (event: SerializedFocusEvent) => events.push(event),
-            onBlur: (event: SerializedFocusEvent) => events.push(event),
-            onKeydown: (event: SerializedKeyboardEvent) => events.push(event),
-            onWheel: (event: SerializedWheelEvent) => events.push(event),
-            value: text.value, 
-            placeholder: 'vue-remote',
-          }),
-          h('button', { 
-            onMousedown: (event: SerializedMouseEvent) => { text.value = ''; events.push(event) },
-            onPointerdown: (event: SerializedPointerEvent) => { text.value = ''; events.push(event) },
-            onTouchstart: (event: SerializedTouchEvent) => events.push(event),
-            onDragstart: (event: SerializedDragEvent) => events.push(event),
-          }, 'Clear'),
-          h('input', { id: 'events-json', type: 'hidden', value: JSON.stringify(events) }),
-        ]
-      } }))
-
-    onRelease = () => {
-      release(channel)
-
-      app.unmount()
-    }
+    return () => [
+      h('input', {
+        onInput: (event: SerializedInputEvent) => {text.value = event.target.value; events.push(event)},
+        onFocus: (event: SerializedFocusEvent) => events.push(event),
+        onBlur: (event: SerializedFocusEvent) => events.push(event),
+        onKeydown: (event: SerializedKeyboardEvent) => events.push(event),
+        onWheel: (event: SerializedWheelEvent) => events.push(event),
+        value: text.value,
+        placeholder: 'vue-remote',
+      }),
+      h('button', {
+        onMousedown: (event: SerializedMouseEvent) => { text.value = ''; events.push(event) },
+        onPointerdown: (event: SerializedPointerEvent) => { text.value = ''; events.push(event) },
+        onTouchstart: (event: SerializedTouchEvent) => events.push(event),
+        onDragstart: (event: SerializedDragEvent) => events.push(event),
+      }, 'Clear'),
+      h('input', { id: 'events-json', type: 'hidden', value: JSON.stringify(events) }),
+    ]
   },
-
-  release () {
-    onRelease()
-  },
-})
+}))
