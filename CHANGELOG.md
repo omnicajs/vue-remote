@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.3](https://github.com/omnicajs/vue-remote/compare/v0.1.2...v0.1.3) (2024-04-27)
+
+
+### Fixes
+
+* Eslint configuration & index.d.ts extra blank rows removed ([00c3ff8](https://github.com/omnicajs/vue-remote/commit/00c3ff81672f5d658315cc03daf6c762e8970875))
+
 ### [0.1.2](https://github.com/omnicajs/vue-remote/compare/v0.1.1...v0.1.2) (2024-04-27)
 
 
