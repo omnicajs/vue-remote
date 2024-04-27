@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.2](https://github.com/omnicajs/vue-remote/compare/v0.1.1...v0.1.2) (2024-04-27)
+
+
+### Fixes
+
+* Exports section in package.json ([e742b12](https://github.com/omnicajs/vue-remote/commit/e742b129002a5b44e6b6d7defa34908f3ce3ed95))
+
 ### [0.1.1](https://github.com/omnicajs/vue-remote/compare/v0.1.0...v0.1.1) (2024-04-27)
 
 
