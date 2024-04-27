@@ -21,6 +21,12 @@
       "default": "dist/remote.mjs"
     }
   },
+  "typesVersions": {
+    "*": {
+      "host": ["dist/host.d.ts"],
+      "remote": ["dist/remote.d.ts"]
+    }
+  },
   "scripts": {
     "build": "vite build",
     "e2e:build": "node ./tests/e2e/rollup.build.mjs",

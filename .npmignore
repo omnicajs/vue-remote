@@ -1,5 +1,6 @@
 .github
 .idea
+/coverage
 /node_modules
 /blob-report/
 /playwright/.cache/
@@ -8,14 +9,20 @@
 /test-results/
 
 .commitlintrc.json
+.eslintignore
+.eslintrc.cjs
 .gitignore
 .npmrc
 .versionrc.json
+codecov.yml
 commitlint.config.js
 docker-compose.yml
 jest.config.ts
+playwright.config.ts
 rollup.config.ts
 tsconfig.json
+vite.config.ts
+vitest.config.mts
 yarn.lock
 
 Makefile
