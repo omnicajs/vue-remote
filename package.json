@@ -8,27 +8,30 @@
     "node": ">=18.0.0"
   },
   "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "require": "./index.cjs",
+      "import": "./index.mjs",
+      "default": "./index.mjs"
+    },
     "./host": {
-      "types": "dist/host.d.ts",
-      "require": "dist/host.cjs",
-      "import": "dist/host.mjs",
-      "default": "dist/host.mjs"
+      "types": "./dist/host.d.ts",
+      "require": "./dist/host.cjs",
+      "import": "./dist/host.mjs",
+      "default": "./dist/host.mjs"
     },
     "./remote": {
-      "types": "dist/remote.d.ts",
-      "require": "dist/remote.cjs",
-      "import": "dist/remote.mjs",
-      "default": "dist/remote.mjs"
+      "types": "./dist/remote.d.ts",
+      "require": "./dist/remote.cjs",
+      "import": "./dist/remote.mjs",
+      "default": "./dist/remote.mjs"
     }
   },
+  "sideEffects": false,
   "typesVersions": {
     "*": {
-      "host": [
-        "dist/host.d.ts"
-      ],
-      "remote": [
-        "dist/remote.d.ts"
-      ]
+      "host": ["./dist/host.d.ts"],
+      "remote": ["./dist/remote.d.ts"]
     }
   },
   "scripts": {
