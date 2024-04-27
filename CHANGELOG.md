@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.0](https://github.com/omnicajs/vue-remote/compare/v0.0.7...v0.1.0) (2024-04-27)
+
+
+### ⚠ BREAKING CHANGES
+
+* Replaced remote-ui/core with in-project logic, added methods support
+
+### Features
+
+* Replaced remote-ui/core with in-project logic, added methods support ([5b8fe7b](https://github.com/omnicajs/vue-remote/commit/5b8fe7bb0fc72683d167e9a77a8fa591dbfef4ca))
+
+
+### Fixes
+
+* Receiver reactive update in HostedTree ([238594b](https://github.com/omnicajs/vue-remote/commit/238594b9e86ecd49bf24740b4de5296e3d298789))
+* RemoteComponent type extractions from RemoteRootOptions ([8e90c8e](https://github.com/omnicajs/vue-remote/commit/8e90c8ea968d2ae10cdf1408ca7ecec661708e29))
+
 ### [0.0.7](https://github.com/omnicajs/vue-remote/compare/v0.0.6...v0.0.7) (2024-02-01)
 
 
