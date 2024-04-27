@@ -42,8 +42,13 @@ import {
   createRemoteRenderer,
 } from '@/vue/remote'
 
+import { keysOf } from '@/common/scaffolding'
+
 import VButton from './fixtures/host/VButton.vue'
-import VRemote from './fixtures/remote/VRemote.vue'
+import VCard from './fixtures/host/VCard.vue'
+
+import RemoteButton from './fixtures/remote/RemoteButton.vue'
+import RemoteCard from './fixtures/remote/RemoteCard.vue'
 
 Object.defineProperty(window, 'DragEvent', { value: class DragEvent {} }) // fix ReferenceError: DragEvent is not defined
 Object.defineProperty(window, 'PointerEvent', { value: class PointerEvent {} }) // fix ReferenceError: PointerEvent is not defined
@@ -78,7 +83,7 @@ describe('vue', () => {
     vm: ComponentPublicInstance<None, None, None, None, M>,
   }> => {
     const root = createRemoteRoot(receiver.receive, {
-      components: ['VButton'],
+      components: keysOf({ VButton, VCard }),
     })
     const { createApp } = createRemoteRenderer(root)
 
@@ -188,7 +193,7 @@ describe('vue', () => {
 
     await createRemoteApp({
       render () {
-        return h(VRemote, { onClick }, () => 'Click me')
+        return h(RemoteButton, { onClick }, () => 'Click me')
       },
     }, receiver)
 
@@ -306,5 +311,67 @@ describe('vue', () => {
     await nextTick()
 
     expect(el?.innerHTML).toBe('<span>HTMLSpanElement</span>')
+  })
+
+  test('slots', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver, { VButton, VCard }).mount(el as HTMLElement)
+
+    type API = {
+      setTitle (content: string): void;
+      setText (content: string): void;
+    }
+
+    const { vm } = await createRemoteApp<API>({
+      setup (_, { expose }) {
+        const title = ref('Title')
+        const text = ref('Text')
+
+        expose({
+          setTitle: (content: string) =>  { title.value = content },
+          setText: (content: string) => { text.value = content },
+        })
+
+        return () => h(RemoteCard, {
+          id: 'card-1',
+          title: title.value,
+          text: text.value,
+        })
+      },
+    }, receiver)
+
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe(
+      '<section id="card-1" aria-labelledby="card-1-title">' +
+        '<div id="card-1-title">Title</div> Text' +
+      '</section>'
+    )
+
+    vm.setTitle('')
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('<section id="card-1"><!--v-if--> Text</section>')
+
+    vm.setText('')
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('<section id="card-1"><!--v-if--> </section>')
+
+    vm.setTitle('Test')
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe(
+      '<section id="card-1" aria-labelledby="card-1-title">' +
+        '<div id="card-1-title">Test</div> ' +
+      '</section>'
+    )
   })
 })

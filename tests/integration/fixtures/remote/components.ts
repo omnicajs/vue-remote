@@ -6,6 +6,10 @@ const VButton = defineRemoteComponent('VButton', [
   'click': () => true,
 })
 
+const VCard = defineRemoteComponent('VCard', [], [
+  'title',
+])
+
 const VInput = defineRemoteComponent('VInput', [
   'update:value',
 ] as unknown as {
@@ -14,5 +18,6 @@ const VInput = defineRemoteComponent('VInput', [
 
 export {
   VButton,
+  VCard,
   VInput,
 }
