@@ -3,6 +3,9 @@ module.exports = {
   env: {
     browser: true,
   },
+  globals: {
+    ymaps3: true,
+  },
   plugins: [
     '@typescript-eslint',
     'import',
