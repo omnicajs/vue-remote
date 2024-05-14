@@ -7,8 +7,7 @@ import type { Provider } from '~types/vue/host'
 
 import type { Unknown } from '~types/scaffolding'
 
-import type { Received } from '@/dom/host'
-import type { Hosted } from '@/vue/host/useReceived'
+import type { HostedChild } from './tree'
 
 import {
   createCommentVNode,
@@ -17,37 +16,29 @@ import {
 
 import { isDOMTag } from '@/common/dom'
 
+import { isFunction } from '@/dom/host'
+
 import {
-  isFunction,
-  isReceivedComment,
-  isReceivedText,
-} from '@/dom/host'
+  isComment,
+  isSlot,
+  isText,
+} from './tree'
 
 import { serializeEvent } from '@/vue/host/events'
 
-import { REMOTE_SLOT } from '@/vue/internals'
+export const toSlots = (children: HostedChild[], render: (hosted: HostedChild) => VNode | string | null) => {
+  const defaultSlot: HostedChild[] = []
+  const slots: Record<string, HostedChild[]> = {}
 
-export const isSlot = (node: Received) => 'type' in node && node.type === REMOTE_SLOT
-
-export const toSlots = (children: Hosted[], render: (hosted: Hosted) => VNode | string | null) => {
-  const defaultSlot: Hosted[] = []
-  const slots: Record<string, Hosted[]> = {}
-
-  children.forEach(hosted => {
-    const { node: { value: node }, properties } = hosted
-
-    if (node === null || isReceivedText(node) && node.text.length === 0) {
-      return
-    }
-
-    if (isSlot(node)) {
-      const slotName = (properties.value as { name: string }).name
+  children.forEach(child => {
+    if (isSlot(child)) {
+      const slotName = (child.properties.value as { name: string }).name
       slots[slotName] = [
         ...(slots[slotName] ?? []),
-        ...hosted.children.value,
+        ...child.children.value,
       ]
-    } else {
-      defaultSlot.push(hosted)
+    } else if (!isText(child) || child.text.value.length > 0) {
+      defaultSlot.push(child)
     }
   })
 
@@ -75,20 +66,15 @@ export const process = (properties: Unknown | undefined): Unknown | undefined =>
   return result
 }
 
-const render = (hosted: Hosted, provider: Provider): VNode | string | null => {
-  const {
-    node: { value: node },
-    children: { value: children },
-    ref,
-  } = hosted
-
+const render = (node: HostedChild, provider: Provider): VNode | string | null => {
   if ('type' in node) {
     if (isSlot(node)) {
       console.error('Found an orphan remote slot', node)
       return null
     }
 
-    const props = { ...process(hosted.properties.value), ref }
+    const props = { ...process(node.properties.value), ref: node.ref }
+    const children = node.children.value
 
     return isDOMTag(node.type)
       ? h(node.type, props, children.map(child => render(child, provider)))
@@ -97,10 +83,10 @@ const render = (hosted: Hosted, provider: Provider): VNode | string | null => {
       ))
   }
 
-  return isReceivedComment(node)
-    ? createCommentVNode(node.text)
-    : isReceivedText(node) && node.text.length > 0
-      ? node.text
+  return isComment(node)
+    ? createCommentVNode(node.text.value)
+    : isText(node) && node.text.value.length > 0
+      ? node.text.value
       : null
 }
 
