@@ -13,7 +13,6 @@ import type {
   ReceivedChild,
   ReceivedComment,
   ReceivedComponent,
-  ReceivedFragment,
   ReceivedParent,
   ReceivedRoot,
   ReceivedText,
@@ -61,12 +60,6 @@ export interface Receiver {
 type Updater = ReturnType<typeof createUpdater>
 type Emitter = ReturnType<typeof createEmitter>
 
-const attach = <T extends ReceivedChild | ReceivedFragment>(node: T, context: Context) => {
-  retain(node)
-  context.attach(node)
-  return node
-}
-
 const insert = <T>(target: T[], el: T, after: number) => {
   if (after === target.length) {
     target.push(el)
@@ -95,9 +88,7 @@ const addMountMethod = (
   updater: Updater,
   emitter: Emitter
 ) => addMethod<Runner['mount']>(context, 'mount', (children) => {
-  const root = context.root
-
-  root.children = children.map(c => {
+  context.root.children = children.map(c => {
     const node = deserialize(c, addVersion)
 
     retain(node)
@@ -106,7 +97,7 @@ const addMountMethod = (
     return node
   })
 
-  awaitUpdate(root, updater).then(() => {
+  awaitUpdate(context.root, updater).then(() => {
     context.state = 'mounted'
     emitter.emit('mount')
   })
@@ -126,7 +117,7 @@ const addInsertMethod = (
     ? parent
     : oldParentId !== false
       ? context.get<ReceivedParent>(oldParentId)
-      : undefined
+      : null
 
   let received: ReceivedChild
 
@@ -137,7 +128,9 @@ const addInsertMethod = (
       enqueueUpdate(oldParent, updater)
     }
   } else {
-    received = attach(deserialize(child, addVersion), context)
+    received = deserialize(child, addVersion)
+    retain(received)
+    context.attach(received)
   }
 
   insert(parent.children, received, after)
