@@ -134,7 +134,7 @@ export function useText (
 export function useChild (
   receiver: Receiver,
   child: ReceivedChild
-): HostedComment | HostedComponent | HostedText {
+): HostedChild {
   switch (child.kind) {
     case KIND_COMMENT:
       return useComment(receiver, child)
