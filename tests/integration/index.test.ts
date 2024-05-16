@@ -33,6 +33,8 @@ import {
   nextTick,
   shallowRef,
   ref,
+  Comment,
+  createTextVNode,
 } from 'vue'
 
 import { createReceiver } from '@/dom/host'
@@ -280,6 +282,56 @@ describe('vue', () => {
     } as SerializedMouseEvent)
   })
 
+  test('throw error doesn\'t support method when component doesn\'t have it', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const onClick = vi.fn()
+
+    const { vm } = await createRemoteApp<{ click: () => Promise<void> }>({
+      setup (_, { expose }) {
+        const button = ref<{ invoke: (method: string) => Promise<void> } | null>(null)
+
+        expose({
+          click: () => button.value?.invoke('change') ?? Promise.resolve(),
+        })
+
+        return () => h('button', {
+          ref: button,
+          onClick,
+        }, 'Click me')
+      },
+    }, receiver)
+
+    await expect(() => vm.click()).rejects.toThrowError('Node [ID=1, KIND=component, TYPE=button] doesn\'t support method change')
+  })
+
+  test('throw error doesn\'t support method when it\'s not a function', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const onClick = vi.fn()
+
+    const { vm } = await createRemoteApp<{ click: () => Promise<void> }>({
+      setup (_, { expose }) {
+        const button = ref<{ invoke: (method: string) => Promise<void> } | null>(null)
+
+        expose({
+          click: () => button.value?.invoke('disabled') ?? Promise.resolve(),
+        })
+
+        return () => h('button', {
+          ref: button,
+          onClick,
+        }, 'Click me')
+      },
+    }, receiver)
+
+    await expect(() => vm.click()).rejects.toThrowError('Node [ID=1, KIND=component, TYPE=button] doesn\'t support method disabled')
+  })
+
   test('can reuse existing HostingTree if receiver was replaced', async () => {
     const receiver1 = createReceiver()
     const receiver2 = createReceiver()
@@ -373,5 +425,66 @@ describe('vue', () => {
         '<div id="card-1-title">Test</div> ' +
       '</section>'
     )
+  })
+
+  test('rendered and deleted text when reactive data is changed', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    type API = { toggle (): void; }
+
+    const { vm } = await createRemoteApp<API>({
+      setup (_, { expose }) {
+        const show = ref(true)
+
+        expose({ toggle: () =>  { show.value = !show.value } })
+
+        return () => show.value 
+          ? createTextVNode('text example') 
+          : h(Comment, 'comment example')
+      },
+    }, receiver)
+
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('text example')
+
+    vm.toggle()
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).not.toBe('text example')
+  })
+
+  test('rendered and deleted comment when reactive data is changed', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    type API = { toggle (): void; }
+
+    const { vm } = await createRemoteApp<API>({
+      setup (_, { expose }) {
+        const show = ref(true)
+
+        expose({ toggle: () =>  { show.value = !show.value } })
+
+        return () => show.value ? h(Comment, 'comment example'): ''
+      },
+    }, receiver)
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('<!--comment example-->')
+
+    vm.toggle()
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).not.toBe('<!--comment example-->')
   })
 })
