@@ -374,4 +374,33 @@ describe('vue', () => {
       '</section>'
     )
   })
+
+  test('updated text', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    type API = { setText (content: string): void; }
+
+    const { vm } = await createRemoteApp<API>({
+      setup (_, { expose }) {
+        const text = ref('text example')
+
+        expose({ setText: (content: string) =>  { text.value = content } })
+
+        return () => text.value
+      },
+    }, receiver)
+
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('text example')
+    
+    vm.setText('text example updated')
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('text example updated')
+  })
 })
