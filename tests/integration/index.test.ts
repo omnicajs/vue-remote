@@ -280,6 +280,31 @@ describe('vue', () => {
     } as SerializedMouseEvent)
   })
 
+  test('throw error doesn\'t support method', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const onClick = vi.fn()
+
+    const { vm } = await createRemoteApp<{ click: () => Promise<void> }>({
+      setup (_, { expose }) {
+        const button = ref<{ invoke: (method: string) => Promise<void> } | null>(null)
+
+        expose({
+          click: () => button.value?.invoke('change') ?? Promise.resolve(),
+        })
+
+        return () => h('button', {
+          ref: button,
+          onClick,
+        }, 'Click me')
+      },
+    }, receiver)
+
+    await expect(() => vm.click()).rejects.toThrowError('Node [ID=1, KIND=component, TYPE=button] doesn\'t support method change')
+  })
+
   test('can reuse existing HostingTree if receiver was replaced', async () => {
     const receiver1 = createReceiver()
     const receiver2 = createReceiver()
