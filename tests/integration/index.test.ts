@@ -33,6 +33,7 @@ import {
   nextTick,
   shallowRef,
   ref,
+  Comment,
 } from 'vue'
 
 import { createReceiver } from '@/dom/host'
@@ -452,5 +453,35 @@ describe('vue', () => {
     await receiver.flush()
 
     expect(el?.innerHTML).toBe('text example updated')
+  })
+
+  test('render and delete comment', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    type API = { toggle (): void; }
+
+    const { vm } = await createRemoteApp<API>({
+      setup (_, { expose }) {
+        const show = ref(true)
+
+        expose({ toggle: () =>  { show.value = !show.value } })
+
+        return () => show.value ? h(Comment, 'comment example'): ''
+      },
+    }, receiver)
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('<!--comment example-->')
+
+    vm.toggle()
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).not.toBe('<!--comment example-->')
   })
 })
