@@ -21,6 +21,67 @@ or, using `npm`:
 npm install @omnicajs/vue-remote --save
 ```
 
+### Install packages
+
+```bash
+make node_modules
+```
+
+### Tests
+
+Vitest. Unit and integrations tests
+```bash
+make tests
+```
+or without using docker
+```bash
+yarn test
+```
+```bash
+yarn test:coverage
+```
+
+Playwright. E2E tests
+```bash
+make e2e
+```
+
+or without using docker
+
+```bash
+yarn e2e:build
+```
+Launch server and don't close it before tests have finished
+```bash
+yarn e2e:serve
+```
+```bash
+yarn e2e:test
+```
+
+## Description
+
+Vue-remote lets you take tree-like structures created in a sandboxed JavaScript environment, 
+and render them to the DOM in a different JavaScript environment. This allows you to isolate potentially-untrusted code
+off the main thread, but still allow that code to render a controlled set of UI elements to the main page.
+
+The easiest way to use vue-remote is to synchronize elements between a hidden iframe and the top-level page.
+
+To use vue-remote, you’ll need a web project that is able to run two JavaScript environments: the “host” environment, 
+which runs on the main HTML page and renders actual UI elements, and the “remote” environment, which is sandboxed 
+and renders an invisible version of tree-like structures that will be mirrored by the host.
+
+Next, on the “host” HTML page, you will need to create a “receiver”. This object will be responsible for receiving
+the updates from the remote environment, and mapping them to actual DOM elements.
+
+Vue-remote use [postMessage](https://developer.mozilla.org/ru/docs/Web/API/Window/postMessage) events from the iframe, 
+in order to pass changes in the remote tree to receiver
+
+See more about remote rendering: 
+* [remote-rendering-with-web-workers](https://portal.gitnation.org/contents/remote-rendering-with-web-workers)
+* [remote-dom](https://github.com/Shopify/remote-dom)
+* [Remote Rendering: Shopify’s Take on Extensible UI](https://shopify.engineering/remote-rendering-ui-extensibility)
+
 ## Usage
 
 ### Basic example
@@ -51,6 +112,7 @@ import {
   createReceiver,
 } from '@omnicajs/vue-remote/host'
 
+// Here we are defining Vue components provided by a host
 const provider = createProvider({
   VButton: defineComponent({
     props: {
@@ -98,16 +160,14 @@ const provider = createProvider({
 
 type EndpointApi = {
   // starts a remote application
-  run (channel: RemoteChannel, api: {
+  run (channel: Channel, api: {
     doSomethingOnHost (): void;
   }): Promise<void>;
   // useful to tell a remote application that it is time to quit
   release (): void;
 }
 
-export default defineComponent({
-  name: 'RemoteApp',
-
+const hostApp = defineComponent({
   props: {
     src: {
       type: String,
@@ -117,9 +177,9 @@ export default defineComponent({
 
   setup () {
     const iframe = ref<HTMLIFrameElement | null>(null)
-    const receiver = createRemoteReceiver()
-    
-    let endpoint: Endpoint | null = null
+    const receiver = createReceiver()
+
+    let endpoint: Endpoint<EndpointApi> | null = null
 
     onMounted(() => {
       endpoint = createEndpoint<EndpointApi>(fromIframe(iframe.value as HTMLIFrameElement, {
@@ -146,6 +206,10 @@ export default defineComponent({
     ]
   },
 })
+
+// src - remoteApp url
+const app = createApp(hostApp, {src: 'localhost/remote'})
+app.mount('#host')
 ```
 
 Remote application:
@@ -182,13 +246,15 @@ const createApp = async (channel, component, props) => {
 
   const app = createRemoteRenderer(root).createApp(component, props)
 
-  app.mount(remoteRoot)
+  app.mount(root)
 
   return app
 }
 
 let onRelease = () => {}
 
+// In order to proxy function properties and methods between environments,
+// we need a library that can serialize functions over `postMessage`.
 const endpoint = createEndpoint(fromInsideIframe())
 
 const VButton = defineRemoteComponent('VButton')
@@ -199,6 +265,8 @@ const VInput = defineRemoteComponent('VInput', [
 })
 
 endpoint.expose({
+  // This `run()` method will kick off the process of synchronizing
+  // changes between environments. It will be called on the host.
   async run (channel, api) {
     retain(channel)
     retain(api)
@@ -259,9 +327,37 @@ for example, but not limited to).
 
 To run a Vue application, you should call this method supplying a remote root (`RemoteRoot`).
 
+### `createReceiver`
+
+Creates a `Receiver` object. This object can accept the instructions from the remote application and reconstruct them into a virtual dom on the host. 
+The virtual dom can then be used by Vue to render a real DOM in the host.
+
 #### `createRemoteRoot()`
 
 Creates a `RemoteRoot` object consumed by the `createRemoteRenderer()` method.
+
+This function is used to create a `RemoteRoot`. It takes a `Channel` and an options object as arguments. 
+The options object can include a components array and a strict boolean. 
+
+The components array is used when creating a `RemoteRoot` in the remote environment. This array should contain the names 
+of the components that the remote environment is allowed to render. These components are defined in the host environment 
+and are provided to the remote environment through the `Provider` object.
+
+The purpose of this array is to control what components the remote environment can use. This is important for security
+and control over what the remote environment can do. By specifying the components in this array,
+you ensure that the remote environment can only render the components that you have explicitly allowed.
+
+Here's an example of how you might use it:
+
+```typescript
+const root = createRemoteRoot(channel, {
+  components: ['Button', 'Input', 'List'], // These are the components that the remote environment can render
+  strict: true,
+});
+```
+
+In this example, the remote environment is only allowed to render the `Button`, `Input`, and `List` components. 
+These components would be defined in the host environment and provided to the remote environment through the `Provider` object.
 
 #### `defineRemoteComponent()`
 
