@@ -33,15 +33,16 @@ export default /*#__PURE__*/ defineComponent({
     },
   },
 
-  setup (props) {
+  setup (props, { expose }) {
     const tree = shallowRef(useReceived(props.receiver))
-
-    tree.value.update()
 
     watch(() => props.receiver, () => {
       tree.value.release()
       tree.value = useReceived(props.receiver)
-      tree.value.update()
+    })
+    
+    expose({
+      forceUpdate: () => tree.value.update(),
     })
 
     onUnmounted(tree.value.release)
