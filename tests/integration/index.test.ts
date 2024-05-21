@@ -65,11 +65,14 @@ describe('vue', () => {
 
     return createApp({
       setup (_, { expose }) {
+        const tree = ref<{ forceUpdate (): void } | null>(null)
         const _receiver = shallowRef(receiver)
         expose({
           setReceiver: (receiver: Receiver) => _receiver.value = receiver,
+          forceUpdate: () => tree.value?.forceUpdate(),
         })
         return () => h(HostedTree, {
+          ref: tree,
           provider,
           receiver: _receiver.value,
         })
@@ -515,5 +518,40 @@ describe('vue', () => {
     await receiver.flush()
 
     expect(el?.innerHTML).not.toBe('<!--comment example-->')
+  })
+
+  test('force update children', async () => {
+    const receiver = createReceiver()
+
+    const host = createHostApp(receiver).mount(el as HTMLElement) as ComponentPublicInstance<None, None, None, None, {
+      forceUpdate (): void;
+    }>
+
+    type API = { toggle (): void; }
+
+    const { vm } = await createRemoteApp<API>({
+      setup (_, { expose }) {
+        const show = ref(true)
+
+        expose({ toggle: () =>  { show.value = !show.value } })
+
+        return () => show.value
+          ? createTextVNode('text example')
+          : h(Comment, 'comment example')
+      },
+    }, receiver)
+    
+    host.forceUpdate()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('text example')
+
+    vm.toggle()
+    host.forceUpdate()
+
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).not.toBe('text example')
   })
 })

@@ -43,6 +43,7 @@ export type HostedChild = HostedComment | HostedComponent | HostedText
 
 export interface HostedRoot extends HostedNode {
   kind: typeof KIND_ROOT;
+  update (force?: boolean): void;
   children: ShallowRef<HostedChild[]>;
 }
 

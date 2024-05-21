@@ -33,7 +33,7 @@ export default /*#__PURE__*/ defineComponent({
     },
   },
 
-  setup (props) {
+  setup (props, { expose }) {
     const tree = shallowRef(useReceived(props.receiver))
 
     tree.value.update()
@@ -42,6 +42,10 @@ export default /*#__PURE__*/ defineComponent({
       tree.value.release()
       tree.value = useReceived(props.receiver)
       tree.value.update()
+    })
+    
+    expose({
+      forceUpdate: () => tree.value.update(true),
     })
 
     onUnmounted(tree.value.release)

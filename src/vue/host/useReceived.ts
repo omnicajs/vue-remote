@@ -44,8 +44,8 @@ export default function (receiver: Receiver): HostedRoot {
     id: root.id,
     kind: KIND_ROOT,
     children: children.ref,
-    update () {
-      children.load(root)
+    update (force = false) {
+      children.load(root, force)
     },
     release: fuse([
       receiver.tree.updatable<ReceivedRoot>(root, children.load),
@@ -68,6 +68,7 @@ export function useComment (
       const n = receiver.tree.get<ReceivedComment>(node)
       if (n) {
         text.value = n.text
+        console.log('useComment:update', n.text)
       }
     },
     release: receiver.tree.updatable(node, (n: ReceivedComment) => {
@@ -123,6 +124,7 @@ export function useText (
       const c = receiver.tree.get<ReceivedText>(node)
       if (c) {
         text.value = c.text
+        console.log('useText:update', c.text)
       }
     },
     release: receiver.tree.updatable(node, (n: ReceivedText) => {
@@ -148,16 +150,23 @@ export function useChild (
 export function useChildren <T extends ReceivedComponent | ReceivedRoot>(
   receiver: Receiver,
   node: T
-):{ ref: ShallowRef<HostedChild[]>, load: (node: T) => void} {
+):{ ref: ShallowRef<HostedChild[]>, load: (node: T, force?: boolean) => void} {
   const ref = shallowRef(node.children.map(c => useChild(receiver, c)))
-  const load = (node: T) => {
+  const load = (node: T, force = false) => {
     ref.value.forEach(_old => {
       if (!node.children.some(_new => _new.id === _old.id)) {
         _old.release()
       }
     })
     ref.value = node.children.map(_new => {
-      return ref.value.find(_old => _old.id === _new.id) ?? useChild(receiver, _new)
+      const foundOld = ref.value.find(_old => _old.id === _new.id) 
+      
+      if (force) {
+        foundOld?.update()
+        console.log('foundOld', foundOld)
+      }
+      
+      return foundOld ?? useChild(receiver, _new)
     })
   }
 
