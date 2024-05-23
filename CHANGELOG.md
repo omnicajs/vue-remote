@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.2.0](https://github.com/omnicajs/vue-remote/compare/v0.1.3...v0.2.0) (2024-05-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* Reworked state management inside HostedTree
+
+### Features
+
+* Added forceUpdate method for HostedTree ([f76029f](https://github.com/omnicajs/vue-remote/commit/f76029ff92bca23c7fecb728b4edab3c2f7423fc))
+* Reworked state management inside HostedTree ([47de07a](https://github.com/omnicajs/vue-remote/commit/47de07aacd3bc54314b7c546cd11e08403b6eb0b))
+
 ### [0.1.3](https://github.com/omnicajs/vue-remote/compare/v0.1.2...v0.1.3) (2024-04-27)
 
 
