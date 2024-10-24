@@ -28,13 +28,13 @@ import {
 import { HostedTree } from '@/vue/host'
 
 import {
+  Comment,
   createApp,
+  createTextVNode,
   h,
   nextTick,
   shallowRef,
   ref,
-  Comment,
-  createTextVNode,
 } from 'vue'
 
 import { createReceiver } from '@/dom/host'
