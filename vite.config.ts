@@ -1,15 +1,15 @@
 import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
+import { fileURLToPath } from 'node:url'
 
 import path from 'node:path'
-import url from 'node:url'
 
 import {
   dependencies,
   peerDependencies,
 } from './package.json'
 
-const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   resolve: {
@@ -45,5 +45,8 @@ export default defineConfig({
     },
   },
 
-  plugins: [dts({ rollupTypes: true })],
+  plugins: [dts({
+    include: ['src'],
+    rollupTypes: true,
+  })],
 })

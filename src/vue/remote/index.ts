@@ -7,10 +7,12 @@ export type {
   UnknownType,
   RemoteComment,
   RemoteComponent,
+  RemoteComponentDescriptor,
   RemoteFragment,
   RemoteRoot,
   RemoteRootOptions,
   RemoteText,
+  SchemaOf,
   SupportedBy,
 } from '@/dom/remote'
 

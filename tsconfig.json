@@ -14,7 +14,7 @@
             "dom.iterable",
             "scripthost"
         ],
-        "module": "esnext",
+        "module": "ESNext",
         "moduleResolution": "node",
         "paths": {
             "@/*": ["./src/*"],
