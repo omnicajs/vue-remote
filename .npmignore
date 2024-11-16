@@ -22,7 +22,7 @@ playwright.config.ts
 rollup.config.ts
 tsconfig.json
 vite.config.ts
-vitest.config.mts
+vitest.config.ts
 yarn.lock
 
 Makefile

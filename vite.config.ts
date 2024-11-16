@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import dts from 'vite-plugin-dts'
-import { fileURLToPath } from 'node:url'
 
 import path from 'node:path'
 
@@ -8,8 +7,6 @@ import {
   dependencies,
   peerDependencies,
 } from './package.json'
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig({
   resolve: {
@@ -29,7 +26,7 @@ export default defineConfig({
       fileName: (format, name) => `${name}.${{
         es: 'mjs',
         cjs: 'cjs',
-      }[format]}`,
+      }[format as 'es' | 'cjs']}`,
     },
     minify: false,
     rollupOptions: {

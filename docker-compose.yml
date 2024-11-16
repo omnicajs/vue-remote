@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   node:
     image: node:20
@@ -7,7 +5,7 @@ services:
     volumes:
       - ./:/project
     working_dir: /project
-    
+
   server:
     image: node:20-alpine
     user: node
@@ -17,7 +15,7 @@ services:
     command: 'yarn e2e:serve'
     ports:
       - '3000:3000'
-  
+
   e2e:
     image: mcr.microsoft.com/playwright:v1.41.1-jammy
     depends_on: 
