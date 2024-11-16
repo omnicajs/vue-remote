@@ -111,7 +111,7 @@ module.exports = {
     'vue/one-component-per-file': 'off',
   },
   overrides: [{
-    files: ['.eslintrc.js', 'commitlint.config.js'],
+    files: ['.eslintrc.js', 'commitlint.config.js', 'index.cjs'],
     env: {
       node: true,
     },
