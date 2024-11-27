@@ -168,7 +168,7 @@ export const serializeEvent = <E extends Event>(event: E): SerializedEventType<E
     return serializeMouseEvent(event)
   }
 
-  if (event instanceof TouchEvent) {
+  if (typeof window !== 'undefined' && window.TouchEvent && event instanceof TouchEvent) {
     return serializeTouchEvent(event)
   }
 
