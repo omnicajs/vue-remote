@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.2](https://github.com/omnicajs/vue-remote/compare/v0.2.0...v0.2.2) (2024-11-28)
+
+
+### Fixes
+
+* Checking that TouchEvent exists ([5802444](https://github.com/omnicajs/vue-remote/commit/5802444cb8854cd7df8046e27734dee0586c6756))
+* Types generation ([a2997e3](https://github.com/omnicajs/vue-remote/commit/a2997e3d7fb6b8e3c45d4844eefe9b11d05464c0))
+
 ### [0.2.1](https://github.com/omnicajs/vue-remote/compare/v0.2.0...v0.2.1) (2024-11-15)
 
 
