@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.4](https://github.com/omnicajs/vue-remote/compare/v0.2.3...v0.2.4) (2024-12-13)
+
+
+### Features
+
+* Added protection from JavaScript schema values in properties ([32d564f](https://github.com/omnicajs/vue-remote/commit/32d564f6c1fb5733290fcd05a47ba503b92c1b57))
+
 ### [0.2.3](https://github.com/omnicajs/vue-remote/compare/v0.2.2...v0.2.3) (2024-11-29)
 
 ### [0.2.2](https://github.com/omnicajs/vue-remote/compare/v0.2.0...v0.2.2) (2024-11-28)
