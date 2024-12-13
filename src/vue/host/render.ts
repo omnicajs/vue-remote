@@ -50,6 +50,12 @@ export const toSlots = (children: HostedChild[], render: (hosted: HostedChild) =
   } as Record<string, Slot>
 }
 
+const isJavaScriptSchema = (value: string) => {
+  const normalized = value.trim().toLowerCase()
+
+  return normalized.startsWith('javascript:') || decodeURIComponent(normalized).startsWith('javascript:')
+}
+
 export const process = (properties: Unknown | undefined): Unknown | undefined => {
   if (properties === undefined) {
     return undefined
@@ -58,6 +64,11 @@ export const process = (properties: Unknown | undefined): Unknown | undefined =>
   const result: Record<keyof typeof properties, unknown> = {}
   for (const key in properties) {
     const v = properties[key]
+    if (typeof v === 'string' && isJavaScriptSchema(v)) {
+      result[key] = 'javascript:void(0);'
+      continue
+    }
+
     result[key] = /^on[A-Z]/.test(key) && isFunction(v)
       ? (...args: unknown[]) => v(...args.map(arg => arg instanceof Event ? serializeEvent(arg) : arg))
       : v
