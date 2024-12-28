@@ -1,22 +1,49 @@
 import type {
-  SerializedEvent,
-  SerializedFile,
   SerializedDataTransfer,
-  SerializedEventType,
-  SerializedInputEvent,
   SerializedDragEvent,
+  SerializedEvent,
+  SerializedEventType,
+  SerializedFile,
   SerializedFocusEvent,
+  SerializedInputEvent,
   SerializedKeyboardEvent,
   SerializedMouseEvent,
   SerializedPointerEvent,
+  SerializedTarget,
   SerializedTouch,
   SerializedTouchEvent,
   SerializedWheelEvent,
 } from '~types/events'
 
+export const serializeTarget = (target: EventTarget): SerializedTarget => {
+  switch (true) {
+    case target instanceof HTMLInputElement:
+    case target instanceof HTMLSelectElement:
+    case target instanceof HTMLTextAreaElement:
+      return {
+        value: target.value,
+        ...(target instanceof HTMLInputElement && { checked: target.checked }),
+        ...(target instanceof HTMLSelectElement && {
+          selectedIndex: target.selectedIndex,
+          selectedOptions: [...target.selectedOptions].map(option => ({
+            value: option.value,
+            text: option.text,
+            selected: option.selected,
+          })),
+        }),
+      }
+    case target instanceof HTMLElement:
+      return {}
+  }
+
+  return {}
+}
+
 export const serializeBaseEvent = (event: Event): SerializedEvent => {
   return {
     type: event.type,
+    target: event.target ? serializeTarget(event.target) : null,
+    currentTarget: event.currentTarget ? serializeTarget(event.currentTarget) : null,
     bubbles: event.bubbles,
     cancelable: event.cancelable,
     composed: event.composed,
@@ -55,12 +82,8 @@ export const serializeDragEvent = (event: DragEvent): SerializedDragEvent => {
 export const serializeInputEvent = (event: InputEvent): SerializedInputEvent => {
   return {
     ...serializeBaseEvent(event),
-    isTrusted: event.isTrusted,
     data: event.data,
-    target: {
-      value: (event.target as HTMLInputElement | HTMLTextAreaElement).value,
-    },
-  }
+  } as SerializedInputEvent
 }
 
 export const serializeFocusEvent = (event: FocusEvent): SerializedFocusEvent => {

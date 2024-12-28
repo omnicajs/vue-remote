@@ -1,5 +1,7 @@
 export interface SerializedEvent {
   type: Event['type'];
+  target: SerializedTarget | null;
+  currentTarget: SerializedTarget | null;
   bubbles: Event['bubbles'];
   cancelable: Event['cancelable']; 
   composed: Event['composed'];  
@@ -23,12 +25,16 @@ export interface SerializedDataTransfer {
   files: SerializedFile[];
 }
 
+export interface SerializedTarget {}
+
+export interface SerializedInputEventTarget {
+  value: string;
+}
+
 export interface SerializedInputEvent extends SerializedEvent {
   isTrusted: InputEvent['isTrusted'];
   data: InputEvent['data'];
-  target: {
-    value: HTMLInputElement['value'] | HTMLTextAreaElement['value'];
-  };
+  target: SerializedInputEventTarget;
 }
 
 export interface SerializedDragEvent extends SerializedMouseEvent {
