@@ -27,6 +27,7 @@ export const createRemoteText = <Root extends RemoteRoot>(
     ),
     serialize: () => ({ id, kind: KIND_TEXT, text: data.text }),
     remove: () => node.parent?.removeChild(node),
+    print: () => `Text(${data.text})`,
   } as RemoteText<Root>
 
   context.collect(node)

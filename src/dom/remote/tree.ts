@@ -137,6 +137,7 @@ export interface RemoteComment<Root extends RemoteRoot = RemoteRoot> extends Rem
   update (text: string): void | Promise<void>;
   remove (): void | Promise<void>;
   serialize (): SerializedComment;
+  print (): string;
 }
 
 export type RemoteComponentOption<
@@ -218,6 +219,8 @@ export interface RemoteComponent<
   remove (): void | Promise<void>;
 
   serialize (): SerializedComponent<PropertiesOf<Type>>;
+
+  print (): string;
 }
 
 export interface RemoteFragment<Root extends RemoteRoot = RemoteRoot> extends RemoteNode {
@@ -280,6 +283,7 @@ export interface RemoteText<Root extends RemoteRoot = RemoteRoot> extends Remote
   update (text: string): void | Promise<void>;
   serialize (): SerializedText;
   remove (): void | Promise<void>;
+  print (): string;
 }
 
 export type UnknownComponent = RemoteComponent<UnknownType>

@@ -27,6 +27,7 @@ export const createRemoteComment = <Root extends RemoteRoot>(
     ),
     serialize: () => ({ id, kind: KIND_COMMENT, text: data.text }),
     remove: () => node.parent?.removeChild(node),
+    print: () => `Comment(${data.text})`,
   } as RemoteComment<Root>
 
   context.collect(node)
