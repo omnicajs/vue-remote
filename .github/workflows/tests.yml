@@ -8,7 +8,7 @@ concurrency:
 
 jobs:
   eslint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -42,7 +42,7 @@ jobs:
     needs: eslint
 
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     strategy:
       matrix:
@@ -88,7 +88,7 @@ jobs:
     needs: [eslint, tests]
     
     timeout-minutes: 60
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     
     strategy:
       matrix:
@@ -114,10 +114,10 @@ jobs:
         key: ${{ runner.OS }}-node-${{ matrix.node-version }}-yarn-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
           ${{ runner.OS }}-node-${{ matrix.node-version }}-yarn-
-      
+
     - name: Install Playwright Browsers
       run: npx playwright install chromium firefox --with-deps
-      
+
     - name: Build e2e example app
       run: yarn e2e:build
       
