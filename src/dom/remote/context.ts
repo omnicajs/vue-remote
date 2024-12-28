@@ -298,24 +298,28 @@ const insertBefore = (
     throw new Error('Cannot insert a node that was not created by this remote root')
   }
 
-  const currentParent = child.parent
-  const currentIndex = currentParent?.children.indexOf(child) ?? -1
-
-  return update(context, parent,  (channel) => {
-    const beforeIndex = before == null
-      ? parent.children.length - 1
-      : parent.children.indexOf(before)
-
-    channel(
-      ACTION_INSERT_CHILD,
-      parent.id,
-      beforeIndex < currentIndex || currentIndex < 0
-        ? beforeIndex
-        : beforeIndex - 1,
-      child.serialize(),
-      currentParent ? currentParent.id : false
+  if (before && before.id === child.id) return
+  if (before && !parent.children.includes(before)) {
+    throw new DOMException(
+      'Cannot add a child before an element that is not a child of the target parent.',
+      'HierarchyRequestError'
     )
-  }, () => insert(context, parent, child, before))
+  }
+
+  const oldIndex = parent.children.indexOf(child) ?? -1
+  const oldParent = child.parent
+
+  const beforeIndex = before ? parent.children.indexOf(before) : -1
+
+  return update(context, parent,  (channel) => channel(
+    ACTION_INSERT_CHILD,
+    parent.id,
+    beforeIndex < 0
+      ? parent.children.length
+      : oldIndex < 0 || oldIndex > beforeIndex ? beforeIndex : beforeIndex - 1,
+    child.serialize(),
+    oldParent ? oldParent.id : false
+  ), () => insert(context, parent, child, before))
 }
 
 /** @TODO: Объединение удаления нескольких узлов в один запрос */
