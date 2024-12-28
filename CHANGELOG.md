@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.5](https://github.com/omnicajs/vue-remote/compare/v0.2.4...v0.2.5) (2024-12-28)
+
+
+### Features
+
+* Added print method to RemoteComment, RemoteComponent and RemoteText ([ec75471](https://github.com/omnicajs/vue-remote/commit/ec75471b0d015d49cc8362dc16393c98f7155ac9))
+* Event target serialization basics ([57a312b](https://github.com/omnicajs/vue-remote/commit/57a312bf87a061f67d2f45926c36d7db325c6354))
+
+
+### Fixes
+
+* Fixed child node insertion ([0ad0d2e](https://github.com/omnicajs/vue-remote/commit/0ad0d2e0e7e16b52c9556164c52b7b66a16e0d0e))
+
 ### [0.2.4](https://github.com/omnicajs/vue-remote/compare/v0.2.3...v0.2.4) (2024-12-13)
 
 
