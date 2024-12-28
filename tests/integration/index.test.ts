@@ -175,6 +175,8 @@ describe('vue', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
     expect(onClick).toHaveBeenCalledWith({
       type: 'click',
+      target: {},
+      currentTarget: {},
       bubbles: true,
       button: 0,
       cancelable: true,
@@ -235,6 +237,8 @@ describe('vue', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
     expect(onClick).toHaveBeenCalledWith({
       type: 'click',
+      target: {},
+      currentTarget: {},
       bubbles: false,
       cancelable: false,
       composed: false,
@@ -273,6 +277,8 @@ describe('vue', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
     expect(onClick).toHaveBeenCalledWith({
       type: 'click',
+      target: {},
+      currentTarget: {},
       bubbles: true,
       button: 0,
       cancelable: true,

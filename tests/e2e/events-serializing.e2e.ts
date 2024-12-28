@@ -24,6 +24,14 @@ test('serialized InputEvent', async ({ page }) => {
 
   expect(await getSerializedEvent(page, 'input')).toEqual(expect.objectContaining({
     type: 'input',
+    target: {
+      checked: false,
+      value: 'playwright@microsoft.com',
+    },
+    currentTarget: {
+      checked: false,
+      value: 'playwright@microsoft.com',
+    },
     bubbles: true,
     cancelable: false,
     composed:  true,
@@ -31,7 +39,6 @@ test('serialized InputEvent', async ({ page }) => {
     defaultPrevented: false,
     eventPhase: 2,
     isTrusted: true,
-    target: { value: 'playwright@microsoft.com' },
   }))
 })
 

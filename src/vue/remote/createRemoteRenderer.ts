@@ -31,7 +31,7 @@ const nextSibling = <Root extends RemoteRoot = RemoteRoot>(node: Node<Root>) => 
 }
 
 const setElementText = <Root extends RemoteRoot = RemoteRoot>(
-  element: Component<Root>,
+  element: Root | Component<Root>,
   text: string
 ) => {
   const [node] = element.children
