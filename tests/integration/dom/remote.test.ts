@@ -45,6 +45,7 @@ describe('dom/remote', () => {
 
       expect(comment.id).toEqual('1')
       expect(comment.text).toEqual('v-if')
+      expect(comment.print()).toEqual('Comment(v-if)')
     })
   })
 
@@ -68,6 +69,7 @@ describe('dom/remote', () => {
       expect(card.progenitor).toBeNull()
       expect(card.parent).toBeNull()
       expect(card.children).toEqual([])
+      expect(card.print()).toEqual('VCard:1[]')
     })
 
     test('creates component with children', () => {
@@ -83,6 +85,7 @@ describe('dom/remote', () => {
       expect(card.children).toHaveLength(2)
       expect((card.children[0] as UnknownComponent).type).toEqual('VImage')
       expect((card.children[1] as UnknownComponent).type).toEqual('VButton')
+      expect(card.print()).toEqual('VCard:3[\n  VImage:1[],\n  VButton:2[]\n]')
     })
 
     test('creates component with single child', () => {
@@ -157,6 +160,7 @@ describe('dom/remote', () => {
       expect(text.root).toEqual(root)
       expect(text.progenitor).toBeNull()
       expect(text.parent).toBeNull()
+      expect(text.print()).toEqual('Text()')
     })
   })
 

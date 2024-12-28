@@ -103,6 +103,8 @@ export function createRemoteComponent <R extends RemoteRoot, T extends Supported
       properties: data.properties.serializable,
       children: data.children.map(c => c.serialize()),
     }),
+
+    print: () => _print(id, type, data.properties.original as PropertiesOf<T>, data.children),
   } as RemoteComponent<T, R>
 
   context.collect(node)
@@ -237,4 +239,29 @@ function serializeProperty (property: unknown) {
   return isRemoteFragment(property)
     ? property.serialize()
     : property
+}
+
+function _print <R extends RemoteRoot, T extends SupportedBy<R>>(
+  id: string,
+  type: T | RemoteComponentDescriptor<T>,
+  _properties: PropertiesOf<T> | null | undefined,
+  children: ReadonlyArray<
+    | RemoteComment<R>
+    | RemoteComponent<ChildrenOf<T>, R>
+    | RemoteText<R>
+    | string
+  >
+) {
+  const _head = `${typeof type === 'string' ? type : type.type}:${id}`
+  const _children = children.map(c => typeof c === 'string' ? c : c.print())
+  const _body = _children.length > 0 ? `\n${_indent(_children.join(',\n'))}\n` : ''
+
+  return `${_head}[${_body}]`
+}
+
+function _indent (text: string) {
+  return text
+    .split('\n')
+    .map(line => `  ${line}`)
+    .join('\n')
 }
