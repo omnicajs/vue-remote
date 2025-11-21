@@ -449,8 +449,8 @@ describe('vue', () => {
 
         expose({ toggle: () =>  { show.value = !show.value } })
 
-        return () => show.value 
-          ? createTextVNode('text example') 
+        return () => show.value
+          ? createTextVNode('text example')
           : h(Comment, 'comment example')
       },
     }, receiver)
@@ -517,7 +517,7 @@ describe('vue', () => {
           : h(Comment, 'comment example')
       },
     }, receiver)
-    
+
     host.forceUpdate()
     await receiver.flush()
 
