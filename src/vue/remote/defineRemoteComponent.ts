@@ -1,5 +1,5 @@
 import type {
-  Component,
+  DefineComponent,
   EmitsOptions,
   MethodOptions,
 } from 'vue'
@@ -37,6 +37,18 @@ const fallthroughEvents = <Emits extends EmitsOptions | undefined = undefined>(
   }, {} as Record<string, EventHandler>)
 }
 
+type DefineRemoteComponent<
+  Props extends Unknown = None,
+  Emits extends EmitsOptions | undefined = undefined,
+> = DefineComponent<
+  Props,
+  Unknown,
+  None,
+  None,
+  MethodOptions,
+  Emits extends undefined ? None : Emits
+>
+
 export default <
   Type extends string,
   Props extends Unknown = None,
@@ -47,21 +59,15 @@ export default <
   type: Type | SchemaType<Type, Props, Methods, Children>,
   emits: Emits | undefined = undefined,
   slots: string[] = []
-): Component<
-  Unknown,
-  Props,
-  None,
-  None,
-  MethodOptions,
-  Emits extends undefined ? None : Emits
-> => defineComponent({
+): DefineRemoteComponent<Props, Emits> => defineComponent({
   name: type,
   inheritAttrs: false,
   ...(emits ? { emits } : {}),
-  setup (_, { attrs, emit, slots: internalSlots }) {
+  setup (props, { attrs, emit, slots: internalSlots }) {
     return () => h(type, {
+      ...props,
       ...attrs,
       ...fallthroughEvents(emits, emit),
     }, toRemoteSlots(slots, internalSlots))
   },
-})
+}) as DefineRemoteComponent<Props, Emits>
