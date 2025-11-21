@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.8](https://github.com/omnicajs/vue-remote/compare/v0.2.7...v0.2.8) (2025-11-21)
+
+
+### Fixes
+
+* Code rebuilt with correct signatures ([8099005](https://github.com/omnicajs/vue-remote/commit/8099005ba9e3c4435d7c894104ea2504cc7db8c3))
+
 ### [0.2.7](https://github.com/omnicajs/vue-remote/compare/v0.2.6...v0.2.7) (2025-11-21)
 
 
