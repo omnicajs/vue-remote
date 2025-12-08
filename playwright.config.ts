@@ -11,13 +11,11 @@ export default defineConfig({
   use: {
     trace: 'on-first-retry',
   },
-
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'], hasTouch: true },
     },
-
     {
       name: 'firefox',
       use: { ...devices['Desktop Firefox'], hasTouch: true },

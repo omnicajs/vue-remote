@@ -14,4 +14,4 @@ export default {
 
   emits: ['click'],
 }
-</script>  
+</script>

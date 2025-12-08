@@ -75,6 +75,7 @@ async function stopCodeCoverage(page: Page) {
       if (keys.length) {
         saveCoverage(JSON.stringify(result))
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (e) {
       console.error(`Unable to process coverage for ${entry.scriptId}:${entry.url}`)
     }
@@ -135,13 +136,13 @@ export function captureCoverage(
     resetOnNavigation: false,
   }
 ) {
-    // console.log('process.env.CI', process.env.CI);
+  // console.log('process.env.CI', process.env.CI);
   testConstructor.beforeEach(async ({ browser }) => {
     if (browser.browserType().name() !== 'chromium') {
-            // Skipping coverage for non-chromium browsers
+      // Skipping coverage for non-chromium browsers
       return
     }
-        // check for browser type
+    // check for browser type
     patchNewContext(browser, options)
     browser.contexts().forEach((context) => {
       patchNewPage(context, options)

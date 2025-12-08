@@ -46,7 +46,6 @@ import {
 import { ACTION_UPDATE_PROPERTIES } from '@/dom/common/channel'
 import { KIND_COMPONENT } from '@/dom/common/tree'
 
-// eslint-disable-next-line max-lines-per-function
 export function createRemoteComponent <R extends RemoteRoot, T extends SupportedBy<R>>(
   type: T | RemoteComponentDescriptor<T>,
   properties: PropertiesOf<T> | null | undefined,
@@ -182,7 +181,6 @@ function createRemoteComponentData <S extends SupportedBy<RemoteRoot>, T extends
   }
 }
 
-// eslint-disable-next-line max-lines-per-function
 function updateProperties<R extends RemoteRoot>(
   context: TreeContext<R>,
   component: RemoteComponent<SupportedBy<R>, R>,

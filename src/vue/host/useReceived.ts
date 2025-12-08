@@ -157,12 +157,12 @@ export function useChildren <T extends ReceivedComponent | ReceivedRoot>(
       }
     })
     ref.value = node.children.map(_new => {
-      const foundOld = ref.value.find(_old => _old.id === _new.id) 
-      
+      const foundOld = ref.value.find(_old => _old.id === _new.id)
+
       if (force && foundOld) {
         foundOld.update()
       }
-      
+
       return foundOld ?? useChild(receiver, _new)
     })
   }

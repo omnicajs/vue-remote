@@ -1,6 +1,11 @@
+import type { LibraryFormats } from 'vite'
+
 import { defineConfig } from 'vite'
+import { mergeConfig } from 'vite'
+
 import dts from 'vite-plugin-dts'
 
+import basic from './vite.config.basic'
 import path from 'node:path'
 
 import {
@@ -8,25 +13,16 @@ import {
   peerDependencies,
 } from './package.json'
 
-export default defineConfig({
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
-  },
+const formats = ['es', 'cjs'] satisfies LibraryFormats[]
 
+export default mergeConfig(basic, defineConfig({
   build: {
     lib: {
       name: '@omnicajs/vue-remote',
-      formats: ['es', 'cjs'],
       entry: {
         host: path.resolve(__dirname, './src/vue/host/index.ts'),
         remote: path.resolve(__dirname, './src/vue/remote/index.ts'),
       },
-      fileName: (format, name) => `${name}.${{
-        es: 'mjs',
-        cjs: 'cjs',
-      }[format as 'es' | 'cjs']}`,
     },
     minify: false,
     rollupOptions: {
@@ -34,11 +30,17 @@ export default defineConfig({
         ...Object.keys(dependencies),
         ...Object.keys(peerDependencies),
       ],
-      output: {
-        exports: 'named',
-        dir: path.join(__dirname, '/dist'),
-        globals: { vue: 'Vue' },
-      },
+      output: formats.map((format) => {
+        const ext = format === 'es' ? 'mjs' : 'cjs'
+        return {
+          format,
+          exports: 'named',
+          dir: path.join(__dirname, '/dist'),
+          globals: { vue: 'Vue' },
+          entryFileNames: `[name].${ext}`,
+          chunkFileNames: `common.${ext}`,
+        }
+      }),
     },
   },
 
@@ -46,4 +48,4 @@ export default defineConfig({
     include: ['src'],
     rollupTypes: true,
   })],
-})
+}))

@@ -40,7 +40,7 @@ export default /*#__PURE__*/ defineComponent({
       tree.value.release()
       tree.value = useReceived(props.receiver)
     })
-    
+
     expose({
       forceUpdate: () => tree.value.update(),
     })

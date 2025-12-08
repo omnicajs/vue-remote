@@ -3,16 +3,16 @@ export interface SerializedEvent {
   target: SerializedTarget | null;
   currentTarget: SerializedTarget | null;
   bubbles: Event['bubbles'];
-  cancelable: Event['cancelable']; 
-  composed: Event['composed'];  
-  defaultPrevented: Event['defaultPrevented'];  
-  eventPhase: Event['eventPhase'];  
-  isTrusted: Event['isTrusted']; 
+  cancelable: Event['cancelable'];
+  composed: Event['composed'];
+  defaultPrevented: Event['defaultPrevented'];
+  eventPhase: Event['eventPhase'];
+  isTrusted: Event['isTrusted'];
 }
 
 export interface SerializedFile {
   lastModified: File['lastModified'];
-  name: File['webkitRelativePath'];   
+  name: File['webkitRelativePath'];
   webkitRelativePath: File['webkitRelativePath'];
   size: Blob['size'];
   type: Blob['type'];
@@ -126,7 +126,7 @@ interface EvenMap extends EventMapDistinct {
 type IsExactlyEvent<E, T> = E extends T ? (T extends E ? true : false) : false
 
 type EventType<E extends Event> = {
-  [K in keyof EventMapDistinct]: IsExactlyEvent<E, Event> extends true 
+  [K in keyof EventMapDistinct]: IsExactlyEvent<E, Event> extends true
       ? 'basic' : (IsExactlyEvent<E, EventMapDistinct[K][0]> extends true ? K : never);
 }[keyof EventMapDistinct]
 

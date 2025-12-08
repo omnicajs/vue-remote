@@ -1,13 +1,13 @@
 services:
   node:
-    image: node:20
+    image: node:24
     user: node
     volumes:
       - ./:/project
     working_dir: /project
 
   server:
-    image: node:20-alpine
+    image: node:24-alpine
     user: node
     volumes:
       - ./:/project
@@ -17,8 +17,8 @@ services:
       - '3000:3000'
 
   e2e:
-    image: mcr.microsoft.com/playwright:v1.41.1-jammy
-    depends_on: 
+    image: mcr.microsoft.com/playwright:v1.57.0-jammy
+    depends_on:
       - server
     volumes:
       - ./:/project

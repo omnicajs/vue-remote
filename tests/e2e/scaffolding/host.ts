@@ -58,6 +58,6 @@ export const mount = (provider: Provider, src: string) => {
   return app
 }
 
-const HOSTNAME = 'process.env.SERVER'
+const HOSTNAME = process.env.SERVER
 
 export const src = (caseName: string) => `http://${HOSTNAME}:3000/remote/${caseName}`

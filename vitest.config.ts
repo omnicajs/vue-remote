@@ -1,26 +1,18 @@
-import type { UserConfig } from 'vite'
-
 import {
   defineConfig,
   mergeConfig,
 } from 'vitest/config'
 
-import { join } from 'node:path'
-
+// @ts-ignore
 import vue from '@vitejs/plugin-vue'
 
-const buildConfig = {
-  resolve: {
-    alias: {
-      '@': join(__dirname, './src/'),
-    },
-  },
+import basic from './vite.config.basic'
+
+export default mergeConfig(basic, defineConfig({
   plugins: [
     vue(),
   ],
-} satisfies UserConfig
 
-const testConfig = defineConfig({
   test: {
     environment: 'jsdom',
     coverage: {
@@ -28,9 +20,4 @@ const testConfig = defineConfig({
       include: ['src/**'],
     },
   },
-})
-
-export default mergeConfig(
-  buildConfig,
-  testConfig
-)
+}))

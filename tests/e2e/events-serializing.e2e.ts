@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import type { SerializedEvent } from '~types/events'
 
 import {
   expect,
@@ -13,9 +14,15 @@ const SERVER = process.env.SERVER || 'localhost'
 
 captureCoverage(test)
 
-const getSerializedEvent =  async (page: Page, type: string) => {
+const getSerializedEvents = async (page: Page) => {
   const json = await page.locator('#events-json').inputValue()
-  return JSON.parse(json).find((event: Event) => event.type === type)
+  return JSON.parse(json) as SerializedEvent[]
+}
+
+const getSerializedEvent =  async (page: Page, type: string) => {
+  const all = await getSerializedEvents(page)
+
+  return all.find((event: SerializedEvent) => event.type === type)
 }
 
 test('serialized InputEvent', async ({ page }) => {
@@ -62,6 +69,9 @@ test('serialized FocusEvent', async ({ page }) => {
 test('serialized KeyboardEvent', async ({ page }) => {
   await page.goto(`http://${SERVER}:3000/host/events-serializing`)
   await page.getByPlaceholder('vue-remote').press('Enter')
+  await page.waitForFunction(() => {
+    return document.querySelector<HTMLInputElement>('#events-json')?.value.includes('keydown') ?? false
+  }, null, { timeout: 1000 })
 
   expect(await getSerializedEvent(page, 'keydown')).toEqual(expect.objectContaining({
     type: 'keydown',
@@ -138,6 +148,9 @@ test('serialized WheelEvent', async ({ page }) => {
 test('serialized TouchEvent', async ({ page }) => {
   await page.goto(`http://${SERVER}:3000/host/events-serializing`)
   await page.getByRole('button', { name: 'Clear' }).tap()
+  await page.waitForFunction(() => {
+    return document.querySelector<HTMLInputElement>('#events-json')?.value.includes('touchstart') ?? false
+  }, null, { timeout: 1000 })
 
   expect(await getSerializedEvent(page, 'touchstart')).toEqual(expect.objectContaining({
     altKey: false,

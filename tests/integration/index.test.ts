@@ -480,7 +480,7 @@ describe('vue', () => {
 
         expose({ toggle: () =>  { show.value = !show.value } })
 
-        return () => show.value ? h(Comment, 'comment example'): ''
+        return () => show.value ? h(Comment, 'comment example') : ''
       },
     }, receiver)
 
