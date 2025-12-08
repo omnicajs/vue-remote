@@ -1,7 +1,6 @@
-import type {
-  Slot,
-  VNode,
-} from 'vue'
+import type { Slot } from 'vue'
+import type { VNode } from 'vue'
+import type { Ref } from 'vue'
 
 import type { Provider } from '~types/vue/host'
 
@@ -56,21 +55,26 @@ const isJavaScriptSchema = (value: string) => {
   return normalized.startsWith('javascript:') || decodeURIComponent(normalized).startsWith('javascript:')
 }
 
-export const process = (properties: Unknown | undefined): Unknown | undefined => {
+export const process = (properties: Ref<Unknown | undefined>): Unknown | undefined => {
   if (properties === undefined) {
     return undefined
   }
 
-  const result: Record<keyof typeof properties, unknown> = {}
-  for (const key in properties) {
-    const v = properties[key]
+  const result: Record<keyof Unknown, unknown> = {}
+  for (const key in properties.value) {
+    const v = properties.value[key]
     if (typeof v === 'string' && isJavaScriptSchema(v)) {
       result[key] = 'javascript:void(0);'
       continue
     }
 
     result[key] = /^on[A-Z]/.test(key) && isFunction(v)
-      ? (...args: unknown[]) => v(...args.map(arg => arg instanceof Event ? serializeEvent(arg) : arg))
+      ? (...args: unknown[]) => {
+        const v = properties.value?.[key]
+        if (isFunction(v)) {
+          return v(...args.map(arg => arg instanceof Event ? serializeEvent(arg) : arg))
+        }
+      }
       : v
   }
 
@@ -84,7 +88,7 @@ const render = (node: HostedChild, provider: Provider): VNode | string | null =>
       return null
     }
 
-    const props = { ...process(node.properties.value), ref: node.ref }
+    const props = { ...process(node.properties), ref: node.ref }
     const children = node.children.value
 
     return isDOMTag(node.type)
