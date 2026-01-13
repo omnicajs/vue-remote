@@ -1,4 +1,5 @@
 import type { ReceivedChild } from '@/dom/host'
+import type { ReceivedComponent } from '@/dom/host/tree'
 import type { RemoteText } from '@/dom/remote'
 
 import {
@@ -11,6 +12,19 @@ import {
 
 import { createReceiver } from '@/dom/host'
 import { createRemoteRoot } from '@/dom/remote'
+
+import {
+  isSerializedComment,
+  isSerializedText,
+} from '@/dom/common/tree'
+
+import {
+  isReceivedComment,
+  isReceivedText,
+  isReceivedFragment,
+  deserialize,
+  addVersion,
+} from '@/dom/host/tree'
 
 import {
   KIND_COMMENT,
@@ -30,6 +44,42 @@ const expectElement = (type: string, children: ReceivedChild[]) =>  expect.objec
 const expectText = (text: string) => expect.objectContaining({ kind: KIND_TEXT, text })
 
 describe('dom/consistency', () => {
+  test('type guards coverage', () => {
+    expect(isSerializedComment({ kind: 'comment' })).toBe(true)
+    expect(isSerializedComment({ kind: 'text' })).toBe(false)
+    expect(isSerializedComment(null)).toBe(false)
+
+    expect(isSerializedText({ kind: 'text' })).toBe(true)
+    expect(isSerializedText({ kind: 'comment' })).toBe(false)
+    expect(isSerializedText(null)).toBe(false)
+
+    expect(isReceivedComment({ kind: 'comment', version: 0 })).toBe(true)
+    expect(isReceivedComment({ kind: 'comment' })).toBe(false)
+
+    expect(isReceivedText({ kind: 'text', version: 0 })).toBe(true)
+    expect(isReceivedText({ kind: 'text' })).toBe(false)
+
+    expect(isReceivedFragment({ kind: 'fragment', version: 0 })).toBe(true)
+    expect(isReceivedFragment({ kind: 'fragment' })).toBe(false)
+  })
+
+  test('deserialize with fragments coverage', () => {
+    const fragment = { id: '2', kind: 'fragment', children: [] } as const
+    const component = deserialize({
+      id: '1',
+      kind: 'component',
+      type: 'VButton',
+      properties: {
+        content: fragment,
+      },
+      children: [],
+    }, addVersion) as ReceivedComponent<{
+      content: typeof fragment & { version: number },
+    }>
+
+    expect(component.properties.content.version).toBe(0)
+  })
+
   test('remote tree is mounted correctly', async () => {
     const onMounted = vi.fn()
 

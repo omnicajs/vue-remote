@@ -52,8 +52,10 @@ import VCard from './fixtures/host/VCard.vue'
 import RemoteButton from './fixtures/remote/RemoteButton.vue'
 import RemoteCard from './fixtures/remote/RemoteCard.vue'
 
-Object.defineProperty(window, 'DragEvent', { value: class DragEvent {} }) // fix ReferenceError: DragEvent is not defined
-Object.defineProperty(window, 'PointerEvent', { value: class PointerEvent {} }) // fix ReferenceError: PointerEvent is not defined
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'DragEvent', { value: class DragEvent {} })
+  Object.defineProperty(window, 'PointerEvent', { value: class PointerEvent {} })
+}
 
 describe('vue', () => {
   let el: HTMLElement | null = null
