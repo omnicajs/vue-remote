@@ -1,0 +1,223 @@
+---
+title: Integration
+description: Host product and third-party remote extension integration model for @omnicajs/vue-remote.
+template: doc
+---
+
+## Ecosystem model
+
+The target is an extension ecosystem:
+
+- Any product (commercial or non-commercial) can expose an extension surface.
+- Third-party developers can build remote extensions outside the host team and codebase.
+- `@omnicajs/vue-remote` synchronizes UI trees between host and remote runtimes.
+
+## Scope of this library
+
+`@omnicajs/vue-remote` covers render synchronization only:
+
+- Host: `createProvider`, `createReceiver`, `HostedTree`.
+- Remote: `createRemoteRoot`, `createRemoteRenderer`, `defineRemoteComponent`.
+- Tree updates over a channel (often implemented with `@remote-ui/rpc`).
+
+Out of scope by design:
+
+- Transport contracts for host business data and methods.
+- Extension discovery, permissions, auth, billing, and marketplace workflows.
+- Product-specific extension lifecycle policies and governance.
+
+Keep these concerns in adjacent ecosystem tooling.
+This library is one required building block, not the full platform runtime.
+
+## Recommended topology
+
+Host application and remote extensions should be separate deliverables.
+
+```text
+host-product/
+  src/
+    extensions/
+      host-components/
+        index.ts
+      runtime/
+        mountExtension.ts
+      hostBridge.ts
+  package.json
+
+remote-extension-example/
+  src/
+    entry.ts
+    App.vue
+    bridge/
+      hostApi.ts
+  package.json
+```
+
+The host product does not need to contain remote extension source code.
+Each extension can live in its own repository, release pipeline, and versioning cycle.
+
+## Host side organization
+
+Split host extension runtime into clear layers:
+
+1. UI provider layer: host components exposed through `createProvider(...)`.
+2. Runtime layer: iframe/worker boot, channel wiring, extension lifecycle (`run/release`).
+3. Business bridge layer: product APIs/data transported through your own contract.
+4. Security layer: permission checks and capability gating for extensions.
+
+### Host integration example
+
+```ts
+import type { Channel } from '@omnicajs/vue-remote/host'
+import type { Endpoint } from '@remote-ui/rpc'
+
+import { createEndpoint, fromIframe } from '@remote-ui/rpc'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createApp, defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue'
+
+import VButton from './components/VButton.vue'
+import VInput from './components/VInput.vue'
+
+type HostBridge = {
+  track(event: { type: string; payload: Record<string, unknown> }): void;
+}
+
+type ExtensionApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const provider = createProvider({
+  VButton,
+  VInput,
+})
+
+export function mountExtension(remoteUrl: string, bridge: HostBridge) {
+  return createApp(defineComponent({
+    setup() {
+      const iframe = ref<HTMLIFrameElement | null>(null)
+      const receiver = createReceiver()
+
+      let endpoint: Endpoint<ExtensionApi> | null = null
+
+      onMounted(() => {
+        endpoint = createEndpoint<ExtensionApi>(fromIframe(iframe.value as HTMLIFrameElement, {
+          terminate: false,
+        }))
+      })
+
+      onBeforeUnmount(() => endpoint?.call.release())
+
+      return () => [
+        h(HostedTree, { provider, receiver }),
+        h('iframe', {
+          ref: iframe,
+          src: remoteUrl,
+          style: { display: 'none' },
+          onLoad: () => endpoint?.call.run(receiver.receive, bridge),
+        }),
+      ]
+    },
+  }))
+}
+```
+
+## Remote side organization
+
+A remote extension package typically contains:
+
+- extension UI entrypoint;
+- extension-specific state and logic;
+- `run/release` bridge endpoint implementation.
+
+It does not contain host provider logic.
+
+### Remote integration example
+
+```ts
+import { createEndpoint, fromInsideIframe, release, retain } from '@remote-ui/rpc'
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+type HostBridge = {
+  track(event: { type: string; payload: Record<string, unknown> }): void;
+}
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const endpoint = createEndpoint(fromInsideIframe())
+let onRelease = () => {}
+
+endpoint.expose({
+  async run(channel, bridge: HostBridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, {
+      components: ['VButton', 'VInput'],
+    })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        const text = ref('')
+
+        return () => [
+          h(VInput, {
+            value: text.value,
+            'onUpdate:value': (value: string) => text.value = value,
+          }),
+          h(VButton, {
+            onClick: () => bridge.track({
+              type: 'remote.clear',
+              payload: { value: text.value },
+            }),
+          }, 'Clear'),
+        ]
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+
+  release() {
+    onRelease()
+  },
+})
+```
+
+## Startup sequence
+
+1. Host starts and initializes the extension runtime shell.
+2. Host loads extension runtime URL (often iframe/worker entrypoint).
+3. Remote runtime exposes `run/release`.
+4. Host calls `run(channel, hostBridge)` with the render channel and optional product bridge.
+5. Remote mounts root and starts rendering through the channel.
+6. Host or remote calls `release()` when the extension session ends.
+
+## Platform guidance
+
+- Keep render transport and business transport as separate concerns.
+- Version host business bridge independently from render runtime.
+- Add capability negotiation for extension features (feature flags or manifest claims).
+- Treat remote extensions as untrusted by default and enforce host-side boundaries.
+
+## Common pitfalls
+
+- Missing host component in provider:
+  remote references a component name not exposed by host.
+- Non-serializable boundary payloads:
+  normalize values for props/attrs/events crossing runtimes.
+- Mixing concerns:
+  keep business transport contracts outside render wiring.

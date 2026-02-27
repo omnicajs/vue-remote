@@ -95,6 +95,7 @@ out
 # Nuxt.js build / generate output
 .nuxt
 dist
+dist-web
 
 # Gatsby files
 .cache/
@@ -133,6 +134,7 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+.astro
 
 .npmrc
 !.npmrc.dist
@@ -142,3 +144,6 @@ dist
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# local generated artifacts
+var/

@@ -1,0 +1,39 @@
+---
+title: vue-remote
+description: Контролируемый удаленный рендеринг для приложений на Vue 3.
+template: splash
+next: false
+hero:
+  title: <span class="landing-kicker">Vue Remote</span><br/><span class="hero-title-line">Прокси-рендерер Vue</span><br/><span class="hero-title-line">для изолированных</span><br/><span class="hero-title-line">sandbox</span>
+  tagline: Хост контролирует разрешенные компоненты, а remote-приложения рендерятся через синхронизированные обновления по каналу.
+  image:
+    html: '<div class="hero-logo-shell hero-logo-shell-ru" aria-hidden="true"><svg class="hero-logo-mark" viewBox="52 68.1 56 46.9" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(0 80 87.6)"><g class="hero-logo-waves"><path class="hero-wave hero-wave-1" d="M71.97 78.68 A12 12 0 0 0 71.97 96.52"/><path class="hero-wave hero-wave-2" d="M67.96 74.22 A18 18 0 0 0 67.96 100.98"/><path class="hero-wave hero-wave-3" d="M63.94 69.77 A24 24 0 0 0 63.94 105.43"/><path class="hero-wave hero-wave-1" d="M88.03 78.68 A12 12 0 0 1 88.03 96.52"/><path class="hero-wave hero-wave-2" d="M92.04 74.22 A18 18 0 0 1 92.04 100.98"/><path class="hero-wave hero-wave-3" d="M96.06 69.77 A24 24 0 0 1 96.06 105.43"/></g></g><g class="hero-logo-v"><polygon class="hero-v-outer" points="61,73.1 80,111.1 99,73.1 90,73.1 80,93.1 70,73.1"/><polygon class="hero-v-inner" points="72,73.1 80,89.1 88,73.1 84.8,73.1 80,82.5 75.2,73.1"/></g></svg></div>'
+  actions:
+    - text: Обзор
+      link: /ru/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: Интеграция
+      link: /ru/integration/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/omnicajs/vue-remote
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+<div class="landing-feature-grid">
+  <CardGrid>
+    <Card title="Компоненты под контролем хоста" icon="puzzle">
+      Хост явно задает карту разрешенных Vue-компонентов через <code>createProvider()</code>.
+    </Card>
+    <Card title="Двунаправленные props и события" icon="open-book">
+      Props и события перемещаются между host и remote через каналы receiver и remote root.
+    </Card>
+    <Card title="Транспорт на каналах" icon="rocket">
+      Синхронизация во время выполнения построена на каналах <code>@remote-ui/rpc</code> и transport, совместимом с postMessage.
+    </Card>
+  </CardGrid>
+</div>

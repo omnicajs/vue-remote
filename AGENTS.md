@@ -35,6 +35,8 @@ workflow.
 - Source code lives under `src/`, mainly in:
   - `src/dom/**` for transport/tree logic;
   - `src/vue/**` for Vue bindings and host/remote adapters.
+- Documentation site source lives in `web/**` (Astro + Starlight).
+- Astro docs operational guide is `docs/ASTRO.md`.
 - Tests are split by level:
   - `tests/unit/**`,
   - `tests/integration/**`,
@@ -92,6 +94,14 @@ make build
 ```bash
 yarn lint
 ```
+- Build docs site:
+```bash
+yarn docs:build
+```
+- Start docs site locally:
+```bash
+yarn docs:dev
+```
 - Show available make recipes:
 ```bash
 make help
@@ -131,3 +141,6 @@ Examples: `Added ...`, `Removed ...`, `Refactored ...`, `Fixed ...`.
   `skills/yarn-lock-conflict-resolution/SKILL.md`.
 - For coverage deficit analysis and recovery strategy, use the local skill:
   `skills/coverage-recovery/SKILL.md`.
+- For documentation/website visual analysis and screenshot capture via Make
+  recipes, use the local skill:
+  `skills/screenshot-recipes/SKILL.md`.

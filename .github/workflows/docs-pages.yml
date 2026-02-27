@@ -1,0 +1,71 @@
+name: Docs Pages
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'web/**'
+      - 'astro.config.ts'
+      - 'docs/ASTRO.md'
+      - 'package.json'
+      - 'yarn.lock'
+      - '.github/workflows/docs-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Cache dependencies
+        uses: actions/cache@v4
+        with:
+          path: .yarn
+          key: ${{ runner.OS }}-node-22-docs-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.OS }}-node-22-docs-yarn-
+
+      - name: Install dependencies
+        run: yarn install
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build docs
+        env:
+          ASTRO_TELEMETRY_DISABLED: '1'
+        run: yarn docs:build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

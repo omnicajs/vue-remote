@@ -1,10 +1,11 @@
+COMPOSE ?= docker compose
 TARGET_HEADER=@echo -e '===== \e[34m' $@ '\e[0m'
-YARN=docker-compose run --rm node yarn
+YARN=$(COMPOSE) run --rm node yarn
 
 .PHONY: node_modules
 node_modules: package.json yarn.lock ## Installs dependencies
 	$(TARGET_HEADER)
-	@docker-compose run --rm node yarn install --silent
+	@$(COMPOSE) run --rm node yarn install --silent
 	@touch node_modules || true
 
 .PHONY: build
@@ -33,15 +34,17 @@ endif
 .PHONY: e2e
 e2e: ## Runs e2e autotests
 	$(TARGET_HEADER)
-	docker-compose run --rm -e SERVER=server node yarn e2e:build
-	docker-compose run --rm -e SERVER=server e2e
-	docker-compose stop server
-	docker-compose rm server -f
+	$(COMPOSE) run --rm -e SERVER=server node yarn e2e:build
+	$(COMPOSE) --profile e2e run --rm e2e
+	$(COMPOSE) stop server
+	$(COMPOSE) rm server -f
 
 .PHONY: help
 help: ## Calls recipes list
 	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk '\
 	    BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+-include recipies/playwright.mk
 
 # Colors
 $(call computable,CC_BLACK,$(shell tput -Txterm setaf 0 2>/dev/null))
@@ -53,3 +56,8 @@ $(call computable,CC_MAGENTA,$(shell tput -Txterm setaf 5 2>/dev/null))
 $(call computable,CC_CYAN,$(shell tput -Txterm setaf 6 2>/dev/null))
 $(call computable,CC_WHITE,$(shell tput -Txterm setaf 7 2>/dev/null))
 $(call computable,CC_END,$(shell tput -Txterm sgr0 2>/dev/null))
+
+.PHONY: tsc
+tsc: ## Runs all TypeScript checks
+	$(TARGET_HEADER)
+	$(YARN) typecheck

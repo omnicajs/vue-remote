@@ -40,6 +40,10 @@
   },
   "scripts": {
     "build": "vite build",
+    "docs:prepare": "mkdir -p var && if [ ! -L .astro ]; then rm -rf .astro && ln -s var/.astro .astro; fi",
+    "docs:build": "yarn docs:prepare && astro build && node ./scripts/docs-relativize-links.mjs",
+    "docs:dev": "yarn docs:prepare && astro dev",
+    "docs:preview": "yarn docs:prepare && astro preview",
     "e2e:build": "node tests/e2e/vite.build.mjs",
     "e2e:serve": "node ./tests/e2e/server.mjs",
     "e2e:test": "npx playwright test",
@@ -50,7 +54,8 @@
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
     "release:patch": "standard-version --release-as patch",
-    "release:major": "standard-version --release-as major"
+    "release:major": "standard-version --release-as major",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
     "@remote-ui/rpc": "^1.4.5"
@@ -59,6 +64,7 @@
     "vue": "^3.4"
   },
   "devDependencies": {
+    "@astrojs/starlight": "^0.37.6",
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",
     "@eslint/eslintrc": "^3.3.4",
@@ -69,6 +75,7 @@
     "@vitest/coverage-istanbul": "^4.0.15",
     "@vue/compiler-sfc": "^3.5.25",
     "@vue/language-server": "^3.1.7",
+    "astro": "^5.18.0",
     "cors": "^2.8.5",
     "eslint": "^9.39.3",
     "eslint-plugin-import": "^2.32.0",

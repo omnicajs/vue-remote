@@ -123,4 +123,8 @@ export default [
   },
   { ignores: ['dist/*'] },
   { ignores: ['**/dist/*'] },
+  { ignores: ['dist-web/*'] },
+  { ignores: ['**/dist-web/*'] },
+  { ignores: ['var/*'] },
+  { ignores: ['var/**'] },
 ]
