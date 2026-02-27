@@ -1,0 +1,275 @@
+---
+import { Icon } from '@astrojs/starlight/components'
+
+const options = [
+  { value: 'dark', label: Astro.locals.t('themeSelect.dark'), icon: 'moon' as const },
+  { value: 'light', label: Astro.locals.t('themeSelect.light'), icon: 'sun' as const },
+  { value: 'auto', label: Astro.locals.t('themeSelect.auto'), icon: 'laptop' as const },
+]
+---
+
+<starlight-theme-select class="vr-select js-theme-select" style="--vr-select-width: 6.25em" data-theme-value="auto">
+  <button
+    type="button"
+    class="vr-select-trigger"
+    aria-label={Astro.locals.t('themeSelect.accessibleLabel')}
+    aria-haspopup="listbox"
+    aria-expanded="false"
+    data-trigger
+  >
+    <span class="theme-trigger-icon" aria-hidden="true">
+      <Icon name="laptop" class="icon label-icon icon-auto" />
+      <Icon name="sun" class="icon label-icon icon-light" />
+      <Icon name="moon" class="icon label-icon icon-dark" />
+    </span>
+    <span class="vr-select-current" data-current>{Astro.locals.t('themeSelect.auto')}</span>
+    <Icon name="down-caret" class="icon caret" />
+  </button>
+  <ul class="vr-select-menu" role="listbox" data-menu>
+    {
+      options.map((option) => (
+        <li>
+          <button
+            type="button"
+            class="vr-select-option"
+            role="option"
+            aria-selected="false"
+            data-value={option.value}
+            data-label={option.label}
+          >
+            <Icon name={option.icon} class="icon option-icon" />
+            <span>{option.label}</span>
+          </button>
+        </li>
+      ))
+    }
+  </ul>
+</starlight-theme-select>
+
+<script>
+  const storageKey = 'starlight-theme'
+  const parseTheme = (theme) => (theme === 'auto' || theme === 'dark' || theme === 'light' ? theme : 'auto')
+  const readTheme = () =>
+    parseTheme(typeof localStorage !== 'undefined' ? localStorage.getItem(storageKey) : 'auto')
+  const getPreferredTheme = () => (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+  const storeTheme = (theme) => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(storageKey, theme === 'light' || theme === 'dark' ? theme : '')
+    }
+  }
+  const resolveTheme = (theme) => (theme === 'auto' ? getPreferredTheme() : theme)
+
+  const updateDomTheme = (theme) => {
+    document.documentElement.dataset.theme = resolveTheme(theme)
+  }
+
+  const emitThemeChange = (theme) => {
+    window.dispatchEvent(new CustomEvent('vr-theme-select-change', { detail: { theme } }))
+  }
+
+  const initThemeSelect = (root) => {
+    if (!(root instanceof HTMLElement) || root.dataset.vrInit === 'true') return
+    root.dataset.vrInit = 'true'
+
+    const trigger = root.querySelector('[data-trigger]')
+    const current = root.querySelector('[data-current]')
+    const options = Array.from(root.querySelectorAll('[data-value]'))
+    if (!(trigger instanceof HTMLButtonElement) || !(current instanceof HTMLElement) || options.length === 0) {
+      return
+    }
+
+    const close = () => {
+      root.dataset.open = 'false'
+      trigger.setAttribute('aria-expanded', 'false')
+    }
+
+    const open = () => {
+      root.dataset.open = 'true'
+      trigger.setAttribute('aria-expanded', 'true')
+    }
+
+    const sync = (theme) => {
+      root.dataset.themeValue = theme
+      options.forEach((option) => {
+        if (!(option instanceof HTMLButtonElement)) return
+        const selected = option.dataset.value === theme
+        option.setAttribute('aria-selected', selected ? 'true' : 'false')
+        if (selected) current.textContent = option.dataset.label || ''
+      })
+    }
+
+    const applyTheme = (theme) => {
+      const parsed = parseTheme(theme)
+      updateDomTheme(parsed)
+      storeTheme(parsed)
+      sync(parsed)
+      emitThemeChange(parsed)
+    }
+
+    const onDocumentClick = (event) => {
+      const target = event.target
+      if (!(target instanceof Node) || !root.contains(target)) close()
+    }
+
+    trigger.addEventListener('click', () => {
+      if (root.dataset.open === 'true') close()
+      else open()
+    })
+
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') close()
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        if (root.dataset.open === 'true') close()
+        else open()
+      }
+    })
+
+    options.forEach((option) => {
+      if (!(option instanceof HTMLButtonElement)) return
+      option.addEventListener('click', () => {
+        applyTheme(option.dataset.value || 'auto')
+        close()
+      })
+    })
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') close()
+    })
+
+    window.addEventListener('vr-theme-select-change', (event) => {
+      const detail = event.detail
+      if (detail && typeof detail.theme === 'string') sync(parseTheme(detail.theme))
+    })
+
+    const mediaQuery = matchMedia('(prefers-color-scheme: light)')
+    mediaQuery.addEventListener('change', () => {
+      const currentTheme = readTheme()
+      if (currentTheme !== 'auto') return
+      updateDomTheme('auto')
+      sync('auto')
+      emitThemeChange('auto')
+    })
+
+    document.addEventListener('click', onDocumentClick)
+    sync(readTheme())
+  }
+
+  document.querySelectorAll('.js-theme-select').forEach(initThemeSelect)
+</script>
+
+<style>
+  @layer starlight.core {
+    .vr-select {
+      position: relative;
+      display: block;
+      color: var(--sl-color-gray-1);
+    }
+
+    .vr-select:hover {
+      color: var(--sl-color-gray-2);
+    }
+
+    .vr-select-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      border: 0;
+      width: var(--vr-select-width);
+      padding: 0.625rem 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .vr-select-current {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--sl-text-sm);
+    }
+
+    .theme-trigger-icon {
+      width: 0.9rem;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .theme-trigger-icon .label-icon {
+      display: none;
+      font-size: 0.875rem;
+    }
+
+    .js-theme-select[data-theme-value='auto'] .theme-trigger-icon .icon-auto,
+    .js-theme-select[data-theme-value='light'] .theme-trigger-icon .icon-light,
+    .js-theme-select[data-theme-value='dark'] .theme-trigger-icon .icon-dark {
+      display: block;
+    }
+
+    .vr-select-trigger .caret {
+      margin-inline-start: auto;
+      font-size: 1.25rem;
+      transition: transform 0.2s ease;
+      transform-origin: center;
+    }
+
+    .vr-select[data-open='true'] .vr-select-trigger .caret {
+      transform: rotate(180deg);
+    }
+
+    .vr-select-menu {
+      position: absolute;
+      inset-inline-end: 0;
+      top: calc(100% + 0.25rem);
+      margin: 0;
+      padding: 0.3rem;
+      min-width: max(100%, 10.5rem);
+      list-style: none;
+      border-radius: 0.6rem;
+      border: 1px solid var(--sl-color-hairline-light);
+      background: var(--sl-color-bg-nav);
+      box-shadow: 0 10px 24px color-mix(in srgb, black 24%, transparent);
+      display: none;
+      z-index: calc(var(--sl-z-index-navbar) + 6);
+    }
+
+    .vr-select[data-open='true'] .vr-select-menu {
+      display: block;
+    }
+
+    .vr-select-option {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      border: 0;
+      border-radius: 0.35rem;
+      background: transparent;
+      color: var(--sl-color-gray-2);
+      padding: 0.45rem 0.5rem;
+      text-align: left;
+      font: inherit;
+      font-size: var(--sl-text-sm);
+      cursor: pointer;
+    }
+
+    .vr-select-option:hover,
+    .vr-select-option:focus-visible {
+      background: color-mix(in srgb, var(--sl-color-gray-6) 90%, transparent);
+      color: var(--sl-color-white);
+      outline: none;
+    }
+
+    .vr-select-option[aria-selected='true'] {
+      background: color-mix(in srgb, var(--sl-color-text-accent) 22%, transparent);
+      color: var(--sl-color-white);
+    }
+
+    .vr-select-option .option-icon {
+      font-size: 0.9rem;
+      flex: 0 0 auto;
+    }
+  }
+</style>

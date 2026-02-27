@@ -7,6 +7,11 @@
 Proxy renderer for [Vue.js v3](https://v3.vuejs.org) based on `@remote-ui/rpc` and designed to provide necessary tools
 for embedding remote applications into your main application.
 
+## Documentation
+
+- Astro + Starlight docs source: `web/content/docs/`
+- Docs setup and publishing notes: [`docs/ASTRO.md`](docs/ASTRO.md)
+
 ## Installation
 
 Using `yarn`:

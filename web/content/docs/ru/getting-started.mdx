@@ -1,0 +1,67 @@
+---
+title: Быстрый старт
+description: Запуск host и remote runtime для extension-экосистемы на базе @omnicajs/vue-remote.
+template: doc
+---
+
+## Что покрывает это руководство
+
+Это руководство помогает быстро поднять слой render sync между:
+
+- host-продуктом, который контролирует разрешенные UI-компоненты;
+- независимым remote-runtime расширения.
+
+`@omnicajs/vue-remote` отвечает за синхронизированный рендеринг.
+Business APIs, auth, discovery и marketplace-логика остаются в соседнем tooling.
+
+## Установка
+
+```bash
+yarn add @omnicajs/vue-remote @remote-ui/rpc
+```
+
+## 1. Запуск host-runtime
+
+На стороне host:
+
+1. Зарегистрируйте host-компоненты через `createProvider(...)`.
+2. Создайте receiver render-channel через `createReceiver()`.
+3. Отрендерите `HostedTree` и передайте `provider + receiver`.
+4. Запустите remote-runtime (iframe/worker) и передайте `receiver.receive` в `run(...)`.
+
+См.: [Компоненты хоста](/ru/host-components/) и [Интеграция](/ru/integration/).
+
+## 2. Запуск remote-runtime
+
+На стороне remote:
+
+1. Создайте remote-root через `createRemoteRoot(channel, options)`.
+2. Создайте приложение через `createRemoteRenderer(root).createApp(...)`.
+3. Опишите host-exposed компоненты через `defineRemoteComponent(...)`.
+4. Монтируйте root и app в `run(...)`, очищайте ресурсы в `release()`.
+
+См.: [Компоненты remote](/ru/remote-components/) и [Интеграция](/ru/integration/).
+
+## 3. Соединение host и remote
+
+Используйте channel transport (обычно `@remote-ui/rpc`) и поддерживайте стабильный handshake:
+
+1. Host загружает URL remote-runtime.
+2. Remote экспортирует `run/release`.
+3. Host вызывает `run(channel, hostBridge)`.
+4. Remote монтирует UI через канал.
+5. Сессия завершается через `release()`.
+
+## 4. Проверка границ
+
+Перед дальнейшим расширением убедитесь, что:
+
+- host контролирует список разрешенных компонентов;
+- props/events, проходящие между runtime, сериализуемы;
+- remote-runtime не зависит от прямых browser DOM APIs.
+
+## Далее
+
+- Спроектировать безопасные host-контракты: [Компоненты хоста](/ru/host-components/).
+- Смоделировать remote UI и границы: [Компоненты remote](/ru/remote-components/).
+- Посмотреть полную схему подключения host/remote: [Интеграция](/ru/integration/).

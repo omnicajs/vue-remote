@@ -1,0 +1,222 @@
+---
+title: Remote Components
+description: How to model remote-side UI with defineRemoteComponent and native HTML/SVG/MathML tags.
+template: doc
+---
+
+## What is a remote component?
+
+A remote component is a Vue component rendered in the sandboxed remote runtime and synchronized to host via channel updates.
+
+Remote components describe _what_ should be rendered. Host components (registered on host) decide _how_ it is rendered in the real DOM.
+
+## Host vs remote responsibility
+
+- `createProvider()` exists only on the host side.
+- On remote side, there is no provider registration step.
+- Remote side builds trees with:
+  - `defineRemoteComponent(...)` for host-exposed components,
+  - native tags (`html`, `svg`, `mathml`) for local structure.
+
+## Where serialization is required
+
+Remote Vue code itself is not limited to scalar-only data.
+Inside remote components you can use normal Vue patterns (`ref`, `computed`, local functions, rich objects).
+
+Serialization rules apply only at boundaries that are mirrored on host:
+
+1. `defineRemoteComponent(...)`:
+   props/attrs and emitted payloads that go to host components.
+2. Native `html` / `svg` / `mathml` nodes:
+   attrs/props and children that are synchronized to host DOM.
+   In practice, they behave like built-in mini host components.
+
+For these boundaries, use postMessage-friendly data:
+
+- Scalars: `string`, `number`, `boolean`, `null`.
+- Arrays of serializable values.
+- Plain objects (POJO) with serializable nested values.
+- Combinations of the three above.
+
+If a value is non-serializable, normalize it before passing across the boundary.
+
+## `defineRemoteComponent` utility
+
+Use `defineRemoteComponent` to define a typed bridge to host components by name.
+
+```ts
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+```
+
+## Example: remote app with host components
+
+```ts
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+export async function mountRemote(channel: Parameters<typeof createRemoteRoot>[0]) {
+  const root = createRemoteRoot(channel, {
+    components: ['VButton', 'VInput'],
+  })
+
+  await root.mount()
+
+  const app = createRemoteRenderer(root).createApp(defineComponent({
+    setup () {
+      const text = ref('')
+
+      return () => h('section', { class: 'remote-form' }, [
+        h('h2', 'Remote form'),
+        h(VInput, {
+          value: text.value,
+          placeholder: 'Type here',
+          'onUpdate:value': (value: string) => text.value = value,
+        }),
+        h(VButton, { onClick: () => text.value = '' }, 'Clear'),
+      ])
+    },
+  }))
+
+  app.mount(root)
+}
+```
+
+## Example: SVG + MathML + host component in one tree
+
+```ts
+import { defineComponent, h } from 'vue'
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VCard = defineRemoteComponent('VCard', [], ['title'])
+
+export default defineComponent({
+  setup () {
+    return () => h('article', { class: 'metrics' }, [
+      h('svg', { viewBox: '0 0 120 24', width: '100%', height: '24' }, [
+        h('path', { d: 'M0 18 L20 12 L40 14 L60 6 L80 10 L100 4 L120 8', stroke: 'currentColor', fill: 'none' }),
+      ]),
+      h('math', { display: 'block' }, [
+        h('mrow', [h('mi', 'x'), h('mo', '='), h('mn', '42')]),
+      ]),
+      h(VCard, {}, {
+        title: () => 'Summary',
+        default: () => 'Rendered by host, composed by remote.',
+      }),
+    ])
+  },
+})
+```
+
+## Vue SFC examples
+
+### SFC with host components
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const text = ref('')
+</script>
+
+<template>
+  <section class="remote-form">
+    <h2>Remote form</h2>
+    <VInput
+      :value="text"
+      placeholder="Type here"
+      @update:value="text = $event"
+    />
+    <VButton @click="text = ''">Clear</VButton>
+  </section>
+</template>
+```
+
+### SFC with native HTML/SVG/MathML + host components
+
+```vue
+<script setup lang="ts">
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VCard = defineRemoteComponent('VCard', [], ['title'])
+</script>
+
+<template>
+  <article class="metrics">
+    <svg viewBox="0 0 120 24" width="100%" height="24">
+      <path d="M0 18 L20 12 L40 14 L60 6 L80 10 L100 4 L120 8" stroke="currentColor" fill="none" />
+    </svg>
+
+    <math display="block">
+      <mrow>
+        <mi>x</mi>
+        <mo>=</mo>
+        <mn>42</mn>
+      </mrow>
+    </math>
+
+    <VCard>
+      <template #title>Summary</template>
+      Rendered by host, composed by remote.
+    </VCard>
+  </article>
+</template>
+```
+
+## `ref` caveat on remote side
+
+For native `html` / `svg` / `mathml` elements in remote templates, refs do not point to real browser DOM nodes.
+They point to remote tree nodes (proxy objects like `RemoteComponent` and related node types).
+
+```vue
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+
+const el = ref<unknown>(null)
+
+onMounted(() => {
+  // Not HTMLElement/SVGElement/MathMLElement.
+  // This is a remote tree node proxy.
+  console.log(el.value)
+})
+</script>
+
+<template>
+  <div ref="el" />
+</template>
+```
+
+Because of that, many familiar DOM APIs are not available in remote refs
+(`getBoundingClientRect`, `classList`, direct `querySelector`, etc.).
+
+## DOM libraries in remote runtime
+
+Most libraries that require real DOM access will not work on remote side for the same reason:
+the remote runtime manipulates proxy tree nodes, not actual browser elements.
+
+If you need such a library:
+
+- integrate it on host side (inside a host component),
+- expose a narrow serializable API through props/events,
+- keep remote side focused on declarative state and intent.

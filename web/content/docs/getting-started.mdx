@@ -1,0 +1,67 @@
+---
+title: Getting Started
+description: Bootstrap host and remote runtimes for an extension ecosystem with @omnicajs/vue-remote.
+template: doc
+---
+
+## What this guide covers
+
+This guide helps you bootstrap the render sync layer between:
+
+- a host product that owns allowed UI components;
+- an independent remote extension runtime.
+
+`@omnicajs/vue-remote` handles synchronized rendering.
+Business APIs, auth, discovery, and marketplace logic stay in adjacent tooling.
+
+## Install
+
+```bash
+yarn add @omnicajs/vue-remote @remote-ui/rpc
+```
+
+## 1. Bootstrap host runtime
+
+On the host side:
+
+1. Register host components with `createProvider(...)`.
+2. Create render channel receiver with `createReceiver()`.
+3. Render `HostedTree` and pass `provider + receiver`.
+4. Start remote runtime (iframe/worker) and pass `receiver.receive` into `run(...)`.
+
+See: [Host Components](/host-components/) and [Integration](/integration/).
+
+## 2. Bootstrap remote runtime
+
+On the remote side:
+
+1. Create remote root with `createRemoteRoot(channel, options)`.
+2. Create app with `createRemoteRenderer(root).createApp(...)`.
+3. Define host-exposed components via `defineRemoteComponent(...)`.
+4. Mount root and app during `run(...)`, cleanup in `release()`.
+
+See: [Remote Components](/remote-components/) and [Integration](/integration/).
+
+## 3. Connect host and remote
+
+Use a channel transport (commonly `@remote-ui/rpc`) and keep a stable handshake:
+
+1. Host loads remote runtime URL.
+2. Remote exposes `run/release`.
+3. Host calls `run(channel, hostBridge)`.
+4. Remote mounts UI through the channel.
+5. Session ends with `release()`.
+
+## 4. Validate boundaries
+
+Before extending further, verify:
+
+- host controls the exposed component allowlist;
+- props/events crossing runtimes are serializable;
+- remote runtime does not depend on direct browser DOM APIs.
+
+## Next
+
+- Build safe host contracts: [Host Components](/host-components/).
+- Model remote UI and boundaries: [Remote Components](/remote-components/).
+- See full host/remote wiring model: [Integration](/integration/).

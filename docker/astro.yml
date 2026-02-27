@@ -1,0 +1,34 @@
+name: vue-remote
+
+x-node-common: &node-common
+  build:
+    context: ..
+    dockerfile: docker/services/node/Dockerfile
+  user: "${UID:-1000}:${GID:-1000}"
+  volumes:
+    - ../:/project
+  working_dir: /project
+  environment:
+    ASTRO_TELEMETRY_DISABLED: '1'
+
+services:
+  node:
+    <<: *node-common
+    command: 'sleep infinity'
+
+  astro:
+    <<: *node-common
+    command: >
+      sh -lc "if [ ! -d node_modules/.bin ]; then yarn install --frozen-lockfile; fi &&
+      yarn docs:prepare &&
+      yarn astro dev --host 0.0.0.0 --port 4321"
+    ports:
+      - '4321:4321'
+    labels:
+      traefik.port: 4321
+      traefik.enable: 'true'
+      traefik.http.routers.vue-remote-docs.rule: 'HostRegexp(`docs.vue-remote.{[^.]+}`)'
+      traefik.http.routers.vue-remote-docs.priority: 1
+      traefik.http.routers.vue-remote-docs.service: vue-remote-docs
+      traefik.http.services.vue-remote-docs.loadbalancer.server.port: '4321'
+      dev.orbstack.domains: 'docs.vue-remote.local'

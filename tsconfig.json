@@ -9,17 +9,21 @@
         "isolatedModules": true,
         "jsx": "preserve",
         "lib": [
-            "esnext",
-            "dom",
-            "dom.iterable",
-            "scripthost"
+            "ESNext",
+            "DOM",
+            "DOM.Iterable",
+            "ScriptHost"
         ],
         "module": "ESNext",
-        "moduleResolution": "node",
+        "moduleResolution": "Bundler",
         "paths": {
             "@/*": ["./src/*"],
             "~types/*": ["./types/*"],
-            "~tests/*": ["./tests/*"]
+            "~tests/*": ["./tests/*"],
+            "@astrojs/starlight": ["./types/tools/starlight-tooling-stubs.d.ts"],
+            "@astrojs/starlight/loaders": ["./types/tools/starlight-tooling-stubs.d.ts"],
+            "@astrojs/starlight/schema": ["./types/tools/starlight-tooling-stubs.d.ts"],
+            "astro:content": ["./types/tools/starlight-tooling-stubs.d.ts"]
         },
         "resolveJsonModule": true,
         "skipLibCheck": true,
@@ -27,13 +31,13 @@
         "strict": true,
         "target": "es2016",
         "types": [
-            "@vue/compiler-core/dist/compiler-core",
-            "@vue/compiler-dom/dist/compiler-dom",
-            "@vue/compiler-sfc/dist/compiler-sfc",
-            "@vue/compiler-ssr/dist/compiler-ssr",
-            "@vue/reactivity/dist/reactivity",
-            "@vue/runtime-core/dist/runtime-core",
-            "@vue/runtime-dom/dist/runtime-dom",
+            "@vue/compiler-core",
+            "@vue/compiler-dom",
+            "@vue/compiler-sfc",
+            "@vue/compiler-ssr",
+            "@vue/reactivity",
+            "@vue/runtime-core",
+            "@vue/runtime-dom",
             "node"
         ],
         "useDefineForClassFields": true
@@ -46,6 +50,12 @@
         "tests/**/*.ts",
         "tests/**/*.vue",
         "tests/shims-*.d.ts",
-        "rollup.config.ts"
+        "rollup.config.ts",
+        "*.config.ts",
+        "*.config.*.ts",
+        "web/*.config.ts",
+        "web/*.config.*.ts",
+        "eslint.config.js",
+        "types/**/*.d.ts"
     ]
 }

@@ -1,0 +1,283 @@
+---
+import { Icon } from '@astrojs/starlight/components'
+import context from 'virtual:starlight/project-context'
+import config from 'virtual:starlight/user-config'
+
+function stripTrailingSlash(pathname: string): string {
+  return pathname[pathname.length - 1] === '/' ? pathname.slice(0, -1) : pathname
+}
+
+function localizedPathname(locale: string | undefined): string {
+  const url = new URL(Astro.url)
+  if (!config.locales) return url.pathname
+
+  if (locale === 'root') locale = ''
+
+  const base = stripTrailingSlash(import.meta.env.BASE_URL)
+  const hasBase = url.pathname.startsWith(base)
+  if (hasBase) url.pathname = url.pathname.replace(base, '')
+
+  const [_leadingSlash, baseSegment] = url.pathname.split('/')
+  const htmlExt = '.html'
+  const isRootHtml = baseSegment?.endsWith(htmlExt)
+  const baseSlug = isRootHtml ? baseSegment?.slice(0, -1 * htmlExt.length) : baseSegment
+
+  if (baseSlug && baseSlug in config.locales) {
+    if (locale) {
+      url.pathname = url.pathname.replace(baseSlug, locale)
+    } else if (isRootHtml) {
+      url.pathname = '/index.html'
+    } else {
+      url.pathname = url.pathname.replace('/' + baseSlug, '')
+    }
+  } else if (locale) {
+    if (baseSegment === 'index.html') {
+      url.pathname = '/' + locale + '.html'
+    } else {
+      url.pathname = '/' + locale + url.pathname
+    }
+  }
+
+  if (hasBase) url.pathname = base + url.pathname
+  if (context.trailingSlash === 'never') url.pathname = stripTrailingSlash(url.pathname)
+  return url.pathname
+}
+
+const currentLocale = Astro.locals.starlightRoute.locale ?? 'root'
+const localeOptions = config.locales
+  ? Object.entries(config.locales).map(([code, locale]) => ({
+      code,
+      value: localizedPathname(code),
+      label: locale!.label,
+      flag: (locale!.lang || code).startsWith('ru') ? 'ru' : 'gb',
+      selected: code === currentLocale,
+    }))
+  : []
+const selectedOption = localeOptions.find((option) => option.selected) ?? localeOptions[0]
+---
+
+{
+  config.isMultilingual && (
+    <starlight-lang-select class="vr-select js-lang-select" style="--vr-select-width: 7em">
+      <button
+        type="button"
+        class="vr-select-trigger"
+        aria-label={Astro.locals.t('languageSelect.accessibleLabel')}
+        aria-haspopup="listbox"
+        aria-expanded="false"
+        data-trigger
+      >
+        <Icon name="translate" class="icon label-icon" />
+        <span class="vr-select-current" data-current>{selectedOption?.label}</span>
+        <Icon name="down-caret" class="icon caret" />
+      </button>
+      <ul class="vr-select-menu" role="listbox" data-menu>
+        {
+          localeOptions.map((option) => (
+            <li>
+              <button
+                type="button"
+                class="vr-select-option"
+                role="option"
+                aria-selected={option.selected ? 'true' : 'false'}
+                data-value={option.value}
+                data-label={option.label}
+              >
+                <span class={`flag-circle flag-${option.flag}`} aria-hidden="true"></span>
+                <span>{option.label}</span>
+              </button>
+            </li>
+          ))
+        }
+      </ul>
+    </starlight-lang-select>
+  )
+}
+
+<script>
+  const initLanguageSelect = (root) => {
+    if (!(root instanceof HTMLElement) || root.dataset.vrInit === 'true') return
+    root.dataset.vrInit = 'true'
+
+    const trigger = root.querySelector('[data-trigger]')
+    const current = root.querySelector('[data-current]')
+    const options = Array.from(root.querySelectorAll('[data-value]'))
+    if (!(trigger instanceof HTMLButtonElement) || !(current instanceof HTMLElement) || options.length === 0) {
+      return
+    }
+
+    const close = () => {
+      root.dataset.open = 'false'
+      trigger.setAttribute('aria-expanded', 'false')
+    }
+
+    const open = () => {
+      root.dataset.open = 'true'
+      trigger.setAttribute('aria-expanded', 'true')
+    }
+
+    const onDocumentClick = (event) => {
+      const target = event.target
+      if (!(target instanceof Node) || !root.contains(target)) close()
+    }
+
+    trigger.addEventListener('click', () => {
+      if (root.dataset.open === 'true') close()
+      else open()
+    })
+
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') close()
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        if (root.dataset.open === 'true') close()
+        else open()
+      }
+    })
+
+    options.forEach((option) => {
+      if (!(option instanceof HTMLButtonElement)) return
+      option.addEventListener('click', () => {
+        const pathname = option.dataset.value || '/'
+        current.textContent = option.dataset.label || ''
+        options.forEach((item) => {
+          if (!(item instanceof HTMLButtonElement)) return
+          item.setAttribute('aria-selected', item === option ? 'true' : 'false')
+        })
+        close()
+        window.location.pathname = pathname
+      })
+    })
+
+    root.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') close()
+    })
+
+    document.addEventListener('click', onDocumentClick)
+  }
+
+  document.querySelectorAll('.js-lang-select').forEach(initLanguageSelect)
+</script>
+
+<style>
+  @layer starlight.core {
+    .vr-select {
+      position: relative;
+      display: block;
+      color: var(--sl-color-gray-1);
+    }
+
+    .vr-select:hover {
+      color: var(--sl-color-gray-2);
+    }
+
+    .vr-select-trigger {
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+      border: 0;
+      width: var(--vr-select-width);
+      padding: 0.625rem 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .vr-select-current {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--sl-text-sm);
+    }
+
+    .vr-select-trigger .label-icon {
+      font-size: 0.875rem;
+      flex: 0 0 auto;
+    }
+
+    .vr-select-trigger .caret {
+      margin-inline-start: auto;
+      font-size: 1.25rem;
+      transition: transform 0.2s ease;
+      transform-origin: center;
+    }
+
+    .vr-select[data-open='true'] .vr-select-trigger .caret {
+      transform: rotate(180deg);
+    }
+
+    .vr-select-menu {
+      position: absolute;
+      inset-inline-end: 0;
+      top: calc(100% + 0.25rem);
+      margin: 0;
+      padding: 0.3rem;
+      min-width: max(100%, 11rem);
+      list-style: none;
+      border-radius: 0.6rem;
+      border: 1px solid var(--sl-color-hairline-light);
+      background: var(--sl-color-bg-nav);
+      box-shadow: 0 10px 24px color-mix(in srgb, black 24%, transparent);
+      display: none;
+      z-index: calc(var(--sl-z-index-navbar) + 6);
+    }
+
+    .vr-select[data-open='true'] .vr-select-menu {
+      display: block;
+    }
+
+    .vr-select-option {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      border: 0;
+      border-radius: 0.35rem;
+      background: transparent;
+      color: var(--sl-color-gray-2);
+      padding: 0.45rem 0.5rem;
+      text-align: left;
+      font: inherit;
+      font-size: var(--sl-text-sm);
+      cursor: pointer;
+    }
+
+    .vr-select-option:hover,
+    .vr-select-option:focus-visible {
+      background: color-mix(in srgb, var(--sl-color-gray-6) 90%, transparent);
+      color: var(--sl-color-white);
+      outline: none;
+    }
+
+    .vr-select-option[aria-selected='true'] {
+      background: color-mix(in srgb, var(--sl-color-text-accent) 22%, transparent);
+      color: var(--sl-color-white);
+    }
+
+    .flag-circle {
+      width: 0.9rem;
+      height: 0.9rem;
+      border-radius: 999px;
+      flex: 0 0 auto;
+      border: 1px solid color-mix(in srgb, var(--sl-color-white) 72%, transparent);
+    }
+
+    .flag-gb {
+      background:
+        linear-gradient(45deg, transparent 40%, #fff 40% 46%, transparent 46% 54%, #fff 54% 60%, transparent 60%),
+        linear-gradient(-45deg, transparent 40%, #fff 40% 46%, transparent 46% 54%, #fff 54% 60%, transparent 60%),
+        linear-gradient(90deg, transparent 36%, #fff 36% 64%, transparent 64%),
+        linear-gradient(0deg, transparent 36%, #fff 36% 64%, transparent 64%),
+        linear-gradient(45deg, transparent 44%, #c8102e 44% 48%, transparent 48% 52%, #c8102e 52% 56%, transparent 56%),
+        linear-gradient(-45deg, transparent 44%, #c8102e 44% 48%, transparent 48% 52%, #c8102e 52% 56%, transparent 56%),
+        linear-gradient(90deg, transparent 42%, #c8102e 42% 58%, transparent 58%),
+        linear-gradient(0deg, transparent 42%, #c8102e 42% 58%, transparent 58%),
+        #012169;
+    }
+
+    .flag-ru {
+      background: linear-gradient(to bottom, #fff 0 33.333%, #0039a6 33.333% 66.666%, #d52b1e 66.666% 100%);
+    }
+  }
+</style>
