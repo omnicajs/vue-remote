@@ -14,7 +14,7 @@ Use this skill when the user asks to:
 
 ## Source Of Truth
 - `AGENTS.md`
-- `commitlint.config.js`
+- `commitlint.config.ts`
 
 ## Required Rules
 - Commit format: Conventional Commits.

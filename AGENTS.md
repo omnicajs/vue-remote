@@ -114,7 +114,7 @@ make help
 - Use past/perfective wording; prefer passive voice for changelog-friendly
   phrasing.
 Examples: `Added ...`, `Removed ...`, `Refactored ...`, `Fixed ...`.
-- Respect commitlint limits from `commitlint.config.js`:
+- Respect commitlint limits from `commitlint.config.ts`:
   `header-max-length=200`, `body-max-line-length=200`,
   `footer-max-line-length=200`.
 - Split commits by logical change.
