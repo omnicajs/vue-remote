@@ -1,0 +1,82 @@
+---
+title: BroadcastChannel Transport
+description: Experimental browser-local transport over BroadcastChannel for observer-style runtime topologies.
+template: doc
+---
+
+## Experimental status
+
+This mode is experimental in `@omnicajs/vue-remote`.
+It can work for browser-local scenarios, but full support and long-term guarantees are not currently provided.
+
+## Where it fits
+
+- multi-tab or multi-window diagnostics;
+- local observer/debugger clients;
+- lightweight in-browser orchestration where strong peer ownership is not required.
+
+## Core caveat
+
+`BroadcastChannel` is pub/sub, not point-to-point by default.
+You must implement session scoping and message correlation in your adapter.
+
+## Minimal adapter sketch
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+type Envelope = {
+  sessionId: string;
+  sender: string;
+  payload: unknown;
+}
+
+export function fromBroadcastChannel(
+  channelName: string,
+  sessionId: string,
+  sender: string
+): MessageEndpoint {
+  const channel = new BroadcastChannel(channelName)
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onMessage = (event: MessageEvent<Envelope>) => {
+    const data = event.data
+    if (!data) return
+    if (data.sessionId !== sessionId) return
+    if (data.sender === sender) return
+    const wrapped = { data: data.payload } as MessageEvent
+    for (const listener of listeners) listener(wrapped)
+  }
+
+  channel.addEventListener('message', onMessage as EventListener)
+
+  return {
+    postMessage(message: any) {
+      channel.postMessage({ sessionId, sender, payload: message } satisfies Envelope)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      channel.removeEventListener('message', onMessage as EventListener)
+      channel.close()
+    },
+  }
+}
+```
+
+## Guidance
+
+1. Use explicit `sessionId` boundaries.
+2. Prevent self-echo loops via sender identity.
+3. Do not treat BroadcastChannel as a security boundary.
+4. Prefer baseline transports for production-critical extension sessions.
+
+## Related docs
+
+- [Experimental Overview](/experimental-overview/)
+- [Experimental Comparison](/experimental-comparison/)
+- [MessagePort Transport](/message-port-transport/)

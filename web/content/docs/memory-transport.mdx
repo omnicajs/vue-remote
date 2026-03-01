@@ -1,0 +1,95 @@
+---
+title: In-Memory Transport
+description: Run host and remote in one runtime by passing receiver channel directly, useful for dev and test harnesses.
+template: doc
+---
+
+## What this mode is
+
+In-memory transport means host and remote run in the same JavaScript runtime.
+Instead of `iframe`/`worker` transport, remote receives host channel directly:
+
+```ts
+const receiver = createReceiver()
+const root = createRemoteRoot(receiver.receive)
+```
+
+This is the same wiring model used in integration tests.
+
+## Intended use
+
+Use this mode for:
+
+- local dev runtime shells;
+- integration/unit test benches;
+- fast diagnostics for render synchronization behavior.
+
+## Not for production isolation
+
+In-memory transport is **not recommended for production extension isolation**.
+
+Why:
+
+- no sandbox boundary;
+- no process/thread isolation;
+- fewer signals about real transport behavior (latency, serialization, ordering under async links);
+- higher blast radius if remote code misbehaves.
+
+Treat it as a development and testing topology, not as a security boundary.
+
+## Minimal wiring example
+
+```ts
+import { createApp, defineComponent, h } from 'vue'
+import { createReceiver } from '@omnicajs/vue-remote/host'
+import { HostedTree, createProvider } from '@omnicajs/vue-remote/host'
+import { createRemoteRoot, createRemoteRenderer, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+import VSignalBadge from './components/VSignalBadge.vue'
+
+const provider = createProvider({ VSignalBadge })
+const receiver = createReceiver()
+
+// Host app (same runtime)
+createApp(defineComponent({
+  setup() {
+    return () => h(HostedTree, { provider, receiver })
+  },
+})).mount('#host')
+
+// Remote app (same runtime)
+const root = createRemoteRoot(receiver.receive, {
+  components: ['VSignalBadge'],
+})
+
+const VRemoteSignal = defineRemoteComponent<'VSignalBadge', {
+  tone: 'neutral' | 'success' | 'warning';
+  label: string;
+}>('VSignalBadge')
+
+const remote = createRemoteRenderer(root).createApp(defineComponent({
+  setup() {
+    return () => h(VRemoteSignal, {
+      tone: 'success',
+      label: 'In-memory transport is active',
+    })
+  },
+}))
+
+remote.mount(root)
+await root.mount()
+await receiver.flush()
+```
+
+## Practical caveats
+
+1. Keep transport-specific tests separately for worker/iframe/network modes.
+2. Do not use in-memory mode to validate security assumptions.
+3. Use this mode to iterate quickly, then verify on your production transport.
+
+## Related docs
+
+- [Overview](/overview/)
+- [Getting Started](/getting-started/)
+- [Iframe Integration](/integration/)
+- [Web Worker Runtime](/web-workers/)

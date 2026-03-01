@@ -1,0 +1,47 @@
+---
+title: Сравнение транспортов
+description: Сравнение режимов iframe, window, MessagePort, Web Worker, desktop IPC, socket и in-memory для vue-remote.
+template: doc
+---
+
+## Назначение
+
+Эта страница помогает выбрать транспорт runtime под вашу extension-модель.
+Все варианты используют одинаковую channel-семантику рендера, но различаются по изоляции, эксплуатационной стоимости и пригодности для production.
+
+## Матрица сравнения
+
+| Режим | Изоляция | Реалистичность транспорта | Сложность интеграции | Лучший сценарий | Рекомендация для production |
+| --- | --- | --- | --- | --- | --- |
+| `iframe` | 🟢 (граница browser context) | 🟢 (`postMessage` lifecycle, origin-модель) | 🟡 | Недоверенные расширения со строгими границами | Рекомендуемый вариант по умолчанию для browser-hosted extensions |
+| `Window (popup)` | 🟡 (отдельный window context, итоговая защищенность зависит от origin-проверок и lifecycle-контроля) | 🟢 (`postMessage` с явной межоконной границей) | 🟡 | Tool-расширения с независимым видимым workspace | Рекомендуется, если popup UX приемлем и соблюдается строгий origin/lifecycle контроль |
+| `MessagePort` | 🟡 (зависит от container-контекстов, соединенных портами) | 🟢 (явный async-канал со structured-clone семантикой) | 🟡 | Кастомные runtime-handshake и orchestration bridge | Рекомендуется как транспортный примитив, когда нужен явный контроль канала |
+| `Web Worker` | 🟢 (отдельный worker context, без DOM-доступа в remote) | 🟢 (асинхронная граница, dedicated worker lifecycle) | 🟡 | Remote-runtime без потребности в iframe-документе и с compute-нагрузкой | Рекомендуется, когда iframe-документ не нужен |
+| `Desktop IPC` | 🟡 (зависит от process isolation и preload/capability политики) | 🟢 (явная межпроцессная async-граница) | 🔴 | Electron/Tauri plugin-platform с изолированными runtime | Рекомендуется для desktop-shell при hardening IPC-политики |
+| `Socket` | 🟡 (зависит от размещения runtime и host-политик) | 🟢 (сетевые latency/reconnect/ordering факторы явно наблюдаемы) | 🔴 | Multi-process, cross-machine runtime и live remote-сессии | Рекомендуется для продвинутых платформ с сильным auth/protocol governance |
+| `In-memory` | 🔴 (один runtime) | 🔴 (нет реальной транспортной границы) | 🟢 | Dev-оболочки, интеграционные тесты, быстрая диагностика | Не рекомендуется как production-модель изоляции |
+
+Легенда:
+- `Сложность интеграции`: `🟢` низкая, `🟡` средняя, `🔴` высокая.
+- `Изоляция` и `Реалистичность транспорта`: `🟢` сильная, `🟡` зависит от контекста, `🔴` слабая.
+- Оценки сравнительные для типичных extension-platform сценариев, а не абсолютные гарантии.
+
+## Быстрые рекомендации
+
+1. Начинайте с `iframe`, если нужен консервативный уровень browser-изоляции.
+2. Используйте `MessagePort`, когда нужен явный custom wiring канала между контейнерами.
+3. Используйте `Web Worker`, когда remote-коду не нужен document и нужна более легкая изоляция.
+4. Используйте `Desktop IPC` для process-separated runtime в Electron/Tauri.
+5. Используйте `Socket`, когда runtime топология выходит за пределы одного процесса/машины.
+6. Используйте `In-memory` только для ускорения dev/test цикла.
+
+## Связанные разделы
+
+- [Обзор](/ru/overview/)
+- [Интеграция через iframe](/ru/integration/)
+- [Window Transport](/ru/window-transport/)
+- [MessagePort Transport](/ru/message-port-transport/)
+- [Web Worker Runtime](/ru/web-workers/)
+- [Desktop IPC Transport](/ru/desktop-ipc-transport/)
+- [Socket Transport](/ru/socket-transport/)
+- [In-Memory Transport](/ru/memory-transport/)

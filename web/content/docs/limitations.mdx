@@ -1,0 +1,30 @@
+---
+title: Known Limitations
+description: Current gaps and behavioral constraints compared to native Vue runtime expectations.
+template: doc
+---
+
+## Scope
+
+This page documents current limitations of `@omnicajs/vue-remote` runtime behavior compared to native Vue usage in a single DOM context.
+
+## Current limitations
+
+1. Native `v-model` on elements is not supported as a first-class cross-runtime behavior.
+2. Calling allowed component methods requires explicit `invoke` usage; there is no higher-level declarative method-call API.
+3. Direct imperative prop assignment on mounted nodes is limited and not universally safe; the primary path remains reactive re-render flow.
+4. `nextTick()` on remote does not guarantee that host UI has already committed updates.
+5. Scoped slot props from host components are not delivered to remote slots.
+
+## Additional constraints to account for
+
+1. Refs to native elements in remote templates point to remote node proxies, not real browser DOM elements.
+2. There is no public remote-side await primitive that confirms host render commit for a given update.
+3. Transport guarantees (ordering, retry, backpressure, reconnect semantics) are defined by the chosen adapter/runtime, not by core API alone.
+4. Cross-runtime errors are normalized at the boundary, so original stack context can be reduced.
+
+## Related docs
+
+- [Remote Components](/remote-components/)
+- [Overview](/overview/)
+- [Transport Comparison](/transport-comparison/)

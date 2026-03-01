@@ -1,0 +1,113 @@
+---
+title: Socket Transport
+description: Подключение host и remote runtime через socket bridge при сохранении того же channel-контракта.
+template: doc
+---
+
+## Когда использовать socket transport
+
+Socket transport нужен, когда host и remote находятся не в одном browser context и вам нужна сетевая граница:
+
+- remote runtime работает в другом процессе или на другой машине;
+- нужны live-сессии для разработки расширений;
+- debugger/observer клиенты должны подключаться независимо.
+
+## Позиционирование
+
+`@omnicajs/vue-remote` оставляет синхронизацию рендера на уровне channel-контракта.
+Socket transport это выбор реализации доставки этого контракта по сети.
+
+По сравнению с iframe/worker этот режим добавляет эксплуатационные задачи:
+
+- lifecycle сессии при reconnect;
+- auth и capability checks;
+- ordering сообщений и идемпотентность;
+- лимиты payload и redaction-политики.
+
+## Топология верхнего уровня
+
+```text
+Host Runtime
+  -> createReceiver()
+  -> createEndpoint(fromSocket(...))
+  -> call.run(receiver.receive, hostBridge)
+
+Socket Gateway
+  -> session routing (host <-> remote)
+  -> auth + protocol version checks
+
+Remote Runtime
+  -> createEndpoint(fromSocket(...))
+  -> expose run/release
+```
+
+## Минимальный `MessageEndpoint` wrapper для WebSocket
+
+`@remote-ui/rpc` работает с объектами, реализующими `MessageEndpoint`.
+WebSocket можно адаптировать к этой форме:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+export function fromSocket(socket: WebSocket): MessageEndpoint {
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  socket.addEventListener('message', (event) => {
+    const message = JSON.parse(event.data as string)
+    const wrapped = { data: message } as MessageEvent
+    for (const listener of listeners) {
+      listener(wrapped)
+    }
+  })
+
+  return {
+    postMessage(message: any) {
+      socket.send(JSON.stringify(message))
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') {
+        listeners.add(listener)
+      }
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') {
+        listeners.delete(listener)
+      }
+    },
+    terminate() {
+      socket.close()
+    },
+  }
+}
+```
+
+Дальше endpoint подключается так же, как и в других transport-режимах:
+
+```ts
+const socket = new WebSocket('wss://runtime.example.com/remote-session?sessionId=abc')
+const endpoint = createEndpoint<RemoteApi>(fromSocket(socket))
+
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## Важные замечания для production
+
+1. Аутентифицируйте каждую сессию до вызова `run(...)`.
+2. Версионируйте протокол и отклоняйте несовместимых клиентов.
+3. Обеспечьте ordering/correlation IDs на уровне gateway.
+4. Добавьте reconnect-политику с явными правилами resume.
+5. Ограничивайте размер payload и редактируйте чувствительные поля.
+
+## Где применять
+
+- Хорошо подходит для продвинутых extension-platform и remote-debugging.
+- Избыточно для базовых single-page host + extension сценариев.
+
+Для browser-local сценариев сначала рассмотрите [Web Worker Runtime](/ru/web-workers/) или iframe transport.
+
+## Связанные разделы
+
+- [Обзор](/ru/overview/)
+- [Интеграция через iframe](/ru/integration/)
+- [Web Worker Runtime](/ru/web-workers/)
+- [In-Memory Transport](/ru/memory-transport/)

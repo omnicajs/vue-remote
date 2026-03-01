@@ -29,7 +29,7 @@ yarn add @omnicajs/vue-remote @remote-ui/rpc
 3. Отрендерите `HostedTree` и передайте `provider + receiver`.
 4. Запустите remote-runtime (iframe/worker) и передайте `receiver.receive` в `run(...)`.
 
-См.: [Компоненты хоста](/ru/host-components/) и [Интеграция](/ru/integration/).
+См.: [Компоненты хоста](/ru/host-components/) и [Обзор](/ru/overview/).
 
 ## 2. Запуск remote-runtime
 
@@ -40,7 +40,7 @@ yarn add @omnicajs/vue-remote @remote-ui/rpc
 3. Опишите host-exposed компоненты через `defineRemoteComponent(...)`.
 4. Монтируйте root и app в `run(...)`, очищайте ресурсы в `release()`.
 
-См.: [Компоненты remote](/ru/remote-components/) и [Интеграция](/ru/integration/).
+См.: [Компоненты remote](/ru/remote-components/) и [Обзор](/ru/overview/).
 
 ## 3. Соединение host и remote
 
@@ -51,6 +51,14 @@ yarn add @omnicajs/vue-remote @remote-ui/rpc
 3. Host вызывает `run(channel, hostBridge)`.
 4. Remote монтирует UI через канал.
 5. Сессия завершается через `release()`.
+
+Если вместо iframe нужен dedicated worker-runtime, см. [Web Worker Runtime](/ru/web-workers/).
+Для iframe-специфичного сценария см. [Интеграция через iframe](/ru/integration/).
+Для явного channel-handshake между кастомными контейнерами см. [MessagePort Transport](/ru/message-port-transport/).
+Для process-separated runtime в Electron/Tauri см. [Desktop IPC Transport](/ru/desktop-ipc-transport/).
+Для cross-process или cross-machine сессий см. [Socket Transport](/ru/socket-transport/).
+Для локальных стендов и тестов можно запускать host + remote в одном runtime через [In-Memory Transport](/ru/memory-transport/) (только dev/test).
+Для выбора режима в одном месте см. [Сравнение транспортов](/ru/transport-comparison/).
 
 ## 4. Проверка границ
 
@@ -64,4 +72,11 @@ yarn add @omnicajs/vue-remote @remote-ui/rpc
 
 - Спроектировать безопасные host-контракты: [Компоненты хоста](/ru/host-components/).
 - Смоделировать remote UI и границы: [Компоненты remote](/ru/remote-components/).
-- Посмотреть полную схему подключения host/remote: [Интеграция](/ru/integration/).
+- Посмотреть транспорт-независимую runtime-модель: [Обзор](/ru/overview/).
+- Посмотреть iframe-специфичное подключение: [Интеграция через iframe](/ru/integration/).
+- Сравнить режимы side-by-side: [Сравнение транспортов](/ru/transport-comparison/).
+- Посмотреть worker-специфичную топологию и lifecycle: [Web Worker Runtime](/ru/web-workers/).
+- Посмотреть режим явного channel wiring: [MessagePort Transport](/ru/message-port-transport/).
+- Посмотреть desktop межпроцессный bridge режим: [Desktop IPC Transport](/ru/desktop-ipc-transport/).
+- Посмотреть сетевую/session bridge модель: [Socket Transport](/ru/socket-transport/).
+- Посмотреть dev/test режим одного runtime: [In-Memory Transport](/ru/memory-transport/).

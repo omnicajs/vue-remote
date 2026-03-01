@@ -1,0 +1,82 @@
+---
+title: BroadcastChannel Transport
+description: Экспериментальный browser-local transport поверх BroadcastChannel для observer-подобных runtime-топологий.
+template: doc
+---
+
+## Экспериментальный статус
+
+Этот режим считается экспериментальным для `@omnicajs/vue-remote`.
+Он может работать в browser-local сценариях, но полноценная поддержка и долгосрочные гарантии пока не заявлены.
+
+## Где применим
+
+- multi-tab / multi-window диагностика;
+- локальные observer/debugger клиенты;
+- легкая browser-оркестрация, где не нужна жесткая point-to-point модель.
+
+## Ключевое ограничение
+
+`BroadcastChannel` это pub/sub, а не point-to-point по умолчанию.
+Скоуп сессии и корреляцию сообщений нужно реализовывать в адаптере.
+
+## Минимальный эскиз адаптера
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+type Envelope = {
+  sessionId: string;
+  sender: string;
+  payload: unknown;
+}
+
+export function fromBroadcastChannel(
+  channelName: string,
+  sessionId: string,
+  sender: string
+): MessageEndpoint {
+  const channel = new BroadcastChannel(channelName)
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onMessage = (event: MessageEvent<Envelope>) => {
+    const data = event.data
+    if (!data) return
+    if (data.sessionId !== sessionId) return
+    if (data.sender === sender) return
+    const wrapped = { data: data.payload } as MessageEvent
+    for (const listener of listeners) listener(wrapped)
+  }
+
+  channel.addEventListener('message', onMessage as EventListener)
+
+  return {
+    postMessage(message: any) {
+      channel.postMessage({ sessionId, sender, payload: message } satisfies Envelope)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      channel.removeEventListener('message', onMessage as EventListener)
+      channel.close()
+    },
+  }
+}
+```
+
+## Практические рекомендации
+
+1. Явно выделяйте границы `sessionId`.
+2. Предотвращайте self-echo через sender identity.
+3. Не рассматривайте BroadcastChannel как security boundary.
+4. Для production-критичных extension-сессий предпочитайте базовые транспорты.
+
+## Связанные разделы
+
+- [Экспериментальные возможности: Обзор](/ru/experimental-overview/)
+- [Сравнение](/ru/experimental-comparison/)
+- [MessagePort Transport](/ru/message-port-transport/)

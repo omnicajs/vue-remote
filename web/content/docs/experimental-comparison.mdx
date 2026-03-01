@@ -1,0 +1,31 @@
+---
+title: Comparison
+description: Side-by-side comparison of experimental runtime and transport capabilities.
+template: doc
+---
+
+## Comparison matrix
+
+| Capability | Runtime availability | Isolation potential | Integration complexity | Best fit | Support status |
+| --- | --- | --- | --- | --- | --- |
+| `BroadcastChannel` | 🟢 (modern browsers) | 🟡 (context-scoped, not a security boundary) | 🟡 | Multi-tab/window diagnostics and observer tooling | Experimental, no full support guarantee |
+| `SES/ShadowRealm` | 🟡 (platform/tooling dependent) | 🟢 (capability-oriented sandbox model) | 🔴 | High-control runtime research and pilot integrations | Experimental, no full support guarantee |
+| `WASM Sandbox` | 🟡 (depends on sandbox stack) | 🟢 (strong guest-host boundary potential) | 🔴 | Advanced platform R&D and controlled execution models | Experimental, no full support guarantee |
+
+Legend:
+- `Integration complexity`: `🟢` low, `🟡` medium, `🔴` high.
+- `Runtime availability` and `Isolation potential`: `🟢` stronger default posture, `🟡` context-dependent.
+- Experimental rows indicate capability potential, not baseline support commitments.
+
+## Recommended usage posture
+
+1. Validate adapter behavior in controlled testbeds first.
+2. Preserve fallback paths to baseline transports.
+3. Promote to production only after explicit protocol and lifecycle validation.
+
+## Related docs
+
+- [Experimental Overview](/experimental-overview/)
+- [BroadcastChannel Transport](/broadcast-channel-transport/)
+- [SES and ShadowRealm Runtime](/ses-shadowrealm-runtime/)
+- [WASM Sandbox Runtime](/wasm-sandbox-runtime/)

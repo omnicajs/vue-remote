@@ -1,0 +1,50 @@
+---
+title: WASM Sandbox Runtime
+description: Экспериментальная runtime-модель, где remote-логика выполняется внутри sandbox на базе WebAssembly.
+template: doc
+---
+
+## Экспериментальный статус
+
+WASM sandbox runtime является экспериментальным для `@omnicajs/vue-remote`.
+Библиотеку можно использовать в таком окружении через custom-адаптеры, но полноценная поддержка пока не гарантируется.
+
+## Зачем рассматривать
+
+- более строгие цели по compute/runtime изоляции;
+- переносимость между разными host-окружениями;
+- контролируемая модель исполнения extension-логики.
+
+## Модель интеграции
+
+`@omnicajs/vue-remote` по-прежнему ожидает channel-семантику.
+WASM guest и host bridge должны обмениваться сообщениями в совместимом endpoint-протоколе.
+
+```ts
+// Псевдокод
+
+const sandbox = createWasmSandbox()
+const bridge = createWasmMessageBridge(sandbox) // MessageEndpoint-подобный адаптер
+
+const endpoint = createEndpoint<RemoteApi>(bridge)
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## Практические ограничения
+
+1. Сложность bridge высокая (guest-host marshalling, ownership, lifecycle).
+2. Для отладки и observability обычно нужен отдельный tooling.
+3. Performance-профиль сильно зависит от дизайна bridge.
+4. Для production rollout обычно нужна этапная валидация и fallback-пути.
+
+## Рекомендации
+
+- Используйте режим для advanced experimentation и platform R&D.
+- Держите protocol compatibility тесты вокруг `run/release` и update-flow.
+- Не предполагаете паритет с baseline transport без явной проверки.
+
+## Связанные разделы
+
+- [Экспериментальные возможности: Обзор](/ru/experimental-overview/)
+- [Сравнение](/ru/experimental-comparison/)
+- [Socket Transport](/ru/socket-transport/)

@@ -29,7 +29,7 @@ On the host side:
 3. Render `HostedTree` and pass `provider + receiver`.
 4. Start remote runtime (iframe/worker) and pass `receiver.receive` into `run(...)`.
 
-See: [Host Components](/host-components/) and [Integration](/integration/).
+See: [Host Components](/host-components/) and [Overview](/overview/).
 
 ## 2. Bootstrap remote runtime
 
@@ -40,7 +40,7 @@ On the remote side:
 3. Define host-exposed components via `defineRemoteComponent(...)`.
 4. Mount root and app during `run(...)`, cleanup in `release()`.
 
-See: [Remote Components](/remote-components/) and [Integration](/integration/).
+See: [Remote Components](/remote-components/) and [Overview](/overview/).
 
 ## 3. Connect host and remote
 
@@ -51,6 +51,14 @@ Use a channel transport (commonly `@remote-ui/rpc`) and keep a stable handshake:
 3. Host calls `run(channel, hostBridge)`.
 4. Remote mounts UI through the channel.
 5. Session ends with `release()`.
+
+If you prefer dedicated worker runtime over iframe transport, see [Web Worker Runtime](/web-workers/).
+For iframe-specific setup, see [Iframe Integration](/integration/).
+For explicit channel handshakes across custom containers, see [MessagePort Transport](/message-port-transport/).
+For Electron/Tauri process-separated runtimes, see [Desktop IPC Transport](/desktop-ipc-transport/).
+For cross-process or cross-machine sessions, see [Socket Transport](/socket-transport/).
+For local harnesses and tests, you can also run host + remote in one runtime via [In-Memory Transport](/memory-transport/) (dev/test only).
+For a side-by-side selection guide, see [Transport Comparison](/transport-comparison/).
 
 ## 4. Validate boundaries
 
@@ -64,4 +72,11 @@ Before extending further, verify:
 
 - Build safe host contracts: [Host Components](/host-components/).
 - Model remote UI and boundaries: [Remote Components](/remote-components/).
-- See full host/remote wiring model: [Integration](/integration/).
+- See transport-agnostic runtime model: [Overview](/overview/).
+- See iframe-specific wiring model: [Iframe Integration](/integration/).
+- Compare runtime modes side-by-side: [Transport Comparison](/transport-comparison/).
+- See worker-specific topology and lifecycle: [Web Worker Runtime](/web-workers/).
+- See explicit channel wiring mode: [MessagePort Transport](/message-port-transport/).
+- See desktop inter-process bridge mode: [Desktop IPC Transport](/desktop-ipc-transport/).
+- See network/session bridge model: [Socket Transport](/socket-transport/).
+- See dev/test single-runtime setup: [In-Memory Transport](/memory-transport/).
