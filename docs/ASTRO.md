@@ -47,6 +47,7 @@ modes (for example PhpStorm `Open in browser`) also load assets correctly.
 
 - Workflow: `.github/workflows/docs-pages.yml`
 - It builds docs from `web/` and publishes a composed Pages payload.
-- Branch `main` updates `latest` docs at site root.
-- Release tags (`v*`) publish immutable snapshots to `versions/<tag>/`.
+- Deployment runs on release tags (`v*`) only.
+- Every tag publishes immutable snapshot docs to `versions/<tag>/`.
+- Site root (`latest`) is updated only when the pushed tag is the newest semver tag.
 - Deployment payload is persisted in service branch `docs-pages-store`.

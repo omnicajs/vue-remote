@@ -2,18 +2,8 @@ name: Docs Pages
 
 on:
   push:
-    branches: [ main ]
     tags:
       - 'v*'
-    paths:
-      - 'web/**'
-      - 'astro.config.ts'
-      - 'docs/ASTRO.md'
-      - 'package.json'
-      - 'yarn.lock'
-      - 'scripts/docs-relativize-links.mjs'
-      - '.github/workflows/docs-pages.yml'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -21,7 +11,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -85,6 +75,19 @@ jobs:
           const fallbackLatest = `v${JSON.parse(fs.readFileSync(packagePath, 'utf8')).version}`
 
           const semverPattern = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/
+
+          const normalizeTag = (value) => {
+            if (typeof value !== 'string') {
+              return ''
+            }
+
+            const normalized = value.trim()
+            if (!normalized) {
+              return ''
+            }
+
+            return normalized.startsWith('v') ? normalized : `v${normalized}`
+          }
 
           const parseVersion = (value) => {
             if (typeof value !== 'string') {
@@ -217,13 +220,15 @@ jobs:
           const versions = unique(manifest.versions)
           const refType = process.env.REF_TYPE
           const refName = process.env.REF_NAME
+          const currentTag = normalizeTag(refName)
 
-          if (refType === 'tag' && typeof refName === 'string' && refName.trim().length > 0) {
-            versions.push(refName)
+          if (refType === 'tag' && currentTag) {
+            versions.push(currentTag)
           }
 
           const sortedVersions = unique(versions).sort(compareVersions)
           const latest = sortedVersions[0] ?? manifest.latest ?? fallbackLatest
+          const isLatest = currentTag !== '' && currentTag === latest
 
           fs.writeFileSync(
             manifestPath,
@@ -236,68 +241,69 @@ jobs:
           )
 
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `latest=${latest}\n`)
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `versions_csv=${sortedVersions.join(',')}\n`)
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `current_tag=${currentTag}\n`)
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `is_latest=${isLatest ? 'true' : 'false'}\n`)
           NODE
 
       - name: Resolve docs build settings
         id: docs_settings
         env:
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
-          LATEST_VERSION: ${{ steps.versions_manifest.outputs.latest }}
+          CURRENT_TAG: ${{ steps.versions_manifest.outputs.current_tag }}
         run: |
           repo_name="${GITHUB_REPOSITORY#*/}"
           docs_root_base="/${repo_name}/"
-          docs_base="/${repo_name}"
-          docs_channel="latest"
-          docs_current_version="${LATEST_VERSION}"
-
-          if [ "${REF_TYPE}" = "tag" ]; then
-            docs_base="/${repo_name}/versions/${REF_NAME}"
-            docs_channel="version"
-            docs_current_version="${REF_NAME}"
-          fi
+          docs_latest_base="/${repo_name}"
+          docs_version_base="/${repo_name}/versions/${CURRENT_TAG}"
 
           {
-            echo "docs_base=${docs_base}"
-            echo "docs_channel=${docs_channel}"
+            echo "docs_latest_base=${docs_latest_base}"
+            echo "docs_version_base=${docs_version_base}"
             echo "docs_root_base=${docs_root_base}"
-            echo "docs_current_version=${docs_current_version}"
           } >> "${GITHUB_OUTPUT}"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
-      - name: Build docs
+      - name: Build docs for version snapshot
         env:
           ASTRO_TELEMETRY_DISABLED: '1'
-          DOCS_BASE: ${{ steps.docs_settings.outputs.docs_base }}
-          PUBLIC_DOCS_CHANNEL: ${{ steps.docs_settings.outputs.docs_channel }}
-          PUBLIC_DOCS_CURRENT_VERSION: ${{ steps.docs_settings.outputs.docs_current_version }}
+          DOCS_BASE: ${{ steps.docs_settings.outputs.docs_version_base }}
+          PUBLIC_DOCS_CHANNEL: version
+          PUBLIC_DOCS_CURRENT_VERSION: ${{ steps.versions_manifest.outputs.current_tag }}
           PUBLIC_DOCS_DEFAULT_LATEST_VERSION: ${{ steps.versions_manifest.outputs.latest }}
           PUBLIC_DOCS_ROOT_BASE: ${{ steps.docs_settings.outputs.docs_root_base }}
         run: yarn docs:build
 
-      - name: Sync docs payload into store
+      - name: Sync version snapshot into store
         env:
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
+          CURRENT_TAG: ${{ steps.versions_manifest.outputs.current_tag }}
         run: |
           mkdir -p .pages-store/versions
           touch .pages-store/.nojekyll
+          target_dir=".pages-store/versions/${CURRENT_TAG}"
+          mkdir -p "${target_dir}"
+          rsync -a --delete dist-web/ "${target_dir}/"
 
-          if [ "${REF_TYPE}" = "tag" ]; then
-            target_dir=".pages-store/versions/${REF_NAME}"
-            mkdir -p "${target_dir}"
-            rsync -a --delete dist-web/ "${target_dir}/"
-          else
-            rsync -a --delete \
-              --exclude ".git/" \
-              --exclude "versions/" \
-              --exclude "versions.json" \
-              --exclude ".nojekyll" \
-              dist-web/ .pages-store/
-          fi
+      - name: Build docs for latest root
+        if: steps.versions_manifest.outputs.is_latest == 'true'
+        env:
+          ASTRO_TELEMETRY_DISABLED: '1'
+          DOCS_BASE: ${{ steps.docs_settings.outputs.docs_latest_base }}
+          PUBLIC_DOCS_CHANNEL: latest
+          PUBLIC_DOCS_CURRENT_VERSION: ${{ steps.versions_manifest.outputs.latest }}
+          PUBLIC_DOCS_DEFAULT_LATEST_VERSION: ${{ steps.versions_manifest.outputs.latest }}
+          PUBLIC_DOCS_ROOT_BASE: ${{ steps.docs_settings.outputs.docs_root_base }}
+        run: yarn docs:build
+
+      - name: Sync latest payload into store
+        if: steps.versions_manifest.outputs.is_latest == 'true'
+        run: |
+          rsync -a --delete \
+            --exclude ".git/" \
+            --exclude "versions/" \
+            --exclude "versions.json" \
+            --exclude ".nojekyll" \
+            dist-web/ .pages-store/
 
       - name: Commit docs store updates
         working-directory: .pages-store
