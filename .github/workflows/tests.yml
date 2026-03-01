@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run actionlint
-        uses: rhysd/actionlint@v1
+        run: make actionlint
 
   eslint:
     runs-on: ubuntu-22.04
