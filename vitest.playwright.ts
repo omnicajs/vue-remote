@@ -9,6 +9,8 @@ import vue from '@vitejs/plugin-vue'
 
 import basic from './vite.config.basic'
 
+const coverageEnabled = process.argv.includes('--coverage')
+
 export default mergeConfig(basic, defineConfig({
   plugins: [
     vue(),
@@ -22,14 +24,22 @@ export default mergeConfig(basic, defineConfig({
       '**/dist/**',
       '**/dist-web/**',
     ],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      reportsDirectory: 'coverage/playwright',
+      reporter: ['json'],
+    },
     browser: {
       enabled: true,
       provider: playwright(),
       headless: true,
-      instances: [
-        { browser: 'chromium' },
-        { browser: 'firefox' },
-      ],
+      instances: coverageEnabled
+        ? [{ browser: 'chromium' }]
+        : [
+          { browser: 'chromium' },
+          { browser: 'firefox' },
+        ],
     },
   },
 }))

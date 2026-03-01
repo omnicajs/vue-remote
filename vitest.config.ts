@@ -16,8 +16,10 @@ export default mergeConfig(basic, defineConfig({
   test: {
     environment: 'jsdom',
     coverage: {
-      provider: 'istanbul',
+      provider: 'v8',
       include: ['src/**'],
+      reportsDirectory: 'coverage/vitest',
+      reporter: ['json'],
     },
   },
 }))

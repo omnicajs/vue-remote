@@ -6,13 +6,9 @@ import {
   test,
 } from '@playwright/test'
 
-import { captureCoverage } from './utils'
-
 import process from 'process'
 
 const SERVER = process.env.SERVER || 'localhost'
-
-captureCoverage(test)
 
 const getSerializedEvents = async (page: Page) => {
   const json = await page.locator('#events-json').inputValue()
