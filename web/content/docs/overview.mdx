@@ -1,0 +1,81 @@
+---
+title: Overview
+description: Transport-agnostic architecture and runtime organization for @omnicajs/vue-remote.
+template: doc
+---
+
+Need a quick mode choice first? Jump to [Transport Comparison](/transport-comparison/).
+
+## Ecosystem model
+
+The target is an extension ecosystem:
+
+- any product can expose an extension surface;
+- third-party teams can ship remote extensions independently;
+- `@omnicajs/vue-remote` synchronizes UI trees between host and remote runtimes.
+
+## Scope of this library
+
+`@omnicajs/vue-remote` covers render synchronization only:
+
+- Host: `createProvider`, `createReceiver`, `HostedTree`.
+- Remote: `createRemoteRoot`, `createRemoteRenderer`, `defineRemoteComponent`.
+- Updates over a channel contract (transport implementation is pluggable).
+
+Out of scope by design:
+
+- business data contracts and product APIs;
+- extension discovery, auth, billing, governance;
+- marketplace policy and compliance workflows.
+
+## Recommended topology
+
+Host product and remote extensions should be separate deliverables.
+
+```text
+host-product/
+  src/
+    extensions/
+      host-components/
+      runtime/
+      hostBridge.ts
+
+remote-extension/
+  src/
+    entry.ts
+    App.vue
+    bridge/
+```
+
+## Runtime organization layers
+
+1. UI provider layer:
+   host components exposed by `createProvider(...)`.
+2. Runtime transport layer:
+   iframe, worker, window, MessagePort, desktop IPC, socket, etc.
+3. Business bridge layer:
+   product-specific methods and data.
+4. Security layer:
+   capability checks and lifecycle policy enforcement.
+
+## Startup contract
+
+Independent of transport, keep this handshake stable:
+
+1. Host initializes runtime shell and receiver.
+2. Remote exposes `run/release`.
+3. Host calls `run(channel, hostBridge)`.
+4. Remote mounts and renders through channel updates.
+5. Session ends with `release()`.
+
+## Choosing a transport
+
+- Default browser isolation: [Iframe Integration](/integration/).
+- Worker runtime: [Web Worker Runtime](/web-workers/).
+- Popup runtime: [Window Transport](/window-transport/).
+- Explicit channel wiring: [MessagePort Transport](/message-port-transport/).
+- Desktop process bridge: [Desktop IPC Transport](/desktop-ipc-transport/).
+- Network/session bridge: [Socket Transport](/socket-transport/).
+- Dev/test single runtime: [In-Memory Transport](/memory-transport/).
+
+For non-baseline and research-oriented environments, see [Experimental Capabilities](/experimental-overview/).

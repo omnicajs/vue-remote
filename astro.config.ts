@@ -111,20 +111,126 @@ export default defineConfig({
               },
               link: '/remote-components/',
             },
+            {
+              label: 'Known Limitations',
+              translations: {
+                ru: 'Известные ограничения',
+              },
+              link: '/limitations/',
+            },
           ],
         },
         {
-          label: 'Cookbook',
+          label: 'Runtime And Transports',
           translations: {
-            ru: 'Практика',
+            ru: 'Рантайм и транспорты',
           },
           items: [
             {
-              label: 'Integration',
+              label: 'Overview',
               translations: {
-                ru: 'Интеграция',
+                ru: 'Обзор',
+              },
+              link: '/overview/',
+            },
+            {
+              label: 'Iframe Integration',
+              translations: {
+                ru: 'Интеграция через iframe',
               },
               link: '/integration/',
+            },
+            {
+              label: 'Web Worker Runtime',
+              translations: {
+                ru: 'Web Worker Runtime',
+              },
+              link: '/web-workers/',
+            },
+            {
+              label: 'Window Transport',
+              translations: {
+                ru: 'Window Transport',
+              },
+              link: '/window-transport/',
+            },
+            {
+              label: 'MessagePort Transport',
+              translations: {
+                ru: 'MessagePort Transport',
+              },
+              link: '/message-port-transport/',
+            },
+            {
+              label: 'Desktop IPC Transport',
+              translations: {
+                ru: 'Desktop IPC Transport',
+              },
+              link: '/desktop-ipc-transport/',
+            },
+            {
+              label: 'Socket Transport',
+              translations: {
+                ru: 'Socket Transport',
+              },
+              link: '/socket-transport/',
+            },
+            {
+              label: 'In-Memory Transport',
+              translations: {
+                ru: 'In-Memory Transport',
+              },
+              link: '/memory-transport/',
+            },
+            {
+              label: 'Transport Comparison',
+              translations: {
+                ru: 'Сравнение транспортов',
+              },
+              link: '/transport-comparison/',
+            },
+          ],
+        },
+        {
+          label: 'Experimental Capabilities',
+          translations: {
+            ru: 'Экспериментальные возможности',
+          },
+          items: [
+            {
+              label: 'Overview',
+              translations: {
+                ru: 'Обзор',
+              },
+              link: '/experimental-overview/',
+            },
+            {
+              label: 'BroadcastChannel Transport',
+              translations: {
+                ru: 'BroadcastChannel Transport',
+              },
+              link: '/broadcast-channel-transport/',
+            },
+            {
+              label: 'SES And ShadowRealm Runtime',
+              translations: {
+                ru: 'SES и ShadowRealm Runtime',
+              },
+              link: '/ses-shadowrealm-runtime/',
+            },
+            {
+              label: 'WASM Sandbox Runtime',
+              translations: {
+                ru: 'WASM Sandbox Runtime',
+              },
+              link: '/wasm-sandbox-runtime/',
+            },
+            {
+              label: 'Comparison',
+              translations: {
+                ru: 'Сравнение',
+              },
+              link: '/experimental-comparison/',
             },
           ],
         },

@@ -1,79 +1,28 @@
 ---
-title: Integration
-description: Host product and third-party remote extension integration model for @omnicajs/vue-remote.
+title: Iframe Integration
+description: Integrate host and remote runtimes through iframe and postMessage transport.
 template: doc
 ---
 
-## Ecosystem model
+For transport-agnostic architecture, start from [Overview](/overview/).
 
-The target is an extension ecosystem:
+## Why iframe mode
 
-- Any product (commercial or non-commercial) can expose an extension surface.
-- Third-party developers can build remote extensions outside the host team and codebase.
-- `@omnicajs/vue-remote` synchronizes UI trees between host and remote runtimes.
+Iframe transport is the baseline browser setup for isolated remote extensions:
 
-## Scope of this library
+- host and remote run in separate browser contexts;
+- communication uses `postMessage` through `@remote-ui/rpc`;
+- host keeps rendering control through provider and receiver boundaries.
 
-`@omnicajs/vue-remote` covers render synchronization only:
-
-- Host: `createProvider`, `createReceiver`, `HostedTree`.
-- Remote: `createRemoteRoot`, `createRemoteRenderer`, `defineRemoteComponent`.
-- Tree updates over a channel (often implemented with `@remote-ui/rpc`).
-
-Out of scope by design:
-
-- Transport contracts for host business data and methods.
-- Extension discovery, permissions, auth, billing, and marketplace workflows.
-- Product-specific extension lifecycle policies and governance.
-
-Keep these concerns in adjacent ecosystem tooling.
-This library is one required building block, not the full platform runtime.
-
-## Recommended topology
-
-Host application and remote extensions should be separate deliverables.
-
-```text
-host-product/
-  src/
-    extensions/
-      host-components/
-        index.ts
-      runtime/
-        mountExtension.ts
-      hostBridge.ts
-  package.json
-
-remote-extension-example/
-  src/
-    entry.ts
-    App.vue
-    bridge/
-      hostApi.ts
-  package.json
-```
-
-The host product does not need to contain remote extension source code.
-Each extension can live in its own repository, release pipeline, and versioning cycle.
-
-## Host side organization
-
-Split host extension runtime into clear layers:
-
-1. UI provider layer: host components exposed through `createProvider(...)`.
-2. Runtime layer: iframe/worker boot, channel wiring, extension lifecycle (`run/release`).
-3. Business bridge layer: product APIs/data transported through your own contract.
-4. Security layer: permission checks and capability gating for extensions.
-
-### Host integration example
+## Host side example
 
 ```ts
 import type { Channel } from '@omnicajs/vue-remote/host'
 import type { Endpoint } from '@remote-ui/rpc'
 
-import { createEndpoint, fromIframe } from '@remote-ui/rpc'
-import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
 import { createApp, defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createEndpoint, fromIframe } from '@remote-ui/rpc'
 
 import VButton from './components/VButton.vue'
 import VInput from './components/VInput.vue'
@@ -82,26 +31,22 @@ type HostBridge = {
   track(event: { type: string; payload: Record<string, unknown> }): void;
 }
 
-type ExtensionApi = {
+type RemoteApi = {
   run(channel: Channel, bridge: HostBridge): Promise<void>;
   release(): void;
 }
 
-const provider = createProvider({
-  VButton,
-  VInput,
-})
+const provider = createProvider({ VButton, VInput })
 
-export function mountExtension(remoteUrl: string, bridge: HostBridge) {
+export function mountIframeRemote(remoteUrl: string, bridge: HostBridge) {
   return createApp(defineComponent({
     setup() {
       const iframe = ref<HTMLIFrameElement | null>(null)
       const receiver = createReceiver()
-
-      let endpoint: Endpoint<ExtensionApi> | null = null
+      let endpoint: Endpoint<RemoteApi> | null = null
 
       onMounted(() => {
-        endpoint = createEndpoint<ExtensionApi>(fromIframe(iframe.value as HTMLIFrameElement, {
+        endpoint = createEndpoint<RemoteApi>(fromIframe(iframe.value as HTMLIFrameElement, {
           terminate: false,
         }))
       })
@@ -122,17 +67,7 @@ export function mountExtension(remoteUrl: string, bridge: HostBridge) {
 }
 ```
 
-## Remote side organization
-
-A remote extension package typically contains:
-
-- extension UI entrypoint;
-- extension-specific state and logic;
-- `run/release` bridge endpoint implementation.
-
-It does not contain host provider logic.
-
-### Remote integration example
+## Remote side example
 
 ```ts
 import { createEndpoint, fromInsideIframe, release, retain } from '@remote-ui/rpc'
@@ -166,7 +101,6 @@ endpoint.expose({
     const app = createRemoteRenderer(root).createApp(defineComponent({
       setup() {
         const text = ref('')
-
         return () => [
           h(VInput, {
             value: text.value,
@@ -197,27 +131,36 @@ endpoint.expose({
 })
 ```
 
-## Startup sequence
+## Iframe startup sequence
 
-1. Host starts and initializes the extension runtime shell.
-2. Host loads extension runtime URL (often iframe/worker entrypoint).
-3. Remote runtime exposes `run/release`.
-4. Host calls `run(channel, hostBridge)` with the render channel and optional product bridge.
-5. Remote mounts root and starts rendering through the channel.
-6. Host or remote calls `release()` when the extension session ends.
+1. Host renders `HostedTree` and creates `receiver`.
+2. Host loads remote URL into hidden iframe.
+3. Remote iframe exposes `run/release`.
+4. On iframe `load`, host calls `run(receiver.receive, hostBridge)`.
+5. Remote mounts and syncs tree updates over channel.
+6. Host calls `release()` on teardown.
 
-## Platform guidance
+## Iframe security checklist
 
-- Keep render transport and business transport as separate concerns.
-- Version host business bridge independently from render runtime.
-- Add capability negotiation for extension features (feature flags or manifest claims).
-- Treat remote extensions as untrusted by default and enforce host-side boundaries.
+1. Restrict origins:
+   prefer explicit target origins over permissive wildcards.
+2. Validate remote URLs:
+   use allowlists for extension runtime sources.
+3. Harden iframe attributes:
+   configure `sandbox` capabilities for your trust model.
+4. Enforce CSP/frame policy:
+   align `frame-src`/`child-src` with approved extension origins.
 
 ## Common pitfalls
 
-- Missing host component in provider:
-  remote references a component name not exposed by host.
-- Non-serializable boundary payloads:
-  normalize values for props/attrs/events crossing runtimes.
-- Mixing concerns:
-  keep business transport contracts outside render wiring.
+- Calling `run(...)` before iframe load.
+- Missing host component registration in provider.
+- Passing non-serializable payloads across boundary.
+- Forgetting `release()` and leaked retained references.
+
+## Related docs
+
+- [Overview](/overview/)
+- [Transport Comparison](/transport-comparison/)
+- [Web Worker Runtime](/web-workers/)
+- [Window Transport](/window-transport/)

@@ -1,0 +1,78 @@
+---
+title: MessagePort Transport
+description: Использование MessageChannel/MessagePort как транспортного примитива для handshake remote runtime.
+template: doc
+---
+
+## Зачем нужен этот режим
+
+`MessagePort` это low-level транспортный примитив, полезный для кастомных runtime-топологий.
+Он особенно удобен, когда нужен явный channel wiring без привязки к одному container-сценарию.
+
+Типичные кейсы:
+
+- custom handshake между host shell и remote runtime;
+- bridge-слои для orchestration popup/iframe/worker/session;
+- dev и диагностические инструменты с явным двусторонним каналом.
+
+## Базовая идея
+
+В `@remote-ui/rpc` уже есть `fromMessagePort(...)`.
+Как только у обеих сторон есть связанные порты, интеграция повторяет стандартный `run/release`:
+
+```ts
+import { createEndpoint, fromMessagePort } from '@remote-ui/rpc'
+
+const endpoint = createEndpoint<RemoteApi>(fromMessagePort(port))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## Минимальный пример в одном runtime
+
+```ts
+import { MessageChannel } from 'node:worker_threads'
+import { createEndpoint, fromMessagePort } from '@remote-ui/rpc'
+
+type Api = { ping(message: string): string }
+
+const { port1, port2 } = new MessageChannel()
+
+const host = createEndpoint<Api>(fromMessagePort(port1))
+const remote = createEndpoint(fromMessagePort(port2))
+
+remote.expose({
+  ping(message: string) {
+    return `pong: ${message}`
+  },
+})
+
+const result = await host.call.ping('hello')
+console.info(result) // pong: hello
+```
+
+В браузере используйте нативный `MessageChannel` API с тем же паттерном.
+
+## Handshake-паттерн (browser)
+
+1. Host создает `MessageChannel`.
+2. Host передает `port2` в remote container (`iframe`, `popup` или worker bootstrap) через `postMessage`.
+3. Host оставляет `port1` у себя и инициализирует `createEndpoint(fromMessagePort(port1))`.
+4. Remote получает переданный порт и поднимает свой endpoint.
+5. Обе стороны используют стандартный `run/release`.
+
+## Практические замечания
+
+1. Изоляция зависит от контекста:
+   сам `MessagePort` не создает sandbox boundary.
+2. Транспортная семантика сильная:
+   явная async-граница и structured-clone ограничения.
+3. Lifecycle нужно держать под контролем:
+   закрывайте порты и освобождайте retained-ссылки при teardown.
+
+## Связанные разделы
+
+- [Обзор](/ru/overview/)
+- [Интеграция через iframe](/ru/integration/)
+- [Сравнение транспортов](/ru/transport-comparison/)
+- [Web Worker Runtime](/ru/web-workers/)
+- [Window Transport](/ru/window-transport/)
