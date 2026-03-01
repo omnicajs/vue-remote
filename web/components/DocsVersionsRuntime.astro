@@ -1,0 +1,177 @@
+---
+const locale = Astro.props.locale === 'ru' ? 'ru' : 'en'
+const rootBase = (import.meta.env.PUBLIC_DOCS_ROOT_BASE || '/').replace(/\/?$/, '/')
+const fallbackLatest = (import.meta.env.PUBLIC_DOCS_DEFAULT_LATEST_VERSION || '').trim()
+const currentVersion = (import.meta.env.PUBLIC_DOCS_CURRENT_VERSION || '').trim()
+const currentChannel = (import.meta.env.PUBLIC_DOCS_CHANNEL || 'latest').trim()
+
+const labels = locale === 'ru'
+  ? {
+      unknownVersion: 'unknown',
+      currentLabel: 'текущая',
+    }
+  : {
+      unknownVersion: 'unknown',
+      currentLabel: 'current',
+    }
+---
+
+<script
+  is:inline
+  define:vars={{
+    locale,
+    rootBase,
+    fallbackLatest,
+    currentVersion,
+    currentChannel,
+    labels,
+  }}
+>
+  (() => {
+    const normalizeBase = (input) => {
+      if (!input) {
+        return '/'
+      }
+
+      return input.endsWith('/') ? input : `${input}/`
+    }
+
+    const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0
+
+    const unique = (values) => {
+      const set = new Set()
+
+      for (const value of values) {
+        if (isNonEmptyString(value)) {
+          set.add(value.trim())
+        }
+      }
+
+      return [...set]
+    }
+
+    const root = normalizeBase(rootBase)
+    const latestDocsPath = locale === 'ru' ? `${root}ru/` : root
+    const versionsPagePath = locale === 'ru' ? `${root}ru/versions/` : `${root}versions/`
+    const versionsJsonPath = `${root}versions.json`
+
+    const setLatestVersion = (version) => {
+      const safeVersion = isNonEmptyString(version) ? version.trim() : labels.unknownVersion
+
+      for (const node of document.querySelectorAll('[data-docs-latest-version]')) {
+        node.textContent = safeVersion
+      }
+    }
+
+    const setLatestLinks = () => {
+      for (const node of document.querySelectorAll('[data-docs-latest-link]')) {
+        if (node instanceof HTMLAnchorElement) {
+          node.href = latestDocsPath
+        }
+      }
+    }
+
+    const setVersionsPageLinks = () => {
+      for (const node of document.querySelectorAll('[data-docs-versions-anchor]')) {
+        if (node instanceof HTMLAnchorElement) {
+          node.href = versionsPagePath
+        }
+      }
+    }
+
+    const updateLandingLinks = (hasPrevious) => {
+      for (const node of document.querySelectorAll('[data-docs-versions-link]')) {
+        if (hasPrevious) {
+          node.removeAttribute('hidden')
+        } else {
+          node.setAttribute('hidden', '')
+        }
+      }
+    }
+
+    const renderVersionsPage = (latest, previous) => {
+      for (const rootNode of document.querySelectorAll('[data-docs-versions-page]')) {
+        const loadingNode = rootNode.querySelector('[data-docs-versions-loading]')
+        const emptyNode = rootNode.querySelector('[data-docs-versions-empty]')
+        const listNode = rootNode.querySelector('[data-docs-versions-list]')
+
+        if (loadingNode) {
+          loadingNode.setAttribute('hidden', '')
+        }
+
+        if (!(listNode instanceof HTMLUListElement)) {
+          continue
+        }
+
+        listNode.innerHTML = ''
+
+        if (previous.length === 0) {
+          listNode.setAttribute('hidden', '')
+          if (emptyNode) {
+            emptyNode.removeAttribute('hidden')
+          }
+          continue
+        }
+
+        if (emptyNode) {
+          emptyNode.setAttribute('hidden', '')
+        }
+
+        for (const version of previous) {
+          const item = document.createElement('li')
+          item.className = 'docs-versions-item'
+
+          const link = document.createElement('a')
+          link.href = `${root}versions/${encodeURIComponent(version)}/`
+          link.textContent = version
+          item.appendChild(link)
+
+          if (currentChannel === 'version' && currentVersion === version) {
+            const marker = document.createElement('span')
+            marker.className = 'docs-versions-item-current'
+            marker.textContent = ` (${labels.currentLabel})`
+            item.appendChild(marker)
+          }
+
+          listNode.appendChild(item)
+        }
+
+        listNode.removeAttribute('hidden')
+
+        const latestNode = rootNode.querySelector('[data-docs-versions-latest]')
+        if (latestNode) {
+          latestNode.textContent = latest || labels.unknownVersion
+        }
+      }
+    }
+
+    setLatestVersion(fallbackLatest || labels.unknownVersion)
+    setLatestLinks()
+    setVersionsPageLinks()
+    updateLandingLinks(false)
+
+    fetch(versionsJsonPath, { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Failed to fetch ${versionsJsonPath}: ${response.status}`)
+        }
+
+        return response.json()
+      })
+      .then((payload) => {
+        const versions = unique(Array.isArray(payload?.versions) ? payload.versions : [])
+        const latestFromManifest = isNonEmptyString(payload?.latest) ? payload.latest.trim() : ''
+        const latest = latestFromManifest || fallbackLatest || versions[0] || labels.unknownVersion
+        const previous = versions.filter((version) => version !== latest)
+
+        setLatestVersion(latest)
+        setLatestLinks()
+        setVersionsPageLinks()
+        updateLandingLinks(previous.length > 0)
+        renderVersionsPage(latest, previous)
+      })
+      .catch(() => {
+        renderVersionsPage(fallbackLatest || labels.unknownVersion, [])
+      })
+  })()
+</script>
