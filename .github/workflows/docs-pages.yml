@@ -3,6 +3,8 @@ name: Docs Pages
 on:
   push:
     branches: [ main ]
+    tags:
+      - '*'
     paths:
       - 'web/**'
       - 'astro.config.ts'
@@ -29,21 +31,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js and dependencies
+        uses: ./.github/actions/setup-node-deps
         with:
-          node-version: 22.x
-
-      - name: Cache dependencies
-        uses: actions/cache@v4
-        with:
-          path: .yarn
-          key: ${{ runner.OS }}-node-22-docs-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.OS }}-node-22-docs-yarn-
-
-      - name: Install dependencies
-        run: yarn install
+          node-version: 24.x
+          cache-key-suffix: docs
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

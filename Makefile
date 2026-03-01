@@ -31,6 +31,11 @@ else
 	$(YARN) test
 endif
 
+.PHONY: actionlint
+actionlint: ## Lints GitHub Actions workflows
+	$(TARGET_HEADER)
+	docker run --rm -v "$$(pwd):/repo" -w /repo rhysd/actionlint:latest
+
 .PHONY: e2e
 e2e: ## Runs e2e autotests
 	$(TARGET_HEADER)
