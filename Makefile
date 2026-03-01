@@ -31,6 +31,15 @@ else
 	$(YARN) test
 endif
 
+.PHONY: tests-e2e
+tests-e2e: ## Runs new browser e2e tests (vitest + playwright provider)
+	$(TARGET_HEADER)
+ifdef cli
+	$(COMPOSE) --profile e2e run --rm e2e-vitest yarn test:e2e $(cli)
+else
+	$(COMPOSE) --profile e2e run --rm e2e-vitest yarn test:e2e
+endif
+
 .PHONY: actionlint
 actionlint: ## Lints GitHub Actions workflows
 	$(TARGET_HEADER)

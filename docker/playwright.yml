@@ -35,3 +35,19 @@ services:
     init: true
     profiles:
       - e2e
+
+  e2e-vitest:
+    build:
+      context: ..
+      dockerfile: docker/services/playwright/Dockerfile
+    user: "${UID:-1000}:${GID:-1000}"
+    volumes:
+      - ../:/project
+    working_dir: /project
+    command: >
+      sh -lc "if [ ! -d node_modules/.bin ]; then yarn install --frozen-lockfile; fi &&
+      yarn test:e2e"
+    ipc: host
+    init: true
+    profiles:
+      - e2e
