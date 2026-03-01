@@ -89,6 +89,13 @@ export default defineConfig({
               },
               link: '/getting-started/',
             },
+            {
+              label: 'Versions',
+              translations: {
+                ru: 'Версии',
+              },
+              link: '/versions/',
+            },
           ],
         },
         {

@@ -4,24 +4,28 @@ on:
   push:
     branches: [ main ]
     tags:
-      - '*'
+      - 'v*'
     paths:
       - 'web/**'
       - 'astro.config.ts'
       - 'docs/ASTRO.md'
       - 'package.json'
       - 'yarn.lock'
+      - 'scripts/docs-relativize-links.mjs'
       - '.github/workflows/docs-pages.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
+
+env:
+  DOCS_STORE_BRANCH: docs-pages-store
 
 jobs:
   build:
@@ -30,6 +34,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js and dependencies
         uses: ./.github/actions/setup-node-deps
@@ -37,18 +43,283 @@ jobs:
           node-version: 24.x
           cache-key-suffix: docs
 
+      - name: Checkout docs store branch
+        id: docs_store_checkout
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DOCS_STORE_BRANCH }}
+          path: .pages-store
+          fetch-depth: 1
+
+      - name: Initialize docs store branch
+        if: steps.docs_store_checkout.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf .pages-store
+          mkdir -p .pages-store
+          cd .pages-store
+          git init
+          git checkout -b "$DOCS_STORE_BRANCH"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+      - name: Configure docs store git user
+        working-directory: .pages-store
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Update versions manifest
+        id: versions_manifest
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+
+          const manifestPath = path.join(process.cwd(), '.pages-store', 'versions.json')
+          const packagePath = path.join(process.cwd(), 'package.json')
+          const fallbackLatest = `v${JSON.parse(fs.readFileSync(packagePath, 'utf8')).version}`
+
+          const semverPattern = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/
+
+          const parseVersion = (value) => {
+            if (typeof value !== 'string') {
+              return null
+            }
+
+            const normalized = value.trim()
+            const match = semverPattern.exec(normalized)
+            if (!match) {
+              return null
+            }
+
+            return {
+              raw: normalized.startsWith('v') ? normalized : `v${normalized}`,
+              major: Number(match[1]),
+              minor: Number(match[2]),
+              patch: Number(match[3]),
+              prerelease: match[4] ?? '',
+            }
+          }
+
+          const comparePrerelease = (left, right) => {
+            if (!left && !right) {
+              return 0
+            }
+
+            if (!left) {
+              return 1
+            }
+
+            if (!right) {
+              return -1
+            }
+
+            const leftParts = left.split('.')
+            const rightParts = right.split('.')
+            const length = Math.max(leftParts.length, rightParts.length)
+
+            for (let index = 0; index < length; index += 1) {
+              const leftPart = leftParts[index]
+              const rightPart = rightParts[index]
+
+              if (leftPart === undefined) {
+                return -1
+              }
+
+              if (rightPart === undefined) {
+                return 1
+              }
+
+              const leftNumber = Number(leftPart)
+              const rightNumber = Number(rightPart)
+              const leftIsNumber = Number.isInteger(leftNumber) && String(leftNumber) === leftPart
+              const rightIsNumber = Number.isInteger(rightNumber) && String(rightNumber) === rightPart
+
+              if (leftIsNumber && rightIsNumber && leftNumber !== rightNumber) {
+                return leftNumber > rightNumber ? 1 : -1
+              }
+
+              if (leftIsNumber !== rightIsNumber) {
+                return leftIsNumber ? -1 : 1
+              }
+
+              if (leftPart !== rightPart) {
+                return leftPart > rightPart ? 1 : -1
+              }
+            }
+
+            return 0
+          }
+
+          const compareVersions = (left, right) => {
+            const leftParsed = parseVersion(left)
+            const rightParsed = parseVersion(right)
+
+            if (leftParsed && rightParsed) {
+              if (leftParsed.major !== rightParsed.major) {
+                return leftParsed.major > rightParsed.major ? -1 : 1
+              }
+
+              if (leftParsed.minor !== rightParsed.minor) {
+                return leftParsed.minor > rightParsed.minor ? -1 : 1
+              }
+
+              if (leftParsed.patch !== rightParsed.patch) {
+                return leftParsed.patch > rightParsed.patch ? -1 : 1
+              }
+
+              const prerelease = comparePrerelease(leftParsed.prerelease, rightParsed.prerelease)
+              return prerelease === 0 ? 0 : -prerelease
+            }
+
+            if (leftParsed) {
+              return -1
+            }
+
+            if (rightParsed) {
+              return 1
+            }
+
+            return left.localeCompare(right)
+          }
+
+          const unique = (values) => {
+            const set = new Set()
+            for (const value of values) {
+              if (typeof value === 'string' && value.trim().length > 0) {
+                const normalized = value.trim()
+                set.add(normalized.startsWith('v') ? normalized : `v${normalized}`)
+              }
+            }
+            return [...set]
+          }
+
+          let manifest = { latest: fallbackLatest, versions: [] }
+          if (fs.existsSync(manifestPath)) {
+            try {
+              const parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+              manifest = {
+                latest: typeof parsed.latest === 'string' && parsed.latest.trim().length > 0
+                  ? parsed.latest.trim()
+                  : fallbackLatest,
+                versions: Array.isArray(parsed.versions) ? parsed.versions : [],
+              }
+            } catch {
+              manifest = { latest: fallbackLatest, versions: [] }
+            }
+          }
+
+          const versions = unique(manifest.versions)
+          const refType = process.env.REF_TYPE
+          const refName = process.env.REF_NAME
+
+          if (refType === 'tag' && typeof refName === 'string' && refName.trim().length > 0) {
+            versions.push(refName)
+          }
+
+          const sortedVersions = unique(versions).sort(compareVersions)
+          const latest = sortedVersions[0] ?? manifest.latest ?? fallbackLatest
+
+          fs.writeFileSync(
+            manifestPath,
+            `${JSON.stringify({
+              latest,
+              versions: sortedVersions,
+              updatedAt: new Date().toISOString(),
+            }, null, 2)}\n`,
+            'utf8'
+          )
+
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `latest=${latest}\n`)
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `versions_csv=${sortedVersions.join(',')}\n`)
+          NODE
+
+      - name: Resolve docs build settings
+        id: docs_settings
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          LATEST_VERSION: ${{ steps.versions_manifest.outputs.latest }}
+        run: |
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          docs_root_base="/${repo_name}/"
+          docs_base="/${repo_name}"
+          docs_channel="latest"
+          docs_current_version="${LATEST_VERSION}"
+
+          if [ "${REF_TYPE}" = "tag" ]; then
+            docs_base="/${repo_name}/versions/${REF_NAME}"
+            docs_channel="version"
+            docs_current_version="${REF_NAME}"
+          fi
+
+          {
+            echo "docs_base=${docs_base}"
+            echo "docs_channel=${docs_channel}"
+            echo "docs_root_base=${docs_root_base}"
+            echo "docs_current_version=${docs_current_version}"
+          } >> "${GITHUB_OUTPUT}"
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
       - name: Build docs
         env:
           ASTRO_TELEMETRY_DISABLED: '1'
+          DOCS_BASE: ${{ steps.docs_settings.outputs.docs_base }}
+          PUBLIC_DOCS_CHANNEL: ${{ steps.docs_settings.outputs.docs_channel }}
+          PUBLIC_DOCS_CURRENT_VERSION: ${{ steps.docs_settings.outputs.docs_current_version }}
+          PUBLIC_DOCS_DEFAULT_LATEST_VERSION: ${{ steps.versions_manifest.outputs.latest }}
+          PUBLIC_DOCS_ROOT_BASE: ${{ steps.docs_settings.outputs.docs_root_base }}
         run: yarn docs:build
+
+      - name: Sync docs payload into store
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          mkdir -p .pages-store/versions
+          touch .pages-store/.nojekyll
+
+          if [ "${REF_TYPE}" = "tag" ]; then
+            target_dir=".pages-store/versions/${REF_NAME}"
+            mkdir -p "${target_dir}"
+            rsync -a --delete dist-web/ "${target_dir}/"
+          else
+            rsync -a --delete \
+              --exclude ".git/" \
+              --exclude "versions/" \
+              --exclude "versions.json" \
+              --exclude ".nojekyll" \
+              dist-web/ .pages-store/
+          fi
+
+      - name: Commit docs store updates
+        working-directory: .pages-store
+        run: |
+          git add -A
+
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          git commit -m "chore(docs): Updated Pages payload for ${GITHUB_REF_NAME}"
+          git push origin "HEAD:${DOCS_STORE_BRANCH}"
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p .pages-artifact
+          rsync -a --delete --exclude ".git/" .pages-store/ .pages-artifact/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist-web
+          path: .pages-artifact
 
   deploy:
     needs: build

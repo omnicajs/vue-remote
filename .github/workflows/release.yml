@@ -46,10 +46,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Ensure release runs from main
+      - name: Validate release branch and npm tag
+        env:
+          NPM_TAG: ${{ inputs.npm_tag }}
         run: |
-          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
-            echo "Release workflow must be started from the main branch."
+          if [ "$NPM_TAG" = "latest" ] && [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "Release to npm tag 'latest' must be started from the main branch."
             exit 1
           fi
 

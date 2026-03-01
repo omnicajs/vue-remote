@@ -1,0 +1,21 @@
+---
+title: Versions
+description: Released documentation snapshots for previous versions.
+---
+
+import DocsVersionsRuntime from '../../components/DocsVersionsRuntime.astro';
+
+# Versions
+
+Latest documentation: <a data-docs-latest-link href="/">Open latest</a> (<span data-docs-latest-version>unknown</span>).
+
+Use this page to open documentation snapshots for versions older than `latest`.
+
+<div class="docs-versions-page" data-docs-versions-page>
+  <p>Latest version in this repository: <strong data-docs-versions-latest>unknown</strong>.</p>
+  <p data-docs-versions-loading>Loading versions...</p>
+  <p data-docs-versions-empty hidden>No previous versions are published yet.</p>
+  <ul data-docs-versions-list hidden></ul>
+</div>
+
+<DocsVersionsRuntime locale="en" />
