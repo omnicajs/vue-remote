@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.11](https://github.com/omnicajs/vue-remote/compare/v0.2.10...v0.2.11) (2026-03-02)
+
+
+### Features
+
+* Added static SVG vnode rendering support ([65e52e4](https://github.com/omnicajs/vue-remote/commit/65e52e47829379e54e924ac61f1b52b1e09638cd))
+* Versioned documentation publishing was added ([50970d8](https://github.com/omnicajs/vue-remote/commit/50970d83bac5045d2751c2ad16886cf80cb83769))
+
 ### [0.2.10](https://github.com/omnicajs/vue-remote/compare/v0.2.9...v0.2.10) (2026-01-13)
 
 ### [0.2.9](https://github.com/omnicajs/vue-remote/compare/v0.2.8...v0.2.9) (2025-12-08)
