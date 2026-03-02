@@ -3,8 +3,19 @@ import path from 'node:path'
 
 const projectRoot = process.cwd()
 const distDir = path.join(projectRoot, 'dist-web')
-const docsBase = (process.env.DOCS_BASE || '').trim()
-const shouldRelativizeLinks = docsBase === '' || docsBase === '/'
+const docsBaseRaw = (process.env.DOCS_BASE || '').trim()
+
+function normalizeBase (input) {
+  if (input === '' || input === '/') {
+    return '/'
+  }
+
+  const withLeadingSlash = input.startsWith('/') ? input : `/${input}`
+  return withLeadingSlash.replace(/\/?$/, '/')
+}
+
+const docsBase = normalizeBase(docsBaseRaw)
+const shouldRelativizeLinks = docsBase === '/'
 
 async function walkHtmlFiles (dir) {
   const entries = await fs.readdir(dir, { withFileTypes: true })
@@ -50,17 +61,42 @@ function rewriteHtmlLinks (html, prefix) {
   )
 }
 
-async function main () {
-  if (!shouldRelativizeLinks) {
-    return
-  }
+function rewriteHtmlLinksWithBase (html, base) {
+  const normalizedBase = normalizeBase(base)
+  const baseWithoutTrailingSlash = normalizedBase.endsWith('/')
+    ? normalizedBase.slice(0, -1)
+    : normalizedBase
 
+  return html.replace(
+    /(href|src)=("|')\/(?!\/)([^"']*)\2/g,
+    (fullMatch, attr, quote, rawPath) => {
+      const normalizedPath = rawPath.replace(/^\.\//, '')
+      const currentValue = `/${normalizedPath}`
+
+      if (
+        currentValue === baseWithoutTrailingSlash ||
+        currentValue.startsWith(normalizedBase)
+      ) {
+        return fullMatch
+      }
+
+      const nextValue = normalizedPath === ''
+        ? normalizedBase
+        : `${normalizedBase}${normalizedPath}`
+
+      return `${attr}=${quote}${nextValue}${quote}`
+    }
+  )
+}
+
+async function main () {
   const htmlFiles = await walkHtmlFiles(distDir)
 
   await Promise.all(htmlFiles.map(async (htmlFile) => {
     const source = await fs.readFile(htmlFile, 'utf8')
-    const prefix = makePrefix(htmlFile)
-    const updated = rewriteHtmlLinks(source, prefix)
+    const updated = shouldRelativizeLinks
+      ? rewriteHtmlLinks(source, makePrefix(htmlFile))
+      : rewriteHtmlLinksWithBase(source, docsBase)
 
     if (updated !== source) {
       await fs.writeFile(htmlFile, updated, 'utf8')
