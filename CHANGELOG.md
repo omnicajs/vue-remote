@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.14-alpha.1](https://github.com/omnicajs/vue-remote/compare/v0.2.14-alpha.0...v0.2.14-alpha.1) (2026-03-02)
+
+
+### Fixes
+
+* **build:** Pages asset base path resolution was fixed ([41cafdf](https://github.com/omnicajs/vue-remote/commit/41cafdf377bd2a401d50e0c989dc979739e05c21))
+
 ### [0.2.14-alpha.0](https://github.com/omnicajs/vue-remote/compare/v0.2.13...v0.2.14-alpha.0) (2026-03-02)
 
 ### [0.2.13](https://github.com/omnicajs/vue-remote/compare/v0.2.12...v0.2.13) (2026-03-02)
