@@ -102,6 +102,15 @@
   "publishConfig": {
     "access": "public"
   },
+  "files": [
+    "dist",
+    "index.cjs",
+    "index.d.ts",
+    "index.mjs",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "keywords": [
     "vue",
     "Vue.js",
