@@ -127,6 +127,35 @@ jobs:
             --exclude ".nojekyll" \
             dist-web/ .pages-store/
 
+      - name: Verify Pages payload
+        env:
+          CURRENT_TAG: ${{ steps.versions_manifest.outputs.current_tag }}
+          IS_LATEST: ${{ steps.versions_manifest.outputs.is_latest }}
+        run: |
+          set -euo pipefail
+
+          version_dir=".pages-store/versions/${CURRENT_TAG}"
+
+          if [ ! -f ".pages-store/.nojekyll" ]; then
+            echo "Missing Pages marker: .pages-store/.nojekyll"
+            exit 1
+          fi
+
+          if [ ! -f ".pages-store/versions.json" ]; then
+            echo "Missing versions manifest: .pages-store/versions.json"
+            exit 1
+          fi
+
+          if [ ! -f "${version_dir}/index.html" ]; then
+            echo "Missing version snapshot entrypoint: ${version_dir}/index.html"
+            exit 1
+          fi
+
+          if [ "${IS_LATEST}" = "true" ] && [ ! -f ".pages-store/index.html" ]; then
+            echo "Missing latest entrypoint: .pages-store/index.html"
+            exit 1
+          fi
+
       - name: Commit docs store updates
         working-directory: .pages-store
         run: |
