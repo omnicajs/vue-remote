@@ -9,7 +9,7 @@ const docsBase = process.env.DOCS_BASE
 export default defineConfig({
   output: 'static',
   site: `https://${owner}.github.io`,
-  base: isGitHubActions ? `/${repo}` : (docsBase || '/'),
+  base: docsBase || (isGitHubActions ? `/${repo}` : '/'),
   srcDir: './web',
   outDir: './dist-web',
   cacheDir: './var/cache/astro',

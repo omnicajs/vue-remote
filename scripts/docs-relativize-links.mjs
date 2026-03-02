@@ -3,6 +3,8 @@ import path from 'node:path'
 
 const projectRoot = process.cwd()
 const distDir = path.join(projectRoot, 'dist-web')
+const docsBase = (process.env.DOCS_BASE || '').trim()
+const shouldRelativizeLinks = docsBase === '' || docsBase === '/'
 
 async function walkHtmlFiles (dir) {
   const entries = await fs.readdir(dir, { withFileTypes: true })
@@ -49,6 +51,10 @@ function rewriteHtmlLinks (html, prefix) {
 }
 
 async function main () {
+  if (!shouldRelativizeLinks) {
+    return
+  }
+
   const htmlFiles = await walkHtmlFiles(distDir)
 
   await Promise.all(htmlFiles.map(async (htmlFile) => {
