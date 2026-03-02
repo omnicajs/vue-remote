@@ -9,6 +9,7 @@ for embedding remote applications into your main application.
 
 ## Documentation
 
+- Published docs: <https://omnicajs.github.io/vue-remote/>
 - Astro + Starlight docs source: `web/content/docs/`
 - Docs setup and publishing notes: [`docs/ASTRO.md`](docs/ASTRO.md)
 
