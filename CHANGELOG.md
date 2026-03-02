@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.14-alpha.0](https://github.com/omnicajs/vue-remote/compare/v0.2.13...v0.2.14-alpha.0) (2026-03-02)
+
 ### [0.2.13](https://github.com/omnicajs/vue-remote/compare/v0.2.12...v0.2.13) (2026-03-02)
 
 ### [0.2.12](https://github.com/omnicajs/vue-remote/compare/v0.2.11...v0.2.12) (2026-03-02)
