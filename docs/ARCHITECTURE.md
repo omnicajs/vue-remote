@@ -205,16 +205,12 @@ For architecture-impacting changes, integration tests are the first required sig
 - `.github/workflows/tests.yml`
 - Runs actionlint, lint/test/e2e matrix jobs.
 
-2. Docs publish workflow
-- `.github/workflows/docs-pages.yml`
-- Runs on `main` docs-relevant pushes, tag pushes, and manual dispatch.
-
-3. Release workflow
+2. Release workflow
 - `.github/workflows/release.yml`
 - Manual dispatch with release type (`auto|patch|minor|major`) and prerelease channel (`none|alpha|beta|rc`),
   then publishes to npm using `NPM_TOKEN`.
+- Includes docs publishing job `docs_pages` after npm publish.
 
-4. Shared workflow setup action
+3. Shared workflow setup action
 - `.github/actions/setup-node-deps/action.yml`
 - Standardizes Node setup + Yarn cache + dependency install.
-

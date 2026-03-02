@@ -39,6 +39,8 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-22.04
+    outputs:
+      release_tag: ${{ steps.release_meta.outputs.tag }}
 
     steps:
       - name: Checkout
@@ -98,6 +100,12 @@ jobs:
 
           "${CMD[@]}"
 
+      - name: Resolve release metadata
+        id: release_meta
+        run: |
+          version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          echo "tag=v${version}" >> "$GITHUB_OUTPUT"
+
       - name: Push release commit and tags
         run: git push origin "HEAD:${GITHUB_REF_NAME}" --follow-tags
 
@@ -109,3 +117,179 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TAG: ${{ inputs.npm_tag }}
         run: npm publish --access public --tag "$NPM_TAG"
+
+  pages:
+    needs: release
+    continue-on-error: true
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      DOCS_STORE_BRANCH: docs-pages-store
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ needs.release.outputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Setup Node.js and dependencies
+        uses: ./.github/actions/setup-node-deps
+        with:
+          node-version: 24.x
+          cache-key-suffix: docs
+
+      - name: Checkout docs store branch
+        id: docs_store_checkout
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DOCS_STORE_BRANCH }}
+          path: .pages-store
+          fetch-depth: 1
+
+      - name: Initialize docs store branch
+        if: steps.docs_store_checkout.outcome == 'failure'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          rm -rf .pages-store
+          mkdir -p .pages-store
+          cd .pages-store
+          git init
+          git checkout -b "$DOCS_STORE_BRANCH"
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+      - name: Configure docs store git user
+        working-directory: .pages-store
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Update versions manifest
+        id: versions_manifest
+        env:
+          REF_TYPE: tag
+          REF_NAME: ${{ needs.release.outputs.release_tag }}
+        run: node ./scripts/docs-update-versions-manifest.mjs
+
+      - name: Resolve docs build settings
+        id: docs_settings
+        env:
+          CURRENT_TAG: ${{ steps.versions_manifest.outputs.current_tag }}
+        run: |
+          repo_name="${GITHUB_REPOSITORY#*/}"
+          docs_root_base="/${repo_name}/"
+          docs_latest_base="/${repo_name}"
+          docs_version_base="/${repo_name}/versions/${CURRENT_TAG}"
+
+          {
+            echo "docs_latest_base=${docs_latest_base}"
+            echo "docs_version_base=${docs_version_base}"
+            echo "docs_root_base=${docs_root_base}"
+          } >> "${GITHUB_OUTPUT}"
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build docs for version snapshot
+        env:
+          ASTRO_TELEMETRY_DISABLED: '1'
+          DOCS_BASE: ${{ steps.docs_settings.outputs.docs_version_base }}
+          PUBLIC_DOCS_CHANNEL: version
+          PUBLIC_DOCS_CURRENT_VERSION: ${{ steps.versions_manifest.outputs.current_tag }}
+          PUBLIC_DOCS_DEFAULT_LATEST_VERSION: ${{ steps.versions_manifest.outputs.latest }}
+          PUBLIC_DOCS_ROOT_BASE: ${{ steps.docs_settings.outputs.docs_root_base }}
+        run: yarn docs:build
+
+      - name: Sync version snapshot into store
+        env:
+          CURRENT_TAG: ${{ steps.versions_manifest.outputs.current_tag }}
+        run: |
+          mkdir -p .pages-store/versions
+          touch .pages-store/.nojekyll
+          target_dir=".pages-store/versions/${CURRENT_TAG}"
+          mkdir -p "${target_dir}"
+          rsync -a --delete dist-web/ "${target_dir}/"
+
+      - name: Build docs for latest root
+        if: steps.versions_manifest.outputs.is_latest == 'true'
+        env:
+          ASTRO_TELEMETRY_DISABLED: '1'
+          DOCS_BASE: ${{ steps.docs_settings.outputs.docs_latest_base }}
+          PUBLIC_DOCS_CHANNEL: latest
+          PUBLIC_DOCS_CURRENT_VERSION: ${{ steps.versions_manifest.outputs.latest }}
+          PUBLIC_DOCS_DEFAULT_LATEST_VERSION: ${{ steps.versions_manifest.outputs.latest }}
+          PUBLIC_DOCS_ROOT_BASE: ${{ steps.docs_settings.outputs.docs_root_base }}
+        run: yarn docs:build
+
+      - name: Sync latest payload into store
+        if: steps.versions_manifest.outputs.is_latest == 'true'
+        run: |
+          rsync -a --delete \
+            --exclude ".git/" \
+            --exclude "versions/" \
+            --exclude "versions.json" \
+            --exclude ".nojekyll" \
+            dist-web/ .pages-store/
+
+      - name: Verify Pages payload
+        env:
+          CURRENT_TAG: ${{ steps.versions_manifest.outputs.current_tag }}
+          IS_LATEST: ${{ steps.versions_manifest.outputs.is_latest }}
+        run: |
+          set -euo pipefail
+
+          version_dir=".pages-store/versions/${CURRENT_TAG}"
+
+          if [ ! -f ".pages-store/.nojekyll" ]; then
+            echo "Missing Pages marker: .pages-store/.nojekyll"
+            exit 1
+          fi
+
+          if [ ! -f ".pages-store/versions.json" ]; then
+            echo "Missing versions manifest: .pages-store/versions.json"
+            exit 1
+          fi
+
+          if [ ! -f "${version_dir}/index.html" ]; then
+            echo "Missing version snapshot entrypoint: ${version_dir}/index.html"
+            exit 1
+          fi
+
+          if [ "${IS_LATEST}" = "true" ] && [ ! -f ".pages-store/index.html" ]; then
+            echo "Missing latest entrypoint: .pages-store/index.html"
+            exit 1
+          fi
+
+      - name: Commit docs store updates
+        working-directory: .pages-store
+        run: |
+          git add -A
+
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+
+          git commit -m "chore(docs): Updated Pages payload for ${{ needs.release.outputs.release_tag }}"
+          git push origin "HEAD:${DOCS_STORE_BRANCH}"
+
+      - name: Prepare artifact directory
+        run: |
+          mkdir -p .pages-artifact
+          rsync -a --delete --exclude ".git/" .pages-store/ .pages-artifact/
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .pages-artifact
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
