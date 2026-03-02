@@ -146,4 +146,5 @@ dist-web
 /playwright/.cache/
 
 # local generated artifacts
+artifacts/
 var/
