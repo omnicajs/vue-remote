@@ -40,7 +40,7 @@
   },
   "scripts": {
     "build": "vite build",
-    "docs:prepare": "mkdir -p var && if [ ! -L .astro ]; then rm -rf .astro && ln -s var/.astro .astro; fi",
+    "docs:prepare": "mkdir -p var/.astro && if [ ! -L .astro ]; then rm -rf .astro && ln -s var/.astro .astro; fi",
     "docs:build": "yarn docs:prepare && astro build && node ./scripts/docs-relativize-links.mjs",
     "docs:dev": "yarn docs:prepare && astro dev",
     "docs:preview": "yarn docs:prepare && astro preview",
