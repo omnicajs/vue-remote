@@ -30,6 +30,7 @@ import { HostedTree } from '@/vue/host'
 import {
   Comment,
   createApp,
+  createStaticVNode,
   createTextVNode,
   h,
   nextTick,
@@ -131,6 +132,60 @@ describe('vue', () => {
     }, receiver)
 
     expect(el?.innerHTML).toBe(expected)
+  })
+
+  test('renders static svg content', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    await createRemoteApp({
+      render: () => h('div', [
+        createStaticVNode('<svg viewBox="0 0 16 16"><path d="M1 1h14v14H1z"></path></svg>', 1),
+      ]),
+    }, receiver)
+
+    expect(el?.innerHTML).toBe('<div><svg viewBox="0 0 16 16"><path d="M1 1h14v14H1z"></path></svg></div>')
+  })
+
+  test('renders static spinner svg with animateTransform', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    await createRemoteApp({
+      render: () => h('div', [
+        createStaticVNode(`
+          <svg xmlns="http://www.w3.org/2000/svg" version="1.0" fill="currentColor" viewBox="0 0 128 128" style="padding: 2px;">
+            <g transform="matrix(-1 0 0 1 128 0)">
+              <circle cx="16" cy="64" r="13"/>
+              <circle cx="16" cy="64" r="11.344" transform="rotate(45 64 64)"/>
+              <circle cx="16" cy="64" r="9.531" transform="rotate(90 64 64)"/>
+              <circle cx="16" cy="64" r="7.75" transform="rotate(135 64 64)"/>
+              <circle cx="16" cy="64" r="7.063" transform="rotate(180 64 64)"/>
+              <circle cx="16" cy="64" r="5.063" transform="rotate(225 64 64)"/>
+              <circle cx="16" cy="64" r="4.438" transform="rotate(270 64 64)"/>
+              <circle cx="16" cy="64" r="3.375" transform="rotate(315 64 64)"/>
+              <animateTransform attributeName="transform" type="rotate" values="0 64 64;315 64 64;270 64 64;225 64 64;180 64 64;135 64 64;90 64 64;45 64 64;" calcMode="discrete" dur="960ms" repeatCount="indefinite"/>
+            </g>
+          </svg>
+        `, 1),
+      ]),
+    }, receiver)
+
+    const svg = el?.querySelector('svg')
+    expect(svg).not.toBeNull()
+    expect(svg?.getAttribute('version')).toBe('1.0')
+    expect(svg?.getAttribute('fill')).toBe('currentColor')
+    expect(svg?.getAttribute('viewBox')).toBe('0 0 128 128')
+    expect(svg?.querySelectorAll('circle')).toHaveLength(8)
+
+    const animateTransform = svg?.querySelector('animateTransform')
+    expect(animateTransform).not.toBeNull()
+    expect(animateTransform?.getAttribute('attributeName')).toBe('transform')
+    expect(animateTransform?.getAttribute('type')).toBe('rotate')
+    expect(animateTransform?.getAttribute('dur')).toBe('960ms')
+    expect(animateTransform?.getAttribute('repeatCount')).toBe('indefinite')
   })
 
   test('patches text when reactive data is changed', async () => {
