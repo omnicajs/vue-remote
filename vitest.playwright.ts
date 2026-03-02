@@ -4,12 +4,10 @@ import {
 } from 'vitest/config'
 
 import { playwright } from '@vitest/browser-playwright'
-// @ts-ignore
+
 import vue from '@vitejs/plugin-vue'
 
 import basic from './vite.config.basic'
-
-const coverageEnabled = process.argv.includes('--coverage')
 
 export default mergeConfig(basic, defineConfig({
   plugins: [
@@ -34,7 +32,7 @@ export default mergeConfig(basic, defineConfig({
       enabled: true,
       provider: playwright(),
       headless: true,
-      instances: coverageEnabled
+      instances: process.argv.includes('--coverage')
         ? [{ browser: 'chromium' }]
         : [
           { browser: 'chromium' },
