@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.14-alpha.2](https://github.com/omnicajs/vue-remote/compare/v0.2.14-alpha.1...v0.2.14-alpha.2) (2026-03-02)
+
+
+### Fixes
+
+* **docs:** Base-aware rewriting for absolute docs links was fixed ([8c31690](https://github.com/omnicajs/vue-remote/commit/8c31690c1a34c18ffac8ea8d8d54ec2d559c8dc2))
+
 ### [0.2.14-alpha.1](https://github.com/omnicajs/vue-remote/compare/v0.2.14-alpha.0...v0.2.14-alpha.1) (2026-03-02)
 
 
