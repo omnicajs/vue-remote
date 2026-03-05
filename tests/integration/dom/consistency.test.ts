@@ -212,6 +212,67 @@ describe('dom/consistency', () => {
     ]))
   })
 
+  test('replaces fragment props and keeps receiver context in sync', async () => {
+    const receiver = createReceiver()
+    const root = createRemoteRoot(receiver.receive, { strict: false })
+
+    const oldFragment = root.createFragment()
+    oldFragment.append('old')
+
+    const card = root.createComponent('VCard', {
+      slot: oldFragment,
+    })
+
+    root.append(card)
+    await root.mount()
+    await receiver.flush()
+
+    const mountedCard = receiver.tree.root.children[0] as ReceivedComponent<{
+      slot: { id: string };
+    }>
+
+    const oldFragmentId = mountedCard.properties.slot.id
+    expect(receiver.tree.get({ id: oldFragmentId })).toBeTruthy()
+
+    const newFragment = root.createFragment()
+    newFragment.append('new')
+
+    card.updateProperties({ slot: newFragment })
+    await receiver.flush()
+
+    const updatedCard = receiver.tree.root.children[0] as ReceivedComponent<{
+      slot: { id: string };
+    }>
+
+    expect(updatedCard.properties.slot.id).not.toBe(oldFragmentId)
+    expect(receiver.tree.get({ id: oldFragmentId })).toBeNull()
+    expect(receiver.tree.get({ id: updatedCard.properties.slot.id })).toBeTruthy()
+  })
+
+  test('moves first child between parents on host side', async () => {
+    const receiver = createReceiver()
+    const root = createRemoteRoot(receiver.receive)
+
+    const owner = root.createComponent('Owner')
+    const hijacker = root.createComponent('Hijacker')
+    const card = root.createComponent('Card')
+
+    owner.append(card)
+    root.append(owner, hijacker)
+
+    await root.mount()
+    await receiver.flush()
+
+    expect((receiver.tree.root.children[0] as ReceivedComponent).children).toHaveLength(1)
+    expect((receiver.tree.root.children[1] as ReceivedComponent).children).toHaveLength(0)
+
+    hijacker.append(card)
+    await receiver.flush()
+
+    expect((receiver.tree.root.children[0] as ReceivedComponent).children).toHaveLength(0)
+    expect((receiver.tree.root.children[1] as ReceivedComponent).children).toHaveLength(1)
+  })
+
   test('calls method', async () => {
     const receiver = createReceiver()
 

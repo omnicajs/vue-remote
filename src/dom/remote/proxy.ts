@@ -91,7 +91,10 @@ export const collectProxies = (
   if (Array.isArray(value)) {
     return value.reduce((all, element) => {
       const nested = collectProxies(element, visited)
-      return nested ? [...all, ...nested] : all
+      if (nested) {
+        all.push(...nested)
+      }
+      return all
     }, [] as FunctionProxy[])
   }
 
@@ -106,7 +109,12 @@ export const collectProxies = (
 }
 
 export const prepareProxiesUnset = (value: unknown): FunctionProxyUpdate[] => {
-  return collectProxies(value)?.map(p => [p, undefined]) ?? []
+  const proxies = collectProxies(value)
+  if (proxies == null) {
+    return []
+  }
+
+  return proxies.map(p => [p, undefined])
 }
 
 export function prepareProxies (

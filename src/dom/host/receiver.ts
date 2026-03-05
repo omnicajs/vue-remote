@@ -70,7 +70,7 @@ const insert = <T>(target: T[], el: T, after: number) => {
 
 const remove = <T>(target: T[], criteria: (el: T) => boolean) => {
   const at = target.findIndex(criteria)
-  return at > 0 ? target.splice(at, 1)[0] : undefined
+  return at >= 0 ? target.splice(at, 1)[0] : undefined
 }
 
 const awaitUpdate = (node: Received, updater: Updater) => {
