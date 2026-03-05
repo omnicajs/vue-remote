@@ -4,6 +4,7 @@ import { readdirSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 
 import vue from '@vitejs/plugin-vue'
+import svgLoader from 'vite-svg-loader'
 
 import path from 'node:path'
 import process from 'node:process'
@@ -33,7 +34,7 @@ const configure = (__case, filename) => ({
     minify: false,
     sourcemap: true,
   },
-  plugins: [vue()],
+  plugins: [svgLoader(), vue()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '../..', 'src'),

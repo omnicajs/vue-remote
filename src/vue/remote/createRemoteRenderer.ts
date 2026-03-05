@@ -6,6 +6,7 @@ import type {
   RemoteText,
 } from '@/dom/remote'
 import type { ElementNamespace } from 'vue'
+import type { ParsedNode } from '@/vue/remote/parser'
 
 import { createRenderer } from 'vue'
 
@@ -14,6 +15,13 @@ import {
   isRemoteText,
 } from '@/dom/remote'
 
+import {
+  NODE_TYPE_COMMENT,
+  NODE_TYPE_ELEMENT,
+  NODE_TYPE_TEXT,
+  parseStaticContent,
+} from '@/vue/remote/parser'
+
 type Component<Root extends RemoteRoot = RemoteRoot> = RemoteComponent<string, Root>
 type Node<Root extends RemoteRoot = RemoteRoot> =
   | Component<Root>
@@ -21,9 +29,6 @@ type Node<Root extends RemoteRoot = RemoteRoot> =
   | RemoteText<Root>
 
 type Parent<Root extends RemoteRoot = RemoteRoot> = Component<Root> | Root | RemoteFragment<Root>
-
-const SVG_NAMESPACE = 'http://www.w3.org/2000/svg'
-const MATH_ML_NAMESPACE = 'http://www.w3.org/1998/Math/MathML'
 
 const nextSibling = <Root extends RemoteRoot = RemoteRoot>(node: Node<Root>) => {
   const { parent } = node
@@ -60,51 +65,25 @@ const setText = <Root extends RemoteRoot = RemoteRoot>(
   }
 }
 
-const parseStaticContent = (
-  content: string,
-  namespace: ElementNamespace
-): ChildNode[] => {
-  if (namespace === 'svg' || namespace === 'mathml') {
-    const parser = new DOMParser()
-    const namespaceUri = namespace === 'svg' ? SVG_NAMESPACE : MATH_ML_NAMESPACE
-    const wrapped = `<root xmlns="${namespaceUri}">${content}</root>`
-    const document = parser.parseFromString(wrapped, 'application/xml')
-    const root = document.documentElement
-
-    return [...root.childNodes]
-  }
-
-  const template = document.createElement('template')
-  template.innerHTML = content
-
-  return [...template.content.childNodes]
-}
-
-const createFromDOMNode = <Root extends RemoteRoot = RemoteRoot>(
+const createFromParsedNode = <Root extends RemoteRoot = RemoteRoot>(
   root: Root,
-  node: ChildNode
+  node: ParsedNode
 ): Node<Root> | null => {
-  if (node.nodeType === Node.TEXT_NODE) {
-    return root.createText(node.textContent ?? '') as Node<Root>
+  if (node.type === NODE_TYPE_TEXT) {
+    return root.createText(node.text) as Node<Root>
   }
 
-  if (node.nodeType === Node.COMMENT_NODE) {
-    return root.createComment(node.textContent ?? '') as Node<Root>
+  if (node.type === NODE_TYPE_COMMENT) {
+    return root.createComment(node.text) as Node<Root>
   }
 
-  if (node.nodeType !== Node.ELEMENT_NODE) {
+  if (node.type !== NODE_TYPE_ELEMENT) {
     return null
   }
 
-  const element = node as Element
-  const properties = [...element.attributes].reduce<Record<string, string>>((acc, attribute) => {
-    acc[attribute.name] = attribute.value
-    return acc
-  }, {})
-
-  const component = root.createComponent(element.localName, properties) as Component<Root>
-  const children = [...element.childNodes]
-    .map(child => createFromDOMNode(root, child))
+  const component = root.createComponent(node.tag, node.properties) as Component<Root>
+  const children = node.children
+    .map(child => createFromParsedNode(root, child))
     .filter((child): child is Node<Root> => child != null)
 
   children.forEach(child => component.append(child))
@@ -120,7 +99,7 @@ const insertStaticContent = <Root extends RemoteRoot = RemoteRoot>(
   namespace: ElementNamespace
 ): [Node<Root>, Node<Root>] => {
   const nodes = parseStaticContent(content, namespace)
-    .map(node => createFromDOMNode(root, node))
+    .map(node => createFromParsedNode(root, node))
     .filter((node): node is Node<Root> => node != null)
 
   if (nodes.length === 0) {

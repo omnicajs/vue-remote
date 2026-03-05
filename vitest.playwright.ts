@@ -6,11 +6,13 @@ import {
 import { playwright } from '@vitest/browser-playwright'
 
 import vue from '@vitejs/plugin-vue'
+import svg from 'vite-svg-loader'
 
 import basic from './vite.config.basic'
 
 export default mergeConfig(basic, defineConfig({
   plugins: [
+    svg(),
     vue(),
   ],
 
