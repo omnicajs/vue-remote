@@ -39,6 +39,12 @@ runs:
         restore-keys: |
           ${{ runner.OS }}-node-${{ inputs.node-version }}-${{ inputs.cache-key-suffix }}-yarn-
 
+    - name: Enable Corepack and activate Yarn from packageManager
+      shell: bash
+      run: |
+        corepack enable
+        corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+
     - name: Install dependencies
       shell: bash
       run: yarn install
