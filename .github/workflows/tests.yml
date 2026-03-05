@@ -44,55 +44,6 @@ jobs:
   tests:
     needs: [ actionlint, eslint ]
 
-    timeout-minutes: 60
-    runs-on: ubuntu-22.04
-
-    strategy:
-      matrix:
-        node-version: [ 22.x, 24.x ]
-
-    steps:
-      - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js and dependencies
-        uses: ./.github/actions/setup-node-deps
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache-key-suffix: tests-unit-integration
-
-      - name: Run tests
-        run: yarn test
-
-  e2e:
-    needs: [ tests ]
-
-    timeout-minutes: 60
-    runs-on: ubuntu-22.04
-
-    strategy:
-      matrix:
-        node-version: [ 22.x, 24.x ]
-
-    steps:
-      - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js and dependencies
-        uses: ./.github/actions/setup-node-deps
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache-key-suffix: tests-e2e
-
-      - name: Install Playwright Browsers
-        run: npx playwright install chromium firefox --with-deps
-
-      - name: Run browser e2e tests (Vitest + Playwright)
-        run: yarn test:e2e
-
-  coverage:
-    needs: [ tests, e2e ]
-
     timeout-minutes: 90
     runs-on: ubuntu-22.04
 
@@ -104,7 +55,7 @@ jobs:
         uses: ./.github/actions/setup-node-deps
         with:
           node-version: 24.x
-          cache-key-suffix: coverage-merged
+          cache-key-suffix: tests-all-coverage
 
       - name: Install Playwright Browsers
         run: npx playwright install chromium firefox --with-deps
