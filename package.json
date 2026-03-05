@@ -41,7 +41,7 @@
   "scripts": {
     "build": "vite build",
     "coverage:clean": "rm -rf coverage && mkdir -p coverage",
-    "coverage:merge": "rm -rf coverage/.nyc_output && mkdir -p coverage/.nyc_output && cp coverage/vitest/coverage-final.json coverage/.nyc_output/vitest.json && cp coverage/playwright/coverage-final.json coverage/.nyc_output/playwright.json && nyc --nycrc-path .nycrc.json merge coverage/.nyc_output coverage/coverage-final.json && nyc --nycrc-path .nycrc.json report && yarn coverage:summary",
+    "coverage:merge": "rm -rf coverage/.nyc_output && mkdir -p coverage/.nyc_output && cp coverage/vitest/coverage-final.json coverage/.nyc_output/vitest.json && cp coverage/playwright/coverage-final.json coverage/.nyc_output/playwright.json && nyc --nycrc-path .nycrc.json merge coverage/.nyc_output coverage/coverage-final.json && nyc --nycrc-path .nycrc.json report && node scripts/coverage-summary.mjs",
     "coverage:summary": "node scripts/coverage-summary.mjs",
     "docs:prepare": "mkdir -p var/.astro && if [ ! -L .astro ]; then rm -rf .astro && ln -s var/.astro .astro; fi",
     "docs:build": "yarn docs:prepare && astro build && node ./scripts/docs-relativize-links.mjs",
@@ -131,5 +131,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/omnicajs/vue-remote.git"
-  }
+  },
+  "packageManager": "yarn@4.13.0"
 }

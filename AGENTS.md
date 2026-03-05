@@ -45,7 +45,7 @@ workflow.
 
 ## Local Environment Prerequisites
 - Node version is `>=18.0.0` (see `engines.node` in `package.json`).
-- Lockfile format is Yarn Classic (`yarn lockfile v1`).
+- Yarn version is pinned via `packageManager` (`yarn@4.5.0`).
 - Install dependencies with:
 ```bash
 yarn install
