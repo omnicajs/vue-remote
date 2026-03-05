@@ -147,10 +147,6 @@ const parseWithFallback = (
   let cursor = 0
 
   const appendText = (text: string) => {
-    if (!text) {
-      return
-    }
-
     stack[stack.length - 1].node.children.push({
       type: NODE_TYPE_TEXT,
       text: decodeEntities(text),

@@ -306,17 +306,18 @@ const insertBefore = (
     )
   }
 
-  const oldIndex = parent.children.indexOf(child) ?? -1
+  const oldIndex = parent.children.indexOf(child)
   const oldParent = child.parent
 
   const beforeIndex = before ? parent.children.indexOf(before) : -1
+  const insertionIndex = beforeIndex - Number(oldIndex >= 0 && oldIndex <= beforeIndex)
 
   return update(context, parent,  (channel) => channel(
     ACTION_INSERT_CHILD,
     parent.id,
     beforeIndex < 0
       ? parent.children.length
-      : oldIndex < 0 || oldIndex > beforeIndex ? beforeIndex : beforeIndex - 1,
+      : insertionIndex,
     child.serialize(),
     oldParent ? oldParent.id : false
   ), () => insert(context, parent, child, before))

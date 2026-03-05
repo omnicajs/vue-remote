@@ -15,6 +15,7 @@ import {
   createRemoteRenderer,
   createRemoteRoot,
   KIND_COMPONENT,
+  KIND_COMMENT,
   KIND_TEXT,
 } from '@/vue/remote'
 
@@ -112,5 +113,51 @@ describe('vue/remote/createRemoteRenderer', () => {
     const textAfter = div.children[2]
     assertText(textAfter)
     expect(textAfter.text).toBe('World')
+  })
+
+  test('creates comment nodes from static content without DOM API', () => {
+    vi.stubGlobal('document', undefined)
+    vi.stubGlobal('DOMParser', undefined)
+
+    const root = createRemoteRoot(() => {}, {
+      strict: false,
+    })
+    const { createApp } = createRemoteRenderer(root)
+
+    createApp({
+      render: () => h('div', [
+        createStaticVNode('<!--loader-->', 1),
+      ]),
+    }).mount(root)
+
+    const container = root.children[0]
+    assertComponent(container)
+
+    expect(container.children).toHaveLength(1)
+    expect(container.children[0].kind).toBe(KIND_COMMENT)
+  })
+
+  test('creates placeholder text node when static content is empty', () => {
+    vi.stubGlobal('document', undefined)
+    vi.stubGlobal('DOMParser', undefined)
+
+    const root = createRemoteRoot(() => {}, {
+      strict: false,
+    })
+    const { createApp } = createRemoteRenderer(root)
+
+    createApp({
+      render: () => h('div', [
+        createStaticVNode('', 1),
+      ]),
+    }).mount(root)
+
+    const container = root.children[0]
+    assertComponent(container)
+    expect(container.children).toHaveLength(1)
+
+    const placeholder = container.children[0]
+    assertText(placeholder)
+    expect(placeholder.text).toBe('')
   })
 })

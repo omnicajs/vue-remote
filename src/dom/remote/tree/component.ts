@@ -247,11 +247,10 @@ function _print <R extends RemoteRoot, T extends SupportedBy<R>>(
     | RemoteComment<R>
     | RemoteComponent<ChildrenOf<T>, R>
     | RemoteText<R>
-    | string
   >
 ) {
   const _head = `${typeof type === 'string' ? type : type.type}:${id}`
-  const _children = children.map(c => typeof c === 'string' ? c : c.print())
+  const _children = children.map(c => c.print())
   const _body = _children.length > 0 ? `\n${_indent(_children.join(',\n'))}\n` : ''
 
   return `${_head}[${_body}]`
