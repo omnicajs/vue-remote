@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.14](https://github.com/omnicajs/vue-remote/compare/v0.2.14-alpha.3...v0.2.14) (2026-03-05)
+
+
+### Fixes
+
+* missing types/ directory ([7d9df87](https://github.com/omnicajs/vue-remote/commit/7d9df8720d3890d3667c17d966b69d964c9849dd))
+
 ### [0.2.14-alpha.3](https://github.com/omnicajs/vue-remote/compare/v0.2.14-alpha.2...v0.2.14-alpha.3) (2026-03-02)
 
 ### [0.2.14-alpha.2](https://github.com/omnicajs/vue-remote/compare/v0.2.14-alpha.1...v0.2.14-alpha.2) (2026-03-02)
