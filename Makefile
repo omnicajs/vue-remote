@@ -31,6 +31,15 @@ else
 	$(YARN) test
 endif
 
+.PHONY: tests-coverage
+tests-coverage: ## Runs unit/integration tests with coverage
+	$(TARGET_HEADER)
+ifdef cli
+	$(YARN) test:coverage $(cli)
+else
+	$(YARN) test:coverage
+endif
+
 .PHONY: tests-e2e
 tests-e2e: ## Runs new browser e2e tests (vitest + playwright provider)
 	$(TARGET_HEADER)
@@ -40,6 +49,24 @@ else
 	$(COMPOSE) --profile e2e run --rm e2e-vitest yarn test:e2e
 endif
 
+.PHONY: tests-e2e-coverage
+tests-e2e-coverage: ## Runs browser e2e tests with coverage
+	$(TARGET_HEADER)
+ifdef cli
+	$(COMPOSE) --profile e2e run --rm e2e-vitest yarn test:e2e:coverage $(cli)
+else
+	$(COMPOSE) --profile e2e run --rm e2e-vitest yarn test:e2e:coverage
+endif
+
+.PHONY: tests-all-coverage
+tests-all-coverage: ## Runs full merged coverage (unit/integration + browser e2e)
+	$(TARGET_HEADER)
+ifdef cli
+	$(COMPOSE) --profile e2e run --rm e2e-vitest yarn test:all:coverage $(cli)
+else
+	$(COMPOSE) --profile e2e run --rm e2e-vitest yarn test:all:coverage
+endif
+
 .PHONY: actionlint
 actionlint: ## Lints GitHub Actions workflows
 	$(TARGET_HEADER)
@@ -47,7 +74,7 @@ actionlint: ## Lints GitHub Actions workflows
 
 .PHONY: help
 help: ## Calls recipes list
-	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk '\
+	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z0-9_\-]*: *.*## *" | awk '\
 	    BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 -include recipies/playwright.mk
