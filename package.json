@@ -43,7 +43,7 @@
     "coverage:clean": "rm -rf coverage && mkdir -p coverage",
     "coverage:merge": "rm -rf coverage/.nyc_output && node scripts/coverage-merge.mjs && nyc --nycrc-path .nycrc.json report && node scripts/coverage-summary.mjs",
     "coverage:summary": "node scripts/coverage-summary.mjs",
-    "docs:prepare": "mkdir -p var/.astro && if [ ! -L .astro ]; then rm -rf .astro && ln -s var/.astro .astro; fi",
+    "docs:prepare": "node ./scripts/docs-prepare.mjs",
     "docs:build": "yarn docs:prepare && astro build && node ./scripts/docs-relativize-links.mjs",
     "docs:dev": "yarn docs:prepare && astro dev",
     "docs:preview": "yarn docs:prepare && astro preview",
