@@ -19,7 +19,6 @@ export default mergeConfig(basic, defineConfig({
   test: {
     include: ['tests/**/*.e2e.ts'],
     exclude: [
-      'tests/e2e/**',
       '**/node_modules/**',
       '**/dist/**',
       '**/dist-web/**',

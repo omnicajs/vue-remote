@@ -92,7 +92,7 @@ The library is transport-agnostic at the core level: the only requirement is a f
 `tests/`
 - `unit/`: isolated behavior.
 - `integration/`: host + remote flow with Vue runtime.
-- `e2e/`: browser-level scenarios (Playwright) with scaffolded host/remote apps.
+- `*.e2e.ts`: browser-level scenarios (Vitest browser mode with Playwright provider).
 
 `web/`
 - Astro/Starlight documentation source.
@@ -194,7 +194,7 @@ If you need transport/runtime docs:
 2. Integration tests (`tests/integration/`)
 - Primary correctness suite for host/remote synchronization, events, invoke, slots, lifecycle.
 
-3. E2E tests (`tests/e2e/`)
+3. E2E tests (`tests/*.e2e.ts`)
 - Real browser runs with transport scaffolding and full flow checks.
 
 For architecture-impacting changes, integration tests are the first required signal.

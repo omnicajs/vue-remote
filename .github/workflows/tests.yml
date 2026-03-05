@@ -87,24 +87,8 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install chromium firefox --with-deps
 
-      - name: Build e2e example app
-        run: yarn e2e:build
-
-      - name: Run example app server
-        run: nohup yarn e2e:serve &
-
-      - name: Run e2e tests
-        run: yarn e2e:test
-
       - name: Run browser e2e tests (Vitest + Playwright)
         run: yarn test:e2e
-
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: playwright-report-${{ matrix.node-version }}
-          path: playwright-report/
-          retention-days: 30
 
   coverage:
     needs: [ tests, e2e ]
