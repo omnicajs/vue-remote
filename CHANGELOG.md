@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.16](https://github.com/omnicajs/vue-remote/compare/v0.2.15...v0.2.16) (2026-03-05)
+
+
+### Fixes
+
+* Replaced docs prepare shell script with Node helper ([5447863](https://github.com/omnicajs/vue-remote/commit/5447863b185abbc3467245e05285354ac4661ad4))
+
 ### [0.2.15](https://github.com/omnicajs/vue-remote/compare/v0.2.14...v0.2.15) (2026-03-05)
 
 
