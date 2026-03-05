@@ -47,22 +47,15 @@ yarn test
 yarn test:coverage
 ```
 
-Playwright. E2E tests
+Vitest browser mode (Playwright provider). E2E tests
 ```bash
-make e2e
+make tests-e2e
 ```
 
 or without using docker
 
 ```bash
-yarn e2e:build
-```
-Launch server and don't close it before tests have finished
-```bash
-yarn e2e:serve
-```
-```bash
-yarn e2e:test
+yarn test:e2e
 ```
 
 ## Description

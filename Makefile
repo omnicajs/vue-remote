@@ -45,14 +45,6 @@ actionlint: ## Lints GitHub Actions workflows
 	$(TARGET_HEADER)
 	docker run --rm -v "$$(pwd):/repo" -w /repo rhysd/actionlint:latest
 
-.PHONY: e2e
-e2e: ## Runs e2e autotests
-	$(TARGET_HEADER)
-	$(COMPOSE) run --rm -e SERVER=server node yarn e2e:build
-	$(COMPOSE) --profile e2e run --rm e2e
-	$(COMPOSE) stop server
-	$(COMPOSE) rm server -f
-
 .PHONY: help
 help: ## Calls recipes list
 	@cat $(MAKEFILE_LIST) | grep -e "^[a-zA-Z_\-]*: *.*## *" | awk '\

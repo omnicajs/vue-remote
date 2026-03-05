@@ -1,53 +1,19 @@
 x-node-common: &node-common
   build:
     context: ..
-    dockerfile: docker/services/node/Dockerfile
+    dockerfile: docker/services/playwright/Dockerfile
   user: "${UID:-1000}:${GID:-1000}"
   volumes:
     - ../:/project
   working_dir: /project
+  ipc: host
+  init: true
+  profiles:
+    - e2e
 
 services:
-  server:
+  e2e-vitest:
     <<: *node-common
     command: >
       sh -lc "if [ ! -d node_modules/.bin ]; then yarn install --frozen-lockfile; fi &&
-      yarn e2e:serve"
-    ports:
-      - '3000:3000'
-
-  e2e:
-    build:
-      context: ..
-      dockerfile: docker/services/playwright/Dockerfile
-    user: "${UID:-1000}:${GID:-1000}"
-    depends_on:
-      - server
-    volumes:
-      - ../:/project
-    working_dir: /project
-    environment:
-      SERVER: server
-    command: >
-      sh -lc "if [ ! -d node_modules/.bin ]; then yarn install --frozen-lockfile; fi &&
-      yarn e2e:test"
-    ipc: host
-    init: true
-    profiles:
-      - e2e
-
-  e2e-vitest:
-    build:
-      context: ..
-      dockerfile: docker/services/playwright/Dockerfile
-    user: "${UID:-1000}:${GID:-1000}"
-    volumes:
-      - ../:/project
-    working_dir: /project
-    command: >
-      sh -lc "if [ ! -d node_modules/.bin ]; then yarn install --frozen-lockfile; fi &&
       yarn test:e2e"
-    ipc: host
-    init: true
-    profiles:
-      - e2e

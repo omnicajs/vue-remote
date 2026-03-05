@@ -40,7 +40,7 @@ workflow.
 - Tests are split by level:
   - `tests/unit/**`,
   - `tests/integration/**`,
-  - `tests/e2e/**`.
+  - `tests/*.e2e.ts`.
 - Tooling stack: Vite, Vitest, ESLint, Playwright.
 
 ## Local Environment Prerequisites
@@ -68,9 +68,7 @@ yarn test:coverage
 ```
 - Run e2e tests:
 ```bash
-yarn e2e:build
-yarn e2e:serve
-yarn e2e:test
+yarn test:e2e
 ```
 
 ### Docker/Makefile Path
@@ -80,7 +78,7 @@ make tests
 ```
 - E2E tests:
 ```bash
-make e2e
+make tests-e2e
 ```
 
 ## Related Commands
