@@ -9,13 +9,13 @@ import type { SchemaType } from '@/dom/remote'
 import type {
   MethodsOf,
   PropertiesOf,
-  TypeOf,
   UnknownType,
 } from '@/dom/remote'
 
 import type {
   None,
   Unknown,
+  UnknownMethods,
 } from '~types/scaffolding'
 import type {
   RemoteMethodCarrier,
@@ -45,19 +45,33 @@ type LooseRemoteMethodMap = Record<string, LooseRemoteMethodDefinition>
 type LooseRemoteMethodDeclarations = readonly string[] | LooseRemoteMethodMap
 type RemoteSlotDefinitions = Record<string, unknown>
 type RemoteMethodKey<Methods> = Extract<keyof Methods, string>
-type UnknownMethods = Record<string, (...args: unknown[]) => Promise<unknown>>
 type SchemaMethodValidator<Method> = Method extends (...args: infer Args) => unknown
   ? RemoteMethodValidator<Args>
   : never
 type SchemaMethodCarrier<Method> = Method extends (...args: infer Args) => infer Result
   ? RemoteMethodCarrier<Args, Awaited<Result>>
   : never
-type SchemaAwareMethodMap<Methods extends UnknownMethods> = Partial<{
-  [Key in RemoteMethodKey<Methods>]: SchemaMethodValidator<Methods[Key]> | SchemaMethodCarrier<Methods[Key]>;
-}>
-type SchemaAwareMethodDeclarations<Methods extends UnknownMethods> =
-  | ReadonlyArray<RemoteMethodKey<Methods>>
-  | SchemaAwareMethodMap<Methods>
+type StrictSchemaMethodDeclarations<
+  SchemaMethods extends UnknownMethods,
+  DeclaredMethods,
+> = DeclaredMethods extends undefined
+  ? undefined
+  : DeclaredMethods extends readonly string[]
+    ? Exclude<DeclaredMethods[number], RemoteMethodKey<SchemaMethods>> extends never
+      ? DeclaredMethods
+      : never
+    : DeclaredMethods extends Record<string, unknown>
+      ? Exclude<keyof DeclaredMethods, RemoteMethodKey<SchemaMethods>> extends never
+        ? {
+          [Key in keyof DeclaredMethods]:
+            Key extends keyof SchemaMethods
+              ? DeclaredMethods[Key] extends SchemaMethodValidator<SchemaMethods[Key]> | SchemaMethodCarrier<SchemaMethods[Key]>
+                ? DeclaredMethods[Key]
+                : never
+              : never;
+        }
+        : never
+      : never
 type ExposedRemoteMethod<Method> = Method extends RemoteMethodCarrier<infer Args, infer Result>
   ? (...args: Args) => Promise<Result>
   : Method extends (...args: infer Args) => boolean
@@ -68,11 +82,6 @@ type ExposedRemoteMethods<Methods> = Methods extends readonly string[]
   : Methods extends Record<string, unknown>
     ? { [Key in keyof Methods]: ExposedRemoteMethod<Methods[Key]> }
     : None
-type ExposedSchemaMethods<Methods extends UnknownMethods> = {
-  [Key in keyof Methods]: Methods[Key] extends (...args: infer Args) => infer Result
-    ? (...args: Args) => Promise<Awaited<Result>>
-    : never;
-}
 type RemoteMethodNames<Methods> = Methods extends readonly string[]
   ? Methods[number][]
   : Methods extends Record<string, unknown>
@@ -98,16 +107,6 @@ type NormalizedDefineRemoteComponentOptions<
   emits: Emits | undefined;
   slots: string[];
   methods: Methods | undefined;
-}
-type SchemaDefineRemoteComponentOptions<
-  Emits extends EmitsOptions | undefined,
-  Slots extends RemoteSlotDefinitions,
-  Methods extends SchemaAwareMethodDeclarations<SchemaMethods> | undefined,
-  SchemaMethods extends UnknownMethods,
-> = {
-  emits?: Emits;
-  slots?: ReadonlyArray<Extract<keyof Slots, string>>;
-  methods?: Methods;
 }
 type RemoteComponentRef = {
   invoke (method: string, ...args: unknown[]): Promise<unknown>;
@@ -156,112 +155,45 @@ type ResolvedProps<
 > = Type extends SchemaType<string, infer SchemaProps, UnknownMethods, UnknownType>
   ? SchemaProps
   : Props
-
-type EmitsFromOptions<Options> = Options extends { emits?: infer Emits }
-  ? Emits extends EmitsOptions
-    ? Emits
-    : undefined
-  : undefined
+type LooseComponentType = string & {
+  readonly type?: never;
+  readonly properties?: never;
+  readonly methods?: never;
+  readonly children?: never;
+}
 
 function defineRemoteComponent<
   Type extends SchemaType<string, Unknown, UnknownMethods, UnknownType>,
+  Slots extends RemoteSlotDefinitions = None,
+  Emits extends EmitsOptions | undefined = undefined,
+  DeclaredMethods = undefined,
 > (
-  type: TypeOf<Type>,
-  options: SchemaDefineRemoteComponentOptions<
-    EmitsOptions | undefined,
-    None,
-    SchemaAwareMethodDeclarations<MethodsOf<Type>> | undefined,
-    MethodsOf<Type>
-  >
-): DefineRemoteComponentComponent<
-  PropertiesOf<Type>,
-  EmitsFromOptions<SchemaDefineRemoteComponentOptions<
-    EmitsOptions | undefined,
-    None,
-    SchemaAwareMethodDeclarations<MethodsOf<Type>> | undefined,
-    MethodsOf<Type>
-  >>,
-  ExposedSchemaMethods<MethodsOf<Type>>,
-  None
->
-function defineRemoteComponent<
-  Type extends SchemaType<string, Unknown, UnknownMethods, UnknownType>,
-  Emits extends EmitsOptions | undefined,
-  Methods extends SchemaAwareMethodDeclarations<MethodsOf<Type>> | undefined,
-> (
-  type: TypeOf<Type>,
-  options: SchemaDefineRemoteComponentOptions<Emits, None, Methods, MethodsOf<Type>>
+  type: Type,
+  options: {
+    emits?: Emits;
+    slots?: ReadonlyArray<Extract<keyof Slots, string>>;
+    methods?: StrictSchemaMethodDeclarations<MethodsOf<Type>, DeclaredMethods>;
+  }
 ): DefineRemoteComponentComponent<
   PropertiesOf<Type>,
   Emits,
-  ExposedRemoteMethods<Methods>,
-  None
->
-function defineRemoteComponent<
-  Type extends SchemaType<string, Unknown, UnknownMethods, UnknownType>,
-  Options extends SchemaDefineRemoteComponentOptions<
-    EmitsOptions | undefined,
-    None,
-    SchemaAwareMethodDeclarations<MethodsOf<Type>> | undefined,
-    MethodsOf<Type>
-  >,
-> (
-  type: TypeOf<Type>,
-  options: Options
-): DefineRemoteComponentComponent<
-  PropertiesOf<Type>,
-  EmitsFromOptions<Options>,
-  ExposedRemoteMethods<Options['methods']>,
-  None
+  ExposedRemoteMethods<StrictSchemaMethodDeclarations<MethodsOf<Type>, DeclaredMethods>>,
+  Slots
 >
 function defineRemoteComponent<
   Type extends string,
-  Props extends Unknown,
-  Slots extends RemoteSlotDefinitions,
-  Emits extends EmitsOptions | undefined,
-  Methods extends LooseRemoteMethodDeclarations | undefined,
+  Props extends Unknown = None,
+  Slots extends RemoteSlotDefinitions = None,
+  Emits extends EmitsOptions | undefined = undefined,
+  Methods extends LooseRemoteMethodDeclarations | undefined = undefined,
 > (
-  type: Type,
+  type: LooseComponentType & Type,
   options: DefineRemoteComponentOptions<Emits, Slots, Methods>
 ): DefineRemoteComponentComponent<
   Props,
   Emits,
   ExposedRemoteMethods<Methods>,
   Slots
->
-function defineRemoteComponent<
-  Type extends string,
-  Props extends Unknown,
-  Slots extends RemoteSlotDefinitions,
-  Options extends DefineRemoteComponentOptions<
-    EmitsOptions | undefined,
-    Slots,
-    LooseRemoteMethodDeclarations | undefined
-  >,
-> (
-  type: Type,
-  options: Options
-): DefineRemoteComponentComponent<
-  Props,
-  EmitsFromOptions<Options>,
-  ExposedRemoteMethods<Options['methods']>,
-  Slots
->
-function defineRemoteComponent<
-  Type extends string,
-  Options extends DefineRemoteComponentOptions<
-    EmitsOptions | undefined,
-    None,
-    LooseRemoteMethodDeclarations | undefined
-  >,
-> (
-  type: Type,
-  options: Options
-): DefineRemoteComponentComponent<
-  None,
-  EmitsFromOptions<Options>,
-  ExposedRemoteMethods<Options['methods']>,
-  None
 >
 function defineRemoteComponent<
   Type extends string,
