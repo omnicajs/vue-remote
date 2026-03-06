@@ -97,11 +97,53 @@ await input.value?.setSelectionRange(0, 2)
 - объект валидаторов для typed tuple-аргументов и runtime-проверки до `invoke`.
 - `defineRemoteMethod<Args, Result>(validator?)` для typed-аргументов и typed async-результата.
 
+Если `type` задан как `SchemaType<...>`, `methods` переходит в schema-aware режим:
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+  type SchemaType,
+} from '@omnicajs/vue-remote/remote'
+
+type VInputSchema = SchemaType<
+  'VInput',
+  { modelValue: string },
+  {
+    focus: () => Promise<void>;
+    setSelectionRange: (start: number, end: number) => Promise<void>;
+  }
+>
+
+const VInputType = 'VInput' as VInputSchema
+
+const VInput = defineRemoteComponent(VInputType, {
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[number, number], void>(),
+    // @ts-expect-error метода нет в schema
+    scrollToTop: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+В schema-aware режиме:
+
+- имена методов ограничены схемой;
+- tuple-аргументы валидаторов должны совпадать со schema-методом;
+- несовместимые сигнатуры `defineRemoteMethod<Args, Result>` падают на этапе компиляции.
+
 Legacy positional form по-прежнему работает:
 
 ```ts
 const VCard = defineRemoteComponent('VCard', [], ['title'])
 ```
+
+Migration note:
+
+- positional form оставляйте для полностью legacy-сценария;
+- на object-form переходите, когда нужны typed методы на `ref`;
+- `SchemaType` добавляйте только там, где нужна compile-time проверка допустимых имён и сигнатур методов.
 
 ## Пример: remote-app с host-компонентами
 

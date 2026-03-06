@@ -97,11 +97,53 @@ await input.value?.setSelectionRange(0, 2)
 - validator objects for typed argument tuples with runtime validation before `invoke`.
 - `defineRemoteMethod<Args, Result>(validator?)` for typed arguments and typed async results.
 
+When `type` is modeled as `SchemaType<...>`, `methods` become schema-aware:
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+  type SchemaType,
+} from '@omnicajs/vue-remote/remote'
+
+type VInputSchema = SchemaType<
+  'VInput',
+  { modelValue: string },
+  {
+    focus: () => Promise<void>;
+    setSelectionRange: (start: number, end: number) => Promise<void>;
+  }
+>
+
+const VInputType = 'VInput' as VInputSchema
+
+const VInput = defineRemoteComponent(VInputType, {
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[number, number], void>(),
+    // @ts-expect-error method is not declared in schema
+    scrollToTop: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+In schema-aware mode:
+
+- method names are limited by the schema;
+- validator argument tuples must match the schema method;
+- incompatible `defineRemoteMethod<Args, Result>` signatures fail at compile time.
+
 Legacy positional form is still supported:
 
 ```ts
 const VCard = defineRemoteComponent('VCard', [], ['title'])
 ```
+
+Migration note:
+
+- keep the positional form for fully legacy usage;
+- move to object form when you want typed `ref` methods;
+- add `SchemaType` only when you want compile-time enforcement of allowed method names and signatures.
 
 ## Example: remote app with host components
 
