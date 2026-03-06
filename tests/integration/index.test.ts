@@ -32,6 +32,7 @@ import {
   createApp,
   createStaticVNode,
   createTextVNode,
+  defineComponent,
   h,
   nextTick,
   shallowRef,
@@ -41,6 +42,8 @@ import {
 import { createReceiver } from '@/dom/host'
 import { createProvider } from '@/vue/host'
 import {
+  defineRemoteComponent,
+  defineRemoteMethod,
   createRemoteRoot,
   createRemoteRenderer,
 } from '@/vue/remote'
@@ -85,13 +88,14 @@ describe('vue', () => {
 
   const createRemoteApp = async <M extends MethodOptions>(
     component: Component<None, None, None, None, M>,
-    receiver: Receiver
+    receiver: Receiver,
+    components: string[] = keysOf({ VButton, VCard })
   ): Promise<{
     app: App,
     vm: ComponentPublicInstance<None, None, None, None, M>,
   }> => {
     const root = createRemoteRoot(receiver.receive, {
-      components: keysOf({ VButton, VCard }),
+      components,
     })
     const { createApp } = createRemoteRenderer(root)
 
@@ -346,6 +350,51 @@ describe('vue', () => {
       eventPhase: 2,
       isTrusted: false,
     } as SerializedMouseEvent)
+  })
+
+  test('calls methods exposed by remote component refs', async () => {
+    const receiver = createReceiver()
+    const open = vi.fn(async (id: string) => id === 'dialog-1')
+    const close = vi.fn(async () => undefined)
+    type DialogApi = {
+      openDialog: (id: string) => Promise<boolean>;
+      closeDialog: () => Promise<void>;
+    }
+
+    const VDialog = defineComponent({
+      setup (_, { expose }) {
+        expose({ open, close })
+        return () => h('div', 'Dialog')
+      },
+    })
+
+    createHostApp(receiver, { VDialog }).mount(el as HTMLElement)
+
+    const RemoteDialog = defineRemoteComponent('VDialog', {
+      methods: {
+        open: defineRemoteMethod<[id: string], boolean>(),
+        close: defineRemoteMethod<[], void>(),
+      },
+    })
+
+    const { vm } = await createRemoteApp<DialogApi>({
+      setup (_, { expose }) {
+        const dialog = ref<InstanceType<typeof RemoteDialog> | null>(null)
+
+        expose({
+          openDialog: (id: string) => dialog.value?.open(id) ?? Promise.resolve(false),
+          closeDialog: () => dialog.value?.close() ?? Promise.resolve(),
+        })
+
+        return () => h(RemoteDialog, { ref: dialog })
+      },
+    }, receiver, ['VButton', 'VCard', 'VDialog'])
+
+    await expect(vm.openDialog('dialog-1')).resolves.toBe(true)
+    await expect(vm.closeDialog()).resolves.toBeUndefined()
+
+    expect(open).toHaveBeenCalledWith('dialog-1')
+    expect(close).toHaveBeenCalledOnce()
   })
 
   test('throw error doesn\'t support method when component doesn\'t have it', async () => {

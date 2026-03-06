@@ -45,7 +45,10 @@ If a value is non-serializable, normalize it before passing across the boundary.
 Use `defineRemoteComponent` to define a typed bridge to host components by name.
 
 ```ts
-import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
 
 const VButton = defineRemoteComponent('VButton')
 const VInput = defineRemoteComponent('VInput', [
@@ -53,6 +56,51 @@ const VInput = defineRemoteComponent('VInput', [
 ] as unknown as {
   'update:value': (value: string) => true;
 })
+
+const VDialog = defineRemoteComponent('VDialog', {
+  methods: {
+    open: defineRemoteMethod<[id: string], boolean>(),
+    close: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+The object form keeps `emits`, named `slots`, and host `methods` in one place:
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
+import { ref } from 'vue'
+
+const VInput = defineRemoteComponent('VInput', {
+  emits: {
+    'update:value': (value: string) => value.length >= 0,
+  },
+  slots: ['prefix', 'suffix'],
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[start: number, end: number], void>(),
+  },
+})
+
+const input = ref<InstanceType<typeof VInput> | null>(null)
+
+await input.value?.focus()
+await input.value?.setSelectionRange(0, 2)
+```
+
+`methods` support three styles:
+
+- `string[]` for simple `() => Promise<void>` delegates.
+- validator objects for typed argument tuples with runtime validation before `invoke`.
+- `defineRemoteMethod<Args, Result>(validator?)` for typed arguments and typed async results.
+
+Legacy positional form is still supported:
+
+```ts
+const VCard = defineRemoteComponent('VCard', [], ['title'])
 ```
 
 ## Example: remote app with host components

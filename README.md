@@ -366,7 +366,10 @@ example above to define `VButton` & `VInput` components.
 Also, you can specify the remote component’s prop types, which become the prop types of the generated Vue component:
 
 ```typescript
-import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
 
 export default defineRemoteComponent<'VButton', {
   appearance?: 'elevated' | 'outline' | 'text' | 'tonal'
@@ -375,4 +378,49 @@ export default defineRemoteComponent<'VButton', {
 ] as unknown as {
   'click': () => true,
 })
+
+export const VDialog = defineRemoteComponent('VDialog', {
+  methods: {
+    open: defineRemoteMethod<[id: string], boolean>(),
+    close: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+The Vue-like object form is useful when you want to keep `emits`, named `slots`, and host `methods` together:
+
+```typescript
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
+import { ref } from 'vue'
+
+const VInput = defineRemoteComponent('VInput', {
+  emits: {
+    'update:value': (value: string) => value.length >= 0,
+  },
+  slots: ['prefix', 'suffix'],
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[start: number, end: number], void>(),
+  },
+})
+
+const input = ref<InstanceType<typeof VInput> | null>(null)
+
+await input.value?.focus()
+await input.value?.setSelectionRange(0, 2)
+```
+
+`methods` support three modes:
+
+- `string[]`: generates `() => Promise<void>` delegates.
+- validator object: uses validator argument tuples and rejects before `invoke` when validation fails.
+- `defineRemoteMethod<Args, Result>(validator?)`: keeps runtime validation and adds an explicit `Promise<Result>` return type.
+
+Legacy positional form still works:
+
+```typescript
+const VCard = defineRemoteComponent('VCard', [], ['title'])
 ```

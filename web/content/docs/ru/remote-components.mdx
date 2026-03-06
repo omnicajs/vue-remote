@@ -45,7 +45,10 @@ Remote-компоненты описывают, _что_ нужно отрисо
 Используйте `defineRemoteComponent`, чтобы описать типизированный bridge к host-компонентам по имени.
 
 ```ts
-import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
 
 const VButton = defineRemoteComponent('VButton')
 const VInput = defineRemoteComponent('VInput', [
@@ -53,6 +56,51 @@ const VInput = defineRemoteComponent('VInput', [
 ] as unknown as {
   'update:value': (value: string) => true;
 })
+
+const VDialog = defineRemoteComponent('VDialog', {
+  methods: {
+    open: defineRemoteMethod<[id: string], boolean>(),
+    close: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+Object-form позволяет держать `emits`, именованные `slots` и host-`methods` рядом:
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
+import { ref } from 'vue'
+
+const VInput = defineRemoteComponent('VInput', {
+  emits: {
+    'update:value': (value: string) => value.length >= 0,
+  },
+  slots: ['prefix', 'suffix'],
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[start: number, end: number], void>(),
+  },
+})
+
+const input = ref<InstanceType<typeof VInput> | null>(null)
+
+await input.value?.focus()
+await input.value?.setSelectionRange(0, 2)
+```
+
+`methods` поддерживает три режима:
+
+- `string[]` для простых делегатов `() => Promise<void>`.
+- объект валидаторов для typed tuple-аргументов и runtime-проверки до `invoke`.
+- `defineRemoteMethod<Args, Result>(validator?)` для typed-аргументов и typed async-результата.
+
+Legacy positional form по-прежнему работает:
+
+```ts
+const VCard = defineRemoteComponent('VCard', [], ['title'])
 ```
 
 ## Пример: remote-app с host-компонентами

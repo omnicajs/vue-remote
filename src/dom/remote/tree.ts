@@ -179,7 +179,17 @@ export interface RemoteComponent<
     | RemoteText<Root>
   >;
 
-  invoke (method: string, ...payload: unknown[]): Promise<unknown>;
+  invoke <Method extends keyof MethodsOf<Type>>(
+    method: Method,
+    ...payload: MethodsOf<Type>[Method] extends (...args: infer Payload) => unknown
+      ? Payload
+      : never
+  ): Promise<MethodsOf<Type>[Method] extends (...args: never[]) => infer Result ? Awaited<Result> : never>;
+
+  invoke <Method extends string>(
+    method: Method extends keyof MethodsOf<Type> ? never : Method,
+    ...payload: unknown[]
+  ): Promise<unknown>;
 
   updateProperties (properties: Partial<PropertiesOf<Type>>): void | Promise<void>;
 

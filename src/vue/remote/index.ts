@@ -19,6 +19,7 @@ export type {
 export { default as createRemoteRenderer } from '@/vue/remote/createRemoteRenderer'
 export { default as createRemoteRoot } from '@/vue/remote/createRemoteRoot'
 export { default as defineRemoteComponent } from '@/vue/remote/defineRemoteComponent'
+export { default as defineRemoteMethod } from '@/vue/remote/defineRemoteMethod'
 
 export {
   ACTION_MOUNT,

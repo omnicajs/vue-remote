@@ -91,7 +91,7 @@ export function createRemoteComponent <R extends RemoteRoot, T extends Supported
 
     remove: () => node.parent ? context.removeChild(node.parent, node) : null,
 
-    invoke: (method, ...payload) => !descriptor || descriptor?.hasMethod(method)
+    invoke: (method: string, ...payload: unknown[]) => !descriptor || descriptor?.hasMethod(method)
       ? context.invoke(node, method, payload)
       : Promise.reject(`Method ${method} is not supported`),
 

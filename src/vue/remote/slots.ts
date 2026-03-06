@@ -1,4 +1,7 @@
-import type { Slots } from 'vue'
+import type {
+  Slot,
+  Slots,
+} from 'vue'
 
 import { h } from 'vue'
 
@@ -19,3 +22,5 @@ export const toRemoteSlots = (named: string[], slots: Slots) => {
     ],
   }
 }
+
+export type NamedRemoteSlots<Names extends string> = Partial<Record<Names, Slot | undefined>>
