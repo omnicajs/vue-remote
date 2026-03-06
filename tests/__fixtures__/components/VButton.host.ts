@@ -8,7 +8,6 @@ export const VButton = defineComponent({
   setup (_, { attrs, emit, slots }) {
     return () => h('button', {
       ...attrs,
-      type: 'button',
       onClick: () => emit('click'),
     }, slots.default?.())
   },

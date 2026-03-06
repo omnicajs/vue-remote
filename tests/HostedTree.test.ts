@@ -50,18 +50,18 @@ import {
 
 import { keysOf } from '@/common/scaffolding'
 
-import VButton from './fixtures/host/VButton.vue'
-import VCard from './fixtures/host/VCard.vue'
+import { VButton } from './__fixtures__/components/VButton.host'
+import { VCard } from './__fixtures__/components/VCard.host'
 
-import RemoteButton from './fixtures/remote/RemoteButton.vue'
-import RemoteCard from './fixtures/remote/RemoteCard.vue'
+import RemoteButton from './__fixtures__/remote/RemoteButton.vue'
+import RemoteCard from './__fixtures__/remote/RemoteCard.vue'
 
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'DragEvent', { value: class DragEvent {} })
   Object.defineProperty(window, 'PointerEvent', { value: class PointerEvent {} })
 }
 
-describe('vue', () => {
+describe('HostedTree', () => {
   let el: HTMLElement | null = null
 
   const createHostApp = (receiver: Receiver, components: {
@@ -540,6 +540,48 @@ describe('vue', () => {
         '<div id="card-1-title">Test</div> ' +
       '</section>'
     )
+  })
+
+  test('renders comment placeholders when conditional content toggles', async () => {
+    const receiver = createReceiver()
+    const RemoteToggle = defineRemoteComponent('button', ['click'])
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    await createRemoteApp({
+      setup () {
+        const shown = ref(true)
+
+        return () => h('section', [
+          h(RemoteToggle, {
+            onClick: () => {
+              shown.value = !shown.value
+            },
+          }, () => 'Toggle'),
+          createStaticVNode('<i data-static="1"></i>', 1),
+          shown.value
+            ? h('span', 'Visible')
+            : h(Comment, 'v-if'),
+        ])
+      },
+    }, receiver)
+
+    expect(el?.innerHTML).toBe('<section><button>Toggle</button><i data-static="1"></i><span>Visible</span></section>')
+
+    const button = el?.querySelector('button')
+    expect(button).not.toBeNull()
+
+    button?.click()
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('<section><button>Toggle</button><i data-static="1"></i><!--v-if--></section>')
+
+    button?.click()
+    await nextTick()
+    await receiver.flush()
+
+    expect(el?.innerHTML).toBe('<section><button>Toggle</button><i data-static="1"></i><span>Visible</span></section>')
   })
 
   test('rendered and deleted text when reactive data is changed', async () => {

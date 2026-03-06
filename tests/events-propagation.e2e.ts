@@ -12,7 +12,7 @@ import { VInput } from './__fixtures__/components/VInput.host'
 
 import { createWorkerRuntime } from './__fixtures__/runtime'
 
-describe('events propagation', () => {
+describe('eventsPropagation', () => {
   let runtime: WorkerRuntime<{
     clicks: number;
     text: string;

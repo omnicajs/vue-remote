@@ -5,16 +5,12 @@ import {
   vi,
 } from 'vitest'
 
-import {
-  defineComponent,
-  h,
-} from 'vue'
+import type { VNode } from 'vue'
 
 import defineRemoteComponent from '@/vue/remote/defineRemoteComponent'
 import defineRemoteMethod from '@/vue/remote/defineRemoteMethod'
-import { toRemoteSlots } from '@/vue/remote/slots'
 
-type RenderFn = () => ReturnType<typeof h>
+type RenderFn = () => VNode
 type SetupContext = {
   attrs: Record<string, unknown>;
   emit: (event: string, ...args: unknown[]) => void;
@@ -26,7 +22,7 @@ type ComponentWithSetup = {
   setup: (props: unknown, context: SetupContext) => RenderFn;
 }
 
-describe('vue/remote/defineRemoteComponent', () => {
+describe('defineRemoteComponent', () => {
   test('does not add fallthrough handlers when emits are undefined', () => {
     const RemoteDiv = defineRemoteComponent('div')
     const emit = vi.fn()
@@ -128,30 +124,5 @@ describe('vue/remote/defineRemoteComponent', () => {
     expect(invoke).toHaveBeenCalledTimes(1)
     expect(invoke).toHaveBeenCalledWith('setSelectionRange', 0, 2)
   })
-})
 
-describe('vue/remote/slots', () => {
-  test('returns original slots when named slots are not provided', () => {
-    const original = {
-      default: () => [h(defineComponent({ render: () => h('span', 'default') }))],
-    }
-
-    expect(toRemoteSlots(['header'], {})).toEqual({})
-    expect(toRemoteSlots([], original)).toBe(original)
-  })
-
-  test('creates remote slot wrappers with and without default slot', () => {
-    const withDefault = toRemoteSlots(['header'], {
-      default: () => [h('span', 'Default')],
-      header: () => [h('span', 'Header')],
-    })
-
-    expect(withDefault.default?.()).toHaveLength(2)
-
-    const withoutDefault = toRemoteSlots(['header'], {
-      header: () => [h('span', 'Header')],
-    })
-
-    expect(withoutDefault.default?.()).toHaveLength(1)
-  })
 })

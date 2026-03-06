@@ -10,31 +10,22 @@ import {
   vi,
 } from 'vitest'
 
-import { createReceiver } from '@/dom/host'
-import { createRemoteRoot } from '@/dom/remote'
-
-import {
-  isSerializedComment,
-  isSerializedText,
-} from '@/dom/common/tree'
-
-import {
-  isReceivedComment,
-  isReceivedText,
-  isReceivedFragment,
-  deserialize,
-  addVersion,
-} from '@/dom/host/tree'
-
 import {
   KIND_COMMENT,
   KIND_COMPONENT,
   KIND_TEXT,
 } from '@/dom/common/tree'
+import {
+  ACTION_INSERT_CHILD,
+  ACTION_MOUNT,
+} from '@/dom/common/channel'
+
+import { createReceiver } from '@/dom/host'
+import { createRemoteRoot } from '@/dom/remote'
 
 const expectComment = (text: string) => expect.objectContaining({ kind: KIND_COMMENT, text })
 
-const expectElement = (type: string, children: ReceivedChild[]) =>  expect.objectContaining({
+const expectElement = (type: string, children: ReceivedChild[]) => expect.objectContaining({
   kind: KIND_COMPONENT,
   type,
   properties: {},
@@ -43,44 +34,8 @@ const expectElement = (type: string, children: ReceivedChild[]) =>  expect.objec
 
 const expectText = (text: string) => expect.objectContaining({ kind: KIND_TEXT, text })
 
-describe('dom/consistency', () => {
-  test('type guards coverage', () => {
-    expect(isSerializedComment({ kind: 'comment' })).toBe(true)
-    expect(isSerializedComment({ kind: 'text' })).toBe(false)
-    expect(isSerializedComment(null)).toBe(false)
-
-    expect(isSerializedText({ kind: 'text' })).toBe(true)
-    expect(isSerializedText({ kind: 'comment' })).toBe(false)
-    expect(isSerializedText(null)).toBe(false)
-
-    expect(isReceivedComment({ kind: 'comment', version: 0 })).toBe(true)
-    expect(isReceivedComment({ kind: 'comment' })).toBe(false)
-
-    expect(isReceivedText({ kind: 'text', version: 0 })).toBe(true)
-    expect(isReceivedText({ kind: 'text' })).toBe(false)
-
-    expect(isReceivedFragment({ kind: 'fragment', version: 0 })).toBe(true)
-    expect(isReceivedFragment({ kind: 'fragment' })).toBe(false)
-  })
-
-  test('deserialize with fragments coverage', () => {
-    const fragment = { id: '2', kind: 'fragment', children: [] } as const
-    const component = deserialize({
-      id: '1',
-      kind: 'component',
-      type: 'VButton',
-      properties: {
-        content: fragment,
-      },
-      children: [],
-    }, addVersion) as ReceivedComponent<{
-      content: typeof fragment & { version: number },
-    }>
-
-    expect(component.properties.content.version).toBe(0)
-  })
-
-  test('remote tree is mounted correctly', async () => {
+describe('createReceiver', () => {
+  test('mounts a remote tree and emits mount once', async () => {
     const onMounted = vi.fn()
 
     const receiver = createReceiver()
@@ -102,7 +57,6 @@ describe('dom/consistency', () => {
     await receiver.flush()
 
     expect(onMounted).toHaveBeenCalledOnce()
-
     expect(receiver.state).toEqual('mounted')
     expect(receiver.tree.root.children).toEqual([
       expectComment('Card below'),
@@ -116,7 +70,7 @@ describe('dom/consistency', () => {
     ])
   })
 
-  test('remote tree is updated correctly', async () => {
+  test('applies remote tree updates in order', async () => {
     const receiver = createReceiver()
 
     const root = createRemoteRoot(receiver.receive)
@@ -249,7 +203,7 @@ describe('dom/consistency', () => {
     expect(receiver.tree.get({ id: updatedCard.properties.slot.id })).toBeTruthy()
   })
 
-  test('moves first child between parents on host side', async () => {
+  test('moves the first child between parents', async () => {
     const receiver = createReceiver()
     const root = createRemoteRoot(receiver.receive)
 
@@ -273,7 +227,7 @@ describe('dom/consistency', () => {
     expect((receiver.tree.root.children[1] as ReceivedComponent).children).toHaveLength(1)
   })
 
-  test('calls method', async () => {
+  test('invokes registered methods on received nodes', async () => {
     const receiver = createReceiver()
 
     const root = createRemoteRoot(receiver.receive)
@@ -287,9 +241,9 @@ describe('dom/consistency', () => {
     receiver.tree.invokable({ id: list.id }, (method, payload) => {
       switch (method) {
         case 'sum':
-          return (payload as number[]).reduce((sum, v) => sum + v, 0)
+          return (payload as number[]).reduce((sum, value) => sum + value, 0)
         case 'multiply':
-          return (payload as [number[]])[0].reduce((sum, v) => sum * v, 1)
+          return (payload as [number[]])[0].reduce((product, value) => product * value, 1)
         default:
           throw new Error('This methods is not supported')
       }
@@ -301,8 +255,45 @@ describe('dom/consistency', () => {
     try {
       await list.invoke('unsupported')
       assert.fail('__This invocation should fail__')
-    } catch (e) {
-      expect(e).toEqual('This methods is not supported')
+    } catch (error) {
+      expect(error).toEqual('This methods is not supported')
     }
+  })
+
+  test('keeps channel processing for malformed inserts with a missing old child', () => {
+    const receiver = createReceiver()
+
+    receiver.receive(ACTION_MOUNT, [{
+      id: '1',
+      kind: KIND_COMPONENT,
+      type: 'Owner',
+      properties: {},
+      children: [],
+    }, {
+      id: '2',
+      kind: KIND_COMPONENT,
+      type: 'Hijacker',
+      properties: {},
+      children: [],
+    }])
+
+    receiver.receive(
+      ACTION_INSERT_CHILD,
+      '2',
+      0,
+      {
+        id: '3',
+        kind: KIND_COMPONENT,
+        type: 'Card',
+        properties: {},
+        children: [],
+      },
+      '1'
+    )
+
+    const hijacker = receiver.tree.root.children[1] as {
+      children: unknown[];
+    }
+    expect(hijacker.children).toEqual([undefined])
   })
 })

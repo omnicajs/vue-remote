@@ -39,7 +39,7 @@ function assertText (node: RemoteNode): asserts node is RemoteText<RemoteRoot> {
   expect(node.kind).toBe(KIND_TEXT)
 }
 
-describe('vue/remote/createRemoteRenderer', () => {
+describe('createRemoteRenderer', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })

@@ -9,7 +9,7 @@ import {
 
 import { createWorkerRuntime } from './__fixtures__/runtime'
 
-describe('static nodes', () => {
+describe('staticNodes', () => {
   let runtime: WorkerRuntime<Record<string, never>> | null = null
 
   afterEach(async () => {

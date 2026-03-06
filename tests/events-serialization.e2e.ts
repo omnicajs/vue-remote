@@ -11,7 +11,7 @@ import { VButton } from './__fixtures__/components/VButton.host'
 
 import { createWorkerRuntime } from './__fixtures__/runtime'
 
-describe('events serialization', () => {
+describe('eventsSerialization', () => {
   let runtime: WorkerRuntime<{ events: unknown[] }> | null = null
 
   afterEach(async () => {

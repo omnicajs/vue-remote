@@ -90,9 +90,12 @@ The library is transport-agnostic at the core level: the only requirement is a f
 - Shared type declarations (`events`, host provider interfaces, utility types).
 
 `tests/`
-- `unit/`: isolated behavior.
-- `integration/`: host + remote flow with Vue runtime.
+- `*.test.ts`: API-style suites such as `HostedTree.test.ts`,
+  `createRemoteRenderer.test.ts`, `defineRemoteComponent.test.ts`,
+  `createReceiver.test.ts`.
 - `*.e2e.ts`: browser-level scenarios (Vitest browser mode with Playwright provider).
+- `types/*.test-d.mts`: compile-only type suites.
+- `__fixtures__/`: shared test components, workers, transport helpers, and assets.
 
 `web/`
 - Astro/Starlight documentation source.
@@ -168,7 +171,7 @@ If you need to add a new protocol action:
 - Update `src/dom/common/channel.ts`.
 - Implement send path in remote (`src/dom/remote/**`).
 - Implement receive path in host (`src/dom/host/receiver.ts` + possibly context/tree handling).
-- Add integration coverage under `tests/integration/dom/`.
+- Add behavior coverage under the relevant API-style `tests/*.test.ts` suite.
 
 If you need to change rendering semantics:
 - Remote render behavior: `src/vue/remote/createRemoteRenderer.ts`.
@@ -180,7 +183,7 @@ If you need to add new event serialization:
 
 If you need to add/adjust host component mapping:
 - `src/vue/host/createProvider.ts`.
-- Integration fixtures in `tests/integration/fixtures/host/`.
+- Shared host fixtures in `tests/__fixtures__/components/`.
 
 If you need transport/runtime docs:
 - English docs: `web/content/docs/*.mdx`.
@@ -188,16 +191,17 @@ If you need transport/runtime docs:
 
 ## 9. Test Strategy Map
 
-1. Unit tests (`tests/unit/`)
-- Isolated utilities and localized behavior.
+1. API-style tests (`tests/*.test.ts`)
+- Localized helper coverage and multi-part behavior suites grouped by tested API.
+- Host/remote synchronization scenarios live alongside the API they exercise, for example `HostedTree` or `createReceiver`.
 
-2. Integration tests (`tests/integration/`)
-- Primary correctness suite for host/remote synchronization, events, invoke, slots, lifecycle.
-
-3. E2E tests (`tests/*.e2e.ts`)
+2. E2E tests (`tests/*.e2e.ts`)
 - Real browser runs with transport scaffolding and full flow checks.
 
-For architecture-impacting changes, integration tests are the first required signal.
+3. Type tests (`tests/types/*.test-d.mts`)
+- Compile-only assertions for type-level contracts.
+
+For architecture-impacting changes, start with the most relevant API-style suite, then expand to E2E if the change crosses runtime boundaries.
 
 ## 10. CI/Release Notes (Current Setup)
 

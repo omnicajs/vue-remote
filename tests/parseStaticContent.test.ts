@@ -13,7 +13,7 @@ import {
   parseStaticContent,
 } from '@/vue/remote/parser'
 
-describe('vue/remote/parser', () => {
+describe('parseStaticContent', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
