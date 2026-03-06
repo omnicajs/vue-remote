@@ -125,4 +125,99 @@ describe('defineRemoteComponent', () => {
     expect(invoke).toHaveBeenCalledWith('setSelectionRange', 0, 2)
   })
 
+  test('supports string-array methods and rejects calls before the remote ref is assigned', async () => {
+    let exposed: Record<string, (...args: unknown[]) => Promise<unknown>> = {}
+
+    const RemoteInput = defineRemoteComponent('VInput', {
+      methods: ['focus'],
+    })
+
+    const render = (RemoteInput as unknown as ComponentWithSetup).setup({}, {
+      attrs: {},
+      emit: vi.fn(),
+      expose: methods => { exposed = methods as typeof exposed },
+      slots: {},
+    })
+
+    const vnode = render()
+    const assignRef = vnode.props?.ref as ((value: unknown | null) => void) | undefined
+    assignRef?.(null)
+
+    await expect(exposed.focus()).rejects.toThrow('Remote component focus is not available')
+  })
+
+  test('falls back to invoking methods when runtime declarations are not remote validators', async () => {
+    const invoke = vi.fn().mockResolvedValue('ok')
+    let exposed: Record<string, (...args: unknown[]) => Promise<unknown>> = {}
+
+    const RemoteInput = defineRemoteComponent('VInput', {
+      methods: {
+        focus: {} as never,
+      },
+    })
+
+    const render = (RemoteInput as unknown as ComponentWithSetup).setup({}, {
+      attrs: {},
+      emit: vi.fn(),
+      expose: methods => { exposed = methods as typeof exposed },
+      slots: {},
+    })
+
+    const vnode = render()
+    const assignRef = vnode.props?.ref as ((value: { invoke: typeof invoke } | null) => void) | undefined
+    assignRef?.({ invoke })
+
+    await expect(exposed.focus()).resolves.toBe('ok')
+    expect(invoke).toHaveBeenCalledWith('focus')
+  })
+
+  test('rejects when a method validator throws', async () => {
+    const invoke = vi.fn().mockResolvedValue(undefined)
+    let exposed: Record<string, (...args: unknown[]) => Promise<unknown>> = {}
+    const error = new Error('Broken validator')
+
+    const RemoteInput = defineRemoteComponent('VInput', {
+      methods: {
+        focus: () => {
+          throw error
+        },
+      },
+    })
+
+    const render = (RemoteInput as unknown as ComponentWithSetup).setup({}, {
+      attrs: {},
+      emit: vi.fn(),
+      expose: methods => { exposed = methods as typeof exposed },
+      slots: {},
+    })
+
+    const vnode = render()
+    const assignRef = vnode.props?.ref as ((value: { invoke: typeof invoke } | null) => void) | undefined
+    assignRef?.({ invoke })
+
+    await expect(exposed.focus()).rejects.toBe(error)
+    expect(invoke).not.toHaveBeenCalled()
+  })
+
+  test('treats malformed slots options as legacy emits at runtime', () => {
+    const RemoteDiv = defineRemoteComponent('div', {
+      slots: 'header',
+    } as never)
+    const emit = vi.fn()
+
+    const render = (RemoteDiv as unknown as ComponentWithSetup).setup({}, {
+      attrs: {},
+      emit,
+      expose: () => undefined,
+      slots: {},
+    })
+
+    const vnode = render()
+
+    expect(vnode.children).toEqual({})
+    expect(vnode.props).toEqual(expect.objectContaining({
+      onSlots: expect.any(Function),
+    }))
+  })
+
 })

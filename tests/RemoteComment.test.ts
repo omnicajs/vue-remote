@@ -21,6 +21,8 @@ describe('RemoteComment', () => {
     const root = createRemoteRoot(channel)
     const comment = root.createComment()
 
+    expect(comment.root).toBe(root)
+
     root.mount()
     root.append(comment)
 
