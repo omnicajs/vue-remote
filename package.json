@@ -54,6 +54,7 @@
     "release:major": "standard-version --release-as major",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:dts": "tsc -p tsconfig.type-tests.json --noEmit",
     "test:e2e": "vitest run --config vitest.playwright.ts",
     "test:e2e:coverage": "vitest run --config vitest.playwright.ts --coverage",
     "test:all:coverage": "yarn coverage:clean && yarn test:coverage && yarn test:e2e:coverage && yarn coverage:merge",

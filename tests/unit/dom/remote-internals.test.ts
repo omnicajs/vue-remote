@@ -29,23 +29,6 @@ import {
   isRemoteText,
 } from '@/dom/remote/tree'
 
-type InvokeSchemaMethods = {
-  focus: () => Promise<void>;
-  setSelectionRange: (start: number, end: number) => Promise<void>;
-}
-
-const invokeTypingRoot = createRemoteRoot(() => {}, { strict: false })
-const invokeTypingDescriptor = defineRemoteComponent<'VInput', {}, InvokeSchemaMethods>(
-  'VInput',
-  [],
-  ['focus', 'setSelectionRange']
-)
-const invokeTypingInput = invokeTypingRoot.createComponent(invokeTypingDescriptor)
-invokeTypingInput.invoke('focus')
-invokeTypingInput.invoke('setSelectionRange', 0, 2)
-// @ts-expect-error invoke must respect method argument tuples
-invokeTypingInput.invoke('setSelectionRange', '0', 2)
-
 describe('dom/remote internals', () => {
   test('proxy utilities support fragments, cycles and pre-visited values', () => {
     const root = createRemoteRoot(() => {}, { strict: false })

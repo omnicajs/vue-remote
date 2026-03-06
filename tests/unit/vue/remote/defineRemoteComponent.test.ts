@@ -8,10 +8,7 @@ import {
 import {
   defineComponent,
   h,
-  ref,
 } from 'vue'
-
-import type { SchemaType } from '@/dom/remote'
 
 import defineRemoteComponent from '@/vue/remote/defineRemoteComponent'
 import defineRemoteMethod from '@/vue/remote/defineRemoteMethod'
@@ -28,58 +25,6 @@ type SetupContext = {
 type ComponentWithSetup = {
   setup: (props: unknown, context: SetupContext) => RenderFn;
 }
-
-type VInputSchema = SchemaType<
-  'VInput',
-  { modelValue: string },
-  {
-    focus: () => Promise<void>;
-    setSelectionRange: (start: number, end: number) => Promise<void>;
-  }
->
-const VInputType = 'VInput' as VInputSchema
-
-const VDialog = defineRemoteComponent('VDialog', {
-  methods: {
-    open: defineRemoteMethod<[id: string], boolean>(),
-    close: defineRemoteMethod<[], void>(),
-  },
-})
-void VDialog
-
-const dialogRef = ref<InstanceType<typeof VDialog> | null>(null)
-dialogRef.value?.open('dialog-1')
-dialogRef.value?.close()
-// @ts-expect-error wrong argument type must be rejected
-dialogRef.value?.open(1)
-
-const SchemaInput = defineRemoteComponent(VInputType, {
-  methods: {
-    focus: defineRemoteMethod<[], void>(),
-    setSelectionRange: defineRemoteMethod<[number, number], void>(),
-  },
-})
-void SchemaInput
-
-const schemaInputRef = ref<InstanceType<typeof SchemaInput> | null>(null)
-schemaInputRef.value?.focus()
-schemaInputRef.value?.setSelectionRange(0, 2)
-// @ts-expect-error schema-aware methods must keep argument tuples
-schemaInputRef.value?.setSelectionRange('0', 2)
-
-// @ts-expect-error schema-aware methods must reject unknown keys
-defineRemoteComponent(VInputType, {
-  methods: {
-    scrollToTop: defineRemoteMethod<[], void>(),
-  },
-})
-
-// @ts-expect-error schema-aware methods must reject incompatible signatures
-defineRemoteComponent(VInputType, {
-  methods: {
-    setSelectionRange: defineRemoteMethod<[value: string], void>(),
-  },
-})
 
 describe('vue/remote/defineRemoteComponent', () => {
   test('does not add fallthrough handlers when emits are undefined', () => {
