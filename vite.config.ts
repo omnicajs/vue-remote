@@ -1,4 +1,7 @@
+import type { ExtractorMessage } from '@microsoft/api-extractor'
 import type { LibraryFormats } from 'vite'
+
+import { ExtractorLogLevel } from '@microsoft/api-extractor'
 
 import { defineConfig } from 'vite'
 import { mergeConfig } from 'vite'
@@ -48,5 +51,14 @@ export default mergeConfig(basic, defineConfig({
   plugins: [dts({
     include: ['src'],
     rollupTypes: true,
+    rollupOptions: {
+      messageCallback(message: ExtractorMessage) {
+        // API Extractor still bundles TypeScript 5.8.x, so TS 5.9 projects
+        // currently get a noisy compatibility notice on every entrypoint.
+        if (message.messageId === 'console-compiler-version-notice') {
+          message.logLevel = ExtractorLogLevel.None
+        }
+      },
+    },
   })],
 }))
