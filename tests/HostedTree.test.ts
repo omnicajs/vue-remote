@@ -88,7 +88,7 @@ describe('HostedTree', () => {
   }
 
   const createRemoteApp = async <M extends MethodOptions>(
-    component: Component<None, None, None, None, M>,
+    component: Component,
     receiver: Receiver,
     components: string[] = keysOf({ VButton, VCard })
   ): Promise<{
