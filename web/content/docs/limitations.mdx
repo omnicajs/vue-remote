@@ -10,7 +10,7 @@ This page documents current limitations of `@omnicajs/vue-remote` runtime behavi
 
 ## Current limitations
 
-1. Native `v-model` on elements is not supported as a first-class cross-runtime behavior.
+1. Native element `v-model` support is intentionally narrow: built-in Vue cases for `input`, `textarea`, `checkbox`, `radio`, `select`, `select[multiple]`, dynamic `input[type]`, and `.lazy` / `.trim` / `.number` are supported, but this is not a general directive system.
 2. Calling allowed component methods requires explicit `invoke` usage; there is no higher-level declarative method-call API.
 3. Direct imperative prop assignment on mounted nodes is limited and not universally safe; the primary path remains reactive re-render flow.
 4. `nextTick()` on remote does not guarantee that host UI has already committed updates.

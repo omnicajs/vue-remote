@@ -20,7 +20,10 @@ import {
 
 import { REMOTE_SLOT } from '@/vue/internals'
 import createProvider from '@/vue/host/createProvider'
-import render from '@/vue/host/render'
+import {
+  process,
+  default as render,
+} from '@/vue/host/render'
 
 describe('render', () => {
   afterEach(() => {
@@ -55,5 +58,61 @@ describe('render', () => {
     expect(render(orphanSlot, provider)).toBeNull()
     expect(error).toHaveBeenCalledOnce()
     expect(render(emptyText, provider)).toBeNull()
+  })
+
+  test('serializes internal native v-model listeners with restricted payload', () => {
+    vi.stubGlobal('DragEvent', class DragEvent {})
+    vi.stubGlobal('PointerEvent', class PointerEvent {})
+
+    const publicHandler = vi.fn()
+    const internalHandler = vi.fn()
+    const properties = ref({
+      onInput: publicHandler,
+      '__vModel:onInput': internalHandler,
+    })
+
+    const props = process(properties)
+    const input = document.createElement('input')
+
+    input.value = 'hello'
+
+    const event = new Event('input', { bubbles: true })
+
+    Object.defineProperty(event, 'target', {
+      value: input,
+      configurable: true,
+    })
+
+    Object.defineProperty(event, 'currentTarget', {
+      value: input,
+      configurable: true,
+    })
+
+    ;(props?.onInput as (event: Event) => void)(event)
+
+    expect(publicHandler).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'input',
+      bubbles: true,
+      target: {
+        value: 'hello',
+        checked: false,
+      },
+      currentTarget: {
+        value: 'hello',
+        checked: false,
+      },
+    }))
+
+    expect(internalHandler).toHaveBeenCalledWith({
+      type: 'input',
+      target: {
+        value: 'hello',
+        checked: false,
+      },
+      currentTarget: {
+        value: 'hello',
+        checked: false,
+      },
+    })
   })
 })

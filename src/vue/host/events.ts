@@ -15,6 +15,12 @@ import type {
   SerializedWheelEvent,
 } from '~types/events'
 
+export interface SerializedNativeVModelEvent {
+  currentTarget: SerializedTarget | null;
+  target: SerializedTarget | null;
+  type: string;
+}
+
 export const serializeTarget = (target: EventTarget): SerializedTarget => {
   switch (true) {
     case target instanceof HTMLInputElement:
@@ -37,6 +43,14 @@ export const serializeTarget = (target: EventTarget): SerializedTarget => {
   }
 
   return {}
+}
+
+export const serializeNativeVModelEvent = (event: Event): SerializedNativeVModelEvent => {
+  return {
+    type: event.type,
+    target: event.target ? serializeTarget(event.target) : null,
+    currentTarget: event.currentTarget ? serializeTarget(event.currentTarget) : null,
+  }
 }
 
 export const serializeBaseEvent = (event: Event): SerializedEvent => {

@@ -8,6 +8,7 @@ import {
 
 import {
   createStaticVNode,
+  defineComponent,
   h,
 } from 'vue'
 
@@ -159,5 +160,40 @@ describe('createRemoteRenderer', () => {
     const placeholder = container.children[0]
     assertText(placeholder)
     expect(placeholder.text).toBe('')
+  })
+
+  test('limits native v-model runtime listeners to supported events', () => {
+    const root = createRemoteRoot(() => {}, {
+      strict: false,
+    })
+    const { createApp } = createRemoteRenderer(root)
+
+    createApp(defineComponent({
+      template: '<input v-model="value">',
+      setup: () => ({
+        value: 'hello',
+      }),
+    })).mount(root)
+
+    const input = root.children[0]
+    assertComponent(input)
+
+    expect(input.properties).toHaveProperty('__vModel:onInput')
+    expect(input.properties).toHaveProperty('__vModel:onChange')
+    expect(input.properties).toHaveProperty('__vModel:onCompositionstart')
+    expect(input.properties).toHaveProperty('__vModel:onCompositionend')
+    expect(input.properties).not.toHaveProperty('onInput')
+
+    expect(() => (input as typeof input & {
+      addEventListener: (name: string, listener: () => void, options?: unknown) => void;
+    }).addEventListener('click', () => {})).toThrow(/only supports/)
+
+    expect(() => (input as typeof input & {
+      addEventListener: (name: string, listener: () => void, options?: unknown) => void;
+    }).addEventListener('input', () => {}, { capture: true })).toThrow(/does not support addEventListener options/)
+
+    expect(() => (input as typeof input & {
+      dispatchEvent: (event: Event) => boolean;
+    }).dispatchEvent(new Event('click'))).toThrow(/only supports/)
   })
 })

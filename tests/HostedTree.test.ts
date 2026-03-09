@@ -55,6 +55,7 @@ import { VCard } from './__fixtures__/components/VCard.host'
 
 import RemoteButton from './__fixtures__/remote/RemoteButton.vue'
 import RemoteCard from './__fixtures__/remote/RemoteCard.vue'
+import RemoteNativeTextModel from './__fixtures__/remote/RemoteNativeTextModel.vue'
 
 if (typeof window !== 'undefined') {
   Object.defineProperty(window, 'DragEvent', { value: class DragEvent {} })
@@ -107,6 +108,13 @@ describe('HostedTree', () => {
     await receiver.flush()
 
     return { app, vm }
+  }
+
+  const flushBoundary = async (receiver: Receiver) => {
+    await nextTick()
+    await receiver.flush()
+    await nextTick()
+    await receiver.flush()
   }
 
   beforeEach(() => {
@@ -217,6 +225,354 @@ describe('HostedTree', () => {
     await receiver.flush()
 
     expect(el?.innerHTML).toBe('<span>1</span>')
+  })
+
+  test('supports template v-model on text inputs in SFC remote components', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{
+      getText (): string;
+      setText (value: string): void;
+        }>(RemoteNativeTextModel, receiver)
+
+    const input = el?.querySelector('[data-test="text-model"]') as HTMLInputElement
+
+    expect(input.value).toBe('hello')
+
+    input.value = 'world'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+
+    await flushBoundary(receiver)
+
+    expect(vm.getText()).toBe('world')
+
+    vm.setText('remote')
+
+    await flushBoundary(receiver)
+
+    expect(input.value).toBe('remote')
+  })
+
+  test('supports template v-model.trim on textarea elements', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{
+      getText (): string;
+      setText (value: string): void;
+        }>(defineComponent({
+          template: `
+        <textarea
+          data-test="trim-model"
+          v-model.trim="text"
+        />
+      `,
+          setup (_, { expose }) {
+            const text = ref('  hello  ')
+
+            expose({
+              getText: () => text.value,
+              setText: (value: string) => {
+                text.value = value
+              },
+            })
+
+            return { text }
+          },
+        }), receiver)
+
+    const textarea = el?.querySelector('[data-test="trim-model"]') as HTMLTextAreaElement
+
+    expect(textarea.value).toBe('  hello  ')
+
+    textarea.value = '  world  '
+    textarea.dispatchEvent(new Event('input', { bubbles: true }))
+
+    await flushBoundary(receiver)
+
+    expect(vm.getText()).toBe('world')
+    expect(textarea.value).toBe('world')
+
+    vm.setText('  remote  ')
+
+    await flushBoundary(receiver)
+
+    expect(textarea.value).toBe('  remote  ')
+  })
+
+  test('supports template v-model on checkbox inputs', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{
+      getChecked (): boolean;
+      setChecked (value: boolean): void;
+        }>(defineComponent({
+          template: `
+        <input
+          data-test="checkbox-model"
+          type="checkbox"
+          v-model="checked"
+        >
+      `,
+          setup (_, { expose }) {
+            const checked = ref(false)
+
+            expose({
+              getChecked: () => checked.value,
+              setChecked: (value: boolean) => {
+                checked.value = value
+              },
+            })
+
+            return { checked }
+          },
+        }), receiver)
+
+    const checkbox = el?.querySelector('[data-test="checkbox-model"]') as HTMLInputElement
+
+    expect(checkbox.checked).toBe(false)
+
+    checkbox.checked = true
+    checkbox.dispatchEvent(new Event('change', { bubbles: true }))
+
+    await flushBoundary(receiver)
+
+    expect(vm.getChecked()).toBe(true)
+
+    vm.setChecked(false)
+
+    await flushBoundary(receiver)
+
+    expect(checkbox.checked).toBe(false)
+  })
+
+  test('supports template v-model on radio inputs', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{
+      getPicked (): string;
+      setPicked (value: string): void;
+        }>(defineComponent({
+          template: `
+        <div>
+          <input
+            data-test="radio-one"
+            type="radio"
+            value="one"
+            v-model="picked"
+          >
+          <input
+            data-test="radio-two"
+            type="radio"
+            value="two"
+            v-model="picked"
+          >
+        </div>
+      `,
+          setup (_, { expose }) {
+            const picked = ref('one')
+
+            expose({
+              getPicked: () => picked.value,
+              setPicked: (value: string) => {
+                picked.value = value
+              },
+            })
+
+            return { picked }
+          },
+        }), receiver)
+
+    const first = el?.querySelector('[data-test="radio-one"]') as HTMLInputElement
+    const second = el?.querySelector('[data-test="radio-two"]') as HTMLInputElement
+
+    expect(first.checked).toBe(true)
+    expect(second.checked).toBe(false)
+
+    second.checked = true
+    second.dispatchEvent(new Event('change', { bubbles: true }))
+
+    await flushBoundary(receiver)
+
+    expect(vm.getPicked()).toBe('two')
+
+    vm.setPicked('one')
+
+    await flushBoundary(receiver)
+
+    expect(first.checked).toBe(true)
+    expect(second.checked).toBe(false)
+  })
+
+  test('supports template v-model on select elements', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{
+      getValue (): string;
+      setValue (value: string): void;
+        }>(defineComponent({
+          template: `
+        <select
+          data-test="select-model"
+          v-model="value"
+        >
+          <option value="one">One</option>
+          <option value="two">Two</option>
+        </select>
+      `,
+          setup (_, { expose }) {
+            const value = ref('two')
+
+            expose({
+              getValue: () => value.value,
+              setValue: (next: string) => {
+                value.value = next
+              },
+            })
+
+            return { value }
+          },
+        }), receiver)
+
+    const select = el?.querySelector('[data-test="select-model"]') as HTMLSelectElement
+
+    expect(select.value).toBe('two')
+
+    select.value = 'one'
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+
+    await flushBoundary(receiver)
+
+    expect(vm.getValue()).toBe('one')
+
+    vm.setValue('two')
+
+    await flushBoundary(receiver)
+
+    expect(select.value).toBe('two')
+  })
+
+  test('supports template v-model.number on multiple select elements', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{
+      getValues (): number[];
+      setValues (value: number[]): void;
+        }>(defineComponent({
+          template: `
+        <select
+          data-test="select-multiple-model"
+          multiple
+          v-model.number="values"
+        >
+          <option :value="1">One</option>
+          <option :value="2">Two</option>
+          <option :value="3">Three</option>
+        </select>
+      `,
+          setup (_, { expose }) {
+            const values = ref([2])
+
+            expose({
+              getValues: () => [...values.value],
+              setValues: (next: number[]) => {
+                values.value = next
+              },
+            })
+
+            return { values }
+          },
+        }), receiver)
+
+    const select = el?.querySelector('[data-test="select-multiple-model"]') as HTMLSelectElement
+    const [first, second, third] = [...select.options]
+
+    expect(first.selected).toBe(false)
+    expect(second.selected).toBe(true)
+    expect(third.selected).toBe(false)
+
+    first.selected = true
+    second.selected = false
+    third.selected = true
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+
+    await flushBoundary(receiver)
+
+    expect(vm.getValues()).toEqual([1, 3])
+
+    vm.setValues([2, 3])
+
+    await flushBoundary(receiver)
+
+    expect(first.selected).toBe(false)
+    expect(second.selected).toBe(true)
+    expect(third.selected).toBe(true)
+  })
+
+  test('supports template v-model.lazy on dynamic input types', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{
+      getValue (): string;
+      setValue (value: string): void;
+        }>(defineComponent({
+          template: `
+        <input
+          data-test="dynamic-model"
+          :type="type"
+          v-model.lazy="value"
+        >
+      `,
+          setup (_, { expose }) {
+            const type = ref('text')
+            const value = ref('hello')
+
+            expose({
+              getValue: () => value.value,
+              setValue: (next: string) => {
+                value.value = next
+              },
+            })
+
+            return { type, value }
+          },
+        }), receiver)
+
+    const input = el?.querySelector('[data-test="dynamic-model"]') as HTMLInputElement
+
+    expect(input.value).toBe('hello')
+
+    input.value = 'draft'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+
+    await flushBoundary(receiver)
+
+    expect(vm.getValue()).toBe('hello')
+
+    input.dispatchEvent(new Event('change', { bubbles: true }))
+
+    await flushBoundary(receiver)
+
+    expect(vm.getValue()).toBe('draft')
+
+    vm.setValue('remote')
+
+    await flushBoundary(receiver)
+
+    expect(input.value).toBe('remote')
   })
 
   test('processes clicks on elements', async () => {

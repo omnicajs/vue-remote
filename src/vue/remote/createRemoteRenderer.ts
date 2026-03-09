@@ -20,6 +20,13 @@ import {
   parseStaticContent,
 } from '@/vue/remote/parser'
 
+import {
+  augmentNativeVModelElement,
+  isNativeVModelElement,
+  isNativeVModelTag,
+  patchNativeVModelElementProperty,
+} from '@/vue/remote/nativeVModel'
+
 type Component<Root extends RemoteRoot = RemoteRoot> = RemoteComponent<string, Root>
 type Node<Root extends RemoteRoot = RemoteRoot> =
   | Component<Root>
@@ -98,12 +105,23 @@ export default <Root extends RemoteRoot = RemoteRoot>(root: Root) => createRende
   Component<Root> | Root
 >({
   patchProp (element, key, _, next) {
+    if (isNativeVModelElement(element)) {
+      patchNativeVModelElementProperty(element, key, next)
+      return
+    }
+
     (element as Component<Root>).updateProperties({ [key]: next })
   },
 
   insert: (child, parent, anchor) => parent.insertBefore(child, anchor),
   remove: node => node.parent?.removeChild(node),
-  createElement: type => root.createComponent(type) as Component<Root> | Root,
+  createElement: type => {
+    const component = root.createComponent(type) as Component<Root>
+
+    return isNativeVModelTag(type)
+      ? augmentNativeVModelElement(component)
+      : component
+  },
   createText: text => root.createText(text) as Node<Root>,
   createComment: text => root.createComment(text) as Node<Root>,
   parentNode: node => node.parent,
