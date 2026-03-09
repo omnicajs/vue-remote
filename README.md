@@ -87,11 +87,7 @@ See more about remote rendering:
 
 For `*.remote.vue` files you can enable remote-native template ref inference in Vue tooling.
 
-If you are developing inside this repository, build the package once and point Vue tooling to the local bridge file:
-
-```bash
-yarn build
-```
+If you are developing inside this repository, point Vue tooling to the local bridge file:
 
 ```json
 {

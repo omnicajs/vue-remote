@@ -185,7 +185,7 @@ const isScriptEmbeddedCode = (embeddedFile: VueEmbeddedCode) => {
 }
 
 export const vueRemoteToolingPlugin: VueLanguagePlugin = (context) => ({
-  version: 2.2,
+  version: 2.1,
   name: '@omnicajs/vue-remote/tooling',
   order: 100,
   resolveEmbeddedCode (fileName, sfc, embeddedFile) {

@@ -1,7 +1,13 @@
 /* eslint-disable @typescript-eslint/no-require-imports, import/newline-after-import */
 'use strict'
 
-const tooling = require('./dist/tooling.cjs')
+const fs = require('node:fs')
+const path = require('node:path')
+
+const sourceToolingPath = path.join(__dirname, 'src/vue/tooling/index.ts')
+const tooling = fs.existsSync(sourceToolingPath)
+  ? require(sourceToolingPath)
+  : require('./dist/tooling.cjs')
 const plugin = tooling.default ?? tooling.vueRemoteToolingPlugin
 
 module.exports = plugin
