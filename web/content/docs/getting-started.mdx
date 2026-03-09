@@ -20,6 +20,34 @@ Business APIs, auth, discovery, and marketplace logic stay in adjacent tooling.
 yarn add @omnicajs/vue-remote @remote-ui/rpc
 ```
 
+## IDE tooling
+
+To get remote-native template refs typed as remote element proxies in `*.remote.vue`, add the Vue tooling plugin:
+
+```json
+{
+  "vueCompilerOptions": {
+    "plugins": [
+      "@omnicajs/vue-remote/tooling"
+    ]
+  }
+}
+```
+
+What to expect:
+
+- `<div ref="panel" />` inside `*.remote.vue` is inferred as a remote proxy from `@omnicajs/vue-remote/remote`, not as `HTMLDivElement`.
+- `useTemplateRef(...)`, `ref(null)`, and `shallowRef(null)` follow the same remote boundary model for native refs.
+- Host component refs keep their component-instance typing.
+
+IDE recommendations:
+
+- VS Code: use the `Vue - Official` extension.
+- PhpStorm / WebStorm: use `Vue Language Server (Volar)` and enable the service-powered type engine for the most accurate type evaluation.
+- Other IDEs: if they are backed by `@vue/language-server` or another Volar-compatible Vue language client, they should also honor `vueCompilerOptions.plugins`.
+
+If you are developing inside this repository instead of consuming the published package, run `yarn build` once and use `./tooling.cjs` in `vueCompilerOptions.plugins`.
+
 ## 1. Bootstrap host runtime
 
 On the host side:

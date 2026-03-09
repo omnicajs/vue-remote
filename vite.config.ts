@@ -22,6 +22,7 @@ export default mergeConfig(basic, defineConfig({
       entry: {
         host: path.resolve(__dirname, './src/vue/host/index.ts'),
         remote: path.resolve(__dirname, './src/vue/remote/index.ts'),
+        tooling: path.resolve(__dirname, './src/vue/tooling/index.ts'),
       },
     },
     minify: false,

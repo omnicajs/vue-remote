@@ -1,61 +1,64 @@
 {
-    "compilerOptions": {
-        "allowJs": true,
-        "allowSyntheticDefaultImports": true,
-        "baseUrl": "./",
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "importHelpers": true,
-        "isolatedModules": true,
-        "jsx": "preserve",
-        "lib": [
-            "ESNext",
-            "DOM",
-            "DOM.Iterable",
-            "ScriptHost"
-        ],
-        "module": "ESNext",
-        "moduleResolution": "Bundler",
-        "paths": {
-            "@/*": ["./src/*"],
-            "~types/*": ["./types/*"],
-            "~tests/*": ["./tests/*"],
-            "@astrojs/starlight": ["./types/tools/starlight-tooling-stubs.d.ts"],
-            "@astrojs/starlight/loaders": ["./types/tools/starlight-tooling-stubs.d.ts"],
-            "@astrojs/starlight/schema": ["./types/tools/starlight-tooling-stubs.d.ts"],
-            "astro:content": ["./types/tools/starlight-tooling-stubs.d.ts"]
-        },
-        "resolveJsonModule": true,
-        "skipLibCheck": true,
-        "sourceMap": false,
-        "strict": true,
-        "target": "es2016",
-        "types": [
-            "@vue/compiler-core",
-            "@vue/compiler-dom",
-            "@vue/compiler-sfc",
-            "@vue/compiler-ssr",
-            "@vue/reactivity",
-            "@vue/runtime-core",
-            "@vue/runtime-dom",
-            "node"
-        ],
-        "useDefineForClassFields": true
+  "compilerOptions": {
+    "allowJs": true,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "./",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable",
+      "ScriptHost"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@/*": ["./src/*"],
+      "~types/*": ["./types/*"],
+      "~tests/*": ["./tests/*"],
+      "@astrojs/starlight": ["./types/tools/starlight-tooling-stubs.d.ts"],
+      "@astrojs/starlight/loaders": ["./types/tools/starlight-tooling-stubs.d.ts"],
+      "@astrojs/starlight/schema": ["./types/tools/starlight-tooling-stubs.d.ts"],
+      "astro:content": ["./types/tools/starlight-tooling-stubs.d.ts"]
     },
-    "include": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "src/**/*.vue",
-        "src/shims-*.d.ts",
-        "tests/**/*.ts",
-        "tests/**/*.vue",
-        "tests/shims-*.d.ts",
-        "rollup.config.ts",
-        "*.config.ts",
-        "*.config.*.ts",
-        "web/*.config.ts",
-        "web/*.config.*.ts",
-        "eslint.config.js",
-        "types/**/*.d.ts"
-    ]
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "sourceMap": false,
+    "strict": true,
+    "target": "es2016",
+    "types": [
+      "@vue/compiler-core",
+      "@vue/compiler-dom",
+      "@vue/compiler-sfc",
+      "@vue/compiler-ssr",
+      "@vue/reactivity",
+      "@vue/runtime-core",
+      "@vue/runtime-dom",
+      "node"
+    ],
+    "useDefineForClassFields": true
+  },
+  "vueCompilerOptions": {
+    "plugins": ["./tooling.cjs"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/shims-*.d.ts",
+    "tests/**/*.ts",
+    "tests/**/*.vue",
+    "tests/shims-*.d.ts",
+    "rollup.config.ts",
+    "*.config.ts",
+    "*.config.*.ts",
+    "web/*.config.ts",
+    "web/*.config.*.ts",
+    "eslint.config.js",
+    "types/**/*.d.ts"
+  ]
 }

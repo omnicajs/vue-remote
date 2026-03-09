@@ -83,6 +83,48 @@ See more about remote rendering:
 
 ## Usage
 
+### Remote template ref tooling
+
+For `*.remote.vue` files you can enable remote-native template ref inference in Vue tooling.
+
+If you are developing inside this repository, build the package once and point Vue tooling to the local bridge file:
+
+```bash
+yarn build
+```
+
+```json
+{
+  "vueCompilerOptions": {
+    "plugins": [
+      "./tooling.cjs"
+    ]
+  }
+}
+```
+
+If you are consuming the published package from another project, use the package subpath instead:
+
+```json
+{
+  "vueCompilerOptions": {
+    "plugins": [
+      "@omnicajs/vue-remote/tooling"
+    ]
+  }
+}
+```
+
+With the plugin enabled, refs like `<div ref="panel" />` inside `*.remote.vue` are inferred as remote element proxies from `@omnicajs/vue-remote/remote`, not as real DOM elements.
+
+### IDE notes
+
+- VS Code: use the `Vue - Official` extension from the Vue language tools project.
+- PhpStorm / WebStorm: use `Vue Language Server (Volar)` and prefer the `Enable service-powered type engine` option for more accurate inference.
+- Other IDEs and editors: if they are backed by `@vue/language-server` / Volar-compatible Vue tooling, they should pick up `vueCompilerOptions.plugins` as well.
+
+In all cases, the remote-native ref inference is scoped to `*.remote.vue`. If you change the local tooling implementation while developing this repository, rebuild with `yarn build` so the IDE reloads the updated `dist/tooling.*` files.
+
 ### Basic example
 
 Host application:

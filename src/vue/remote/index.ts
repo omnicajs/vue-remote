@@ -16,6 +16,14 @@ export type {
   SupportedBy,
 } from '@/dom/remote'
 
+export type {
+  RemoteElementProperties,
+  RemoteElementProxy,
+  RemoteElementRef,
+  RemoteElementSchema,
+  RemoteElementTagName,
+} from '@/vue/remote/types'
+
 export { default as createRemoteRenderer } from '@/vue/remote/createRemoteRenderer'
 export { default as createRemoteRoot } from '@/vue/remote/createRemoteRoot'
 export { default as defineRemoteComponent } from '@/vue/remote/defineRemoteComponent'

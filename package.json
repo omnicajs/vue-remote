@@ -25,6 +25,12 @@
       "require": "./dist/remote.cjs",
       "import": "./dist/remote.mjs",
       "default": "./dist/remote.mjs"
+    },
+    "./tooling": {
+      "types": "./dist/tooling.d.ts",
+      "require": "./tooling.cjs",
+      "import": "./tooling.mjs",
+      "default": "./tooling.mjs"
     }
   },
   "sideEffects": false,
@@ -35,6 +41,9 @@
       ],
       "remote": [
         "./dist/remote.d.ts"
+      ],
+      "tooling": [
+        "./dist/tooling.d.ts"
       ]
     }
   },
@@ -55,6 +64,7 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:dts": "tsc -p tsconfig.type-tests.json --noEmit",
+    "test:tooling": "ts-node --esm tests/tooling/run-vue-tsc.mts",
     "test:e2e": "vitest run --config vitest.playwright.ts",
     "test:e2e:coverage": "vitest run --config vitest.playwright.ts --coverage",
     "test:all:coverage": "yarn coverage:clean && yarn test:coverage && yarn test:e2e:coverage && yarn coverage:merge",
@@ -111,6 +121,8 @@
     "index.cjs",
     "index.d.ts",
     "index.mjs",
+    "tooling.cjs",
+    "tooling.mjs",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

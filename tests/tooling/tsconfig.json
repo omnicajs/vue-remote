@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../../",
+    "noEmit": true,
+    "paths": {
+      "@/*": ["src/*"],
+      "~types/*": ["types/*"],
+      "~tests/*": ["tests/*"],
+      "@omnicajs/vue-remote/remote": ["src/vue/remote/index.ts"],
+      "@omnicajs/vue-remote/tooling": ["src/vue/tooling/index.ts"],
+      "@astrojs/starlight": ["types/tools/starlight-tooling-stubs.d.ts"],
+      "@astrojs/starlight/loaders": ["types/tools/starlight-tooling-stubs.d.ts"],
+      "@astrojs/starlight/schema": ["types/tools/starlight-tooling-stubs.d.ts"],
+      "astro:content": ["types/tools/starlight-tooling-stubs.d.ts"]
+    }
+  },
+  "include": [
+    "../../src/**/*.ts",
+    "../../types/**/*.d.ts",
+    "../../tests/shims-vue.d.ts",
+    "./fixtures/**/*.vue"
+  ]
+}
