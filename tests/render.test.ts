@@ -1,3 +1,4 @@
+import type { VNode } from 'vue'
 import type { HostedChild } from '@/vue/host/tree'
 
 import {
@@ -114,5 +115,98 @@ describe('render', () => {
         checked: false,
       },
     })
+  })
+
+  test('processes undefined and merges internal handlers while syncing select vnode hooks', () => {
+    expect(process(undefined)).toBeUndefined()
+
+    const internalOnly = vi.fn()
+    const internalProps = process(ref({
+      '__vModel:onChange': internalOnly,
+    }))
+
+    const selectMountHook = vi.fn()
+    const selectUpdateHook = vi.fn()
+    const nestedOption = {
+      id: 'nested-option',
+      kind: KIND_COMPONENT,
+      type: 'option',
+      ref: ref(null),
+      properties: ref({ selected: true }),
+      children: shallowRef([]),
+      update: vi.fn(),
+      release: vi.fn(),
+    } as unknown as HostedChild
+    const option = {
+      id: 'option',
+      kind: KIND_COMPONENT,
+      type: 'option',
+      ref: ref(null),
+      properties: ref({ selected: false }),
+      children: shallowRef([]),
+      update: vi.fn(),
+      release: vi.fn(),
+    } as unknown as HostedChild
+    const nestedGroup = {
+      id: 'group',
+      kind: KIND_COMPONENT,
+      type: 'optgroup',
+      ref: ref(null),
+      properties: ref({}),
+      children: shallowRef([nestedOption]),
+      update: vi.fn(),
+      release: vi.fn(),
+    } as unknown as HostedChild
+    const text = {
+      id: 'text',
+      kind: KIND_TEXT,
+      text: ref('ignored'),
+      update: vi.fn(),
+      release: vi.fn(),
+    } as unknown as HostedChild
+    const select = {
+      id: 'select',
+      kind: KIND_COMPONENT,
+      type: 'select',
+      ref: ref(null),
+      properties: ref({
+        onVnodeMounted: [selectMountHook, null],
+        onVnodeUpdated: selectUpdateHook,
+        selectedIndex: 1,
+      }),
+      children: shallowRef([text, nestedGroup, option]),
+      update: vi.fn(),
+      release: vi.fn(),
+    } as unknown as HostedChild
+
+    const internalEvent = new Event('change')
+    const selectElement = document.createElement('select')
+    selectElement.append(
+      document.createElement('option'),
+      document.createElement('option')
+    )
+
+    ;(internalProps?.onChange as (event: Event) => void)(internalEvent)
+    expect(internalOnly).toHaveBeenCalledWith({
+      type: 'change',
+      target: null,
+      currentTarget: null,
+    })
+
+    const vnode = render(select, createProvider()) as VNode
+    expect(vnode).not.toBeNull()
+
+    ;(vnode.props as Record<string, (payload: unknown) => void>).onVnodeMounted({
+      el: document.createElement('div'),
+    })
+    ;(vnode.props as Record<string, (payload: unknown) => void>).onVnodeUpdated({
+      el: selectElement,
+    })
+
+    expect(selectMountHook).toHaveBeenCalledOnce()
+    expect(selectUpdateHook).toHaveBeenCalledOnce()
+    expect(selectElement.options[0].selected).toBe(false)
+    expect(selectElement.options[1].selected).toBe(true)
+    expect(selectElement.selectedIndex).toBe(1)
   })
 })

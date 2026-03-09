@@ -14,6 +14,7 @@ import {
   serializeInputEvent,
   serializeKeyboardEvent,
   serializeMouseEvent,
+  serializeNativeVModelEvent,
   serializePointerEvent,
   serializeTarget,
   serializeTouchList,
@@ -56,6 +57,11 @@ describe('events', () => {
     expect(serializeTarget(textarea)).toEqual({ value: 'area' })
 
     expect(serializeTarget({} as EventTarget)).toEqual({})
+    expect(serializeNativeVModelEvent(new Event('input'))).toEqual({
+      type: 'input',
+      target: null,
+      currentTarget: null,
+    })
   })
 
   test('serializes focus with related target, drag data transfer and base events fallback', () => {

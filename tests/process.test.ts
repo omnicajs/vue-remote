@@ -16,7 +16,6 @@ describe('process', () => {
   })
 
   test('returns undefined if properties are undefined', () => {
-    // @ts-expect-error
     expect(process(undefined)).toBeUndefined()
   })
 
