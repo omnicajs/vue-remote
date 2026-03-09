@@ -147,17 +147,13 @@ const mergeEventHandlers = (first: unknown, second: unknown) => {
     return second
   }
 
-  if (!isFunction(second)) {
-    return first
-  }
-
   return (...args: unknown[]) => {
     first(...args)
-    return second(...args)
+    return (second as (...args: unknown[]) => unknown)(...args)
   }
 }
 
-export const process = (properties: Ref<Unknown | undefined>): Unknown | undefined => {
+export const process = (properties: Ref<Unknown | undefined> | undefined): Unknown | undefined => {
   if (properties === undefined) {
     return undefined
   }
