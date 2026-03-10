@@ -9,6 +9,7 @@ const refName = process.env.REF_NAME
 const outputPath = process.env.GITHUB_OUTPUT
 
 const fallbackLatest = `v${JSON.parse(fs.readFileSync(packagePath, 'utf8')).version}`
+const minPublishedDocsVersion = 'v0.2.16'
 const semverPattern = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/
 
 function normalizeTag (value) {
@@ -125,6 +126,10 @@ function compareVersions (left, right) {
   return left.localeCompare(right)
 }
 
+function isSupportedDocsVersion (value) {
+  return compareVersions(value, minPublishedDocsVersion) <= 0
+}
+
 function unique (values) {
   const set = new Set()
 
@@ -170,6 +175,7 @@ if (refType === 'tag' && currentTag) {
 }
 
 const sortedVersions = unique(versions).sort(compareVersions)
+  .filter(isSupportedDocsVersion)
 const latest = sortedVersions[0] ?? manifest.latest ?? fallbackLatest
 const isLatest = currentTag !== '' && currentTag === latest
 
