@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="24 24 48 48" role="img" aria-labelledby="title desc">
+  <title id="title">Bidirectional radio mark with Vue V</title>
+  <desc id="desc">Centered Vue V with two radio waves on each side</desc>
+
+  <g fill="none" stroke-linecap="round" stroke-width="4" stroke-opacity="0.85">
+    <path d="M38.8 40.3 A12 12 0 0 0 38.8 55.7" stroke="#f8e8a4"/>
+    <path d="M34.2 36.4 A18 18 0 0 0 34.2 59.6" stroke="#e8d172"/>
+    <path d="M57.2 40.3 A12 12 0 0 1 57.2 55.7" stroke="#f8e8a4"/>
+    <path d="M61.8 36.4 A18 18 0 0 1 61.8 59.6" stroke="#e8d172"/>
+  </g>
+
+  <polygon points="37,40 48,62 59,40 54,40 48,52 42,40" fill="#41b883"/>
+  <polygon points="42.8,39.8 48,50.2 53.2,39.8 51.1,39.8 48,46 44.9,39.8" fill="#475569"/>
+</svg>

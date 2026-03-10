@@ -77,16 +77,14 @@
 <p>This page documents current limitations of <code dir="auto">@omnicajs/vue-remote</code> runtime behavior compared to native Vue usage in a single DOM context.</p>
 <div class="sl-heading-wrapper level-h2"><h2 id="current-limitations">Current limitations</h2><a class="sl-anchor-link" href="#current-limitations"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Current limitations”</span></a></div>
 <ol>
-<li>Native <code dir="auto">v-model</code> on elements is not supported as a first-class cross-runtime behavior.</li>
 <li>Calling allowed component methods requires explicit <code dir="auto">invoke</code> usage; there is no higher-level declarative method-call API.</li>
 <li>Direct imperative prop assignment on mounted nodes is limited and not universally safe; the primary path remains reactive re-render flow.</li>
-<li><code dir="auto">nextTick()</code> on remote does not guarantee that host UI has already committed updates.</li>
 <li>Scoped slot props from host components are not delivered to remote slots.</li>
 </ol>
 <div class="sl-heading-wrapper level-h2"><h2 id="additional-constraints-to-account-for">Additional constraints to account for</h2><a class="sl-anchor-link" href="#additional-constraints-to-account-for"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only" data-pagefind-ignore>Section titled “Additional constraints to account for”</span></a></div>
 <ol>
 <li>Refs to native elements in remote templates point to remote node proxies, not real browser DOM elements.</li>
-<li>There is no public remote-side await primitive that confirms host render commit for a given update.</li>
+<li>Remote <code dir="auto">nextTick()</code> waits for the corresponding host commit, and rejects if teardown happens before that commit completes.</li>
 <li>Transport guarantees (ordering, retry, backpressure, reconnect semantics) are defined by the chosen adapter/runtime, not by core API alone.</li>
 <li>Cross-runtime errors are normalized at the boundary, so original stack context can be reduced.</li>
 </ol>
