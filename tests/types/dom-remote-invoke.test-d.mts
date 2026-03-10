@@ -5,6 +5,7 @@ import {
 } from 'vitest'
 
 import {
+  createChannel,
   createRemoteRoot,
   defineRemoteComponent,
 } from '@/dom/remote'
@@ -17,7 +18,15 @@ describe('dom remote invoke type tests', () => {
       isFocused: () => Promise<boolean>;
     }
 
-    const root = createRemoteRoot(() => {}, { strict: false })
+    const root = createRemoteRoot(createChannel({
+      mount: () => {},
+      insertChild: () => {},
+      removeChild: () => {},
+      updateProperties: () => {},
+      updateText: () => {},
+      invoke: (_id, _method, _payload, resolve) => resolve(undefined),
+      systemCall: async () => undefined,
+    }), { strict: false })
     const descriptor = defineRemoteComponent<'VInput', {}, InvokeSchemaMethods>(
       'VInput',
       [],
