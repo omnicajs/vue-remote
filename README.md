@@ -10,8 +10,7 @@ for embedding remote applications into your main application.
 ## Documentation
 
 - Published docs: <https://omnicajs.github.io/vue-remote/>
-- Astro + Starlight docs source: `web/content/docs/`
-- Docs setup and publishing notes: [`docs/ASTRO.md`](docs/ASTRO.md)
+- Development guide: [`docs/DEV.md`](docs/DEV.md)
 
 ## Installation
 
@@ -25,37 +24,6 @@ or, using `npm`:
 
 ```
 npm install @omnicajs/vue-remote --save
-```
-
-### Install packages
-
-```bash
-make node_modules
-```
-
-### Tests
-
-Vitest. Unit and integrations tests
-```bash
-make tests
-```
-or without using docker
-```bash
-yarn test
-```
-```bash
-yarn test:coverage
-```
-
-Vitest browser mode (Playwright provider). E2E tests
-```bash
-make tests-e2e
-```
-
-or without using docker
-
-```bash
-yarn test:e2e
 ```
 
 ## Description
@@ -87,18 +55,6 @@ See more about remote rendering:
 
 For `*.remote.vue` files you can enable remote-native template ref inference in Vue tooling.
 
-If you are developing inside this repository, point Vue tooling to the local bridge file:
-
-```json
-{
-  "vueCompilerOptions": {
-    "plugins": [
-      "./tooling.cjs"
-    ]
-  }
-}
-```
-
 If you are consuming the published package from another project, use the package subpath instead:
 
 ```json
@@ -118,8 +74,6 @@ With the plugin enabled, refs like `<div ref="panel" />` inside `*.remote.vue` a
 - VS Code: use the `Vue - Official` extension from the Vue language tools project.
 - PhpStorm / WebStorm: use `Vue Language Server (Volar)` and prefer the `Enable service-powered type engine` option for more accurate inference.
 - Other IDEs and editors: if they are backed by `@vue/language-server` / Volar-compatible Vue tooling, they should pick up `vueCompilerOptions.plugins` as well.
-
-In all cases, the remote-native ref inference is scoped to `*.remote.vue`. If you change the local tooling implementation while developing this repository, rebuild with `yarn build` so the IDE reloads the updated `dist/tooling.*` files.
 
 ### Basic example
 
