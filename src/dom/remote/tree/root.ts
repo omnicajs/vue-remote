@@ -15,6 +15,7 @@ import { createRemoteComment } from '@/dom/remote/tree/comment'
 import { createRemoteComponent } from '@/dom/remote/tree/component'
 import { createRemoteFragment } from '@/dom/remote/tree/fragment'
 import { createRemoteText } from '@/dom/remote/tree/text'
+import { registerRemoteRuntime } from '@/vue/remote/runtime'
 
 import {
   normalizeChild,
@@ -63,6 +64,10 @@ export function createRemoteRoot<
   addAppendMethod(root, context)
   addInsertMethod(root, context)
   addReplaceMethod(root, context)
+
+  registerRemoteRuntime(root, {
+    awaitHostCommit: () => context.awaitHostCommit(),
+  })
 
   return root
 }

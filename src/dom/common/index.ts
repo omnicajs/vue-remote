@@ -5,6 +5,7 @@ export type {
   RunnerCallee,
   RunnerMethod,
   RunnerPayload,
+  RunnerReturn,
 } from './channel'
 
 export type {
@@ -22,8 +23,10 @@ export {
   ACTION_MOUNT,
   ACTION_INSERT_CHILD,
   ACTION_REMOVE_CHILD,
+  ACTION_SYSTEM_CALL,
   ACTION_UPDATE_PROPERTIES,
   ACTION_UPDATE_TEXT,
+  SYSTEM_CALL_AWAIT_HOST_COMMIT,
 } from './channel'
 
 export {

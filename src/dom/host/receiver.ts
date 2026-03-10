@@ -1,6 +1,7 @@
 import type {
   Channel,
   Runner,
+  SystemCallPayload,
 } from '@/dom/common/channel'
 
 import type { Context } from './context'
@@ -22,6 +23,7 @@ import {
   retain,
   release,
 } from '@remote-ui/rpc'
+import { nextTick } from 'vue'
 
 import { createChannel } from '@/dom/common'
 import { createContext } from './context'
@@ -40,7 +42,24 @@ import {
   keysOf,
 } from '@/common/scaffolding'
 
+import {
+  REMOTE_LIFECYCLE_REASON_HOST_DISCONNECTED,
+  REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
+  RemoteLifecycleError,
+} from '@/common/lifecycle'
+
 import { isSerializedFragment } from '@/dom/common/tree'
+import { SYSTEM_CALL_AWAIT_HOST_COMMIT } from '@/dom/common/channel'
+
+export const RECEIVER_ATTACH_HOST = Symbol('receiver-attach-host')
+export const RECEIVER_DETACH_HOST = Symbol('receiver-detach-host')
+
+interface HostLifecycleReceiver {
+  [RECEIVER_ATTACH_HOST](): void;
+  [RECEIVER_DETACH_HOST](reason?: unknown): void;
+}
+
+type SystemCallHandler = (...payload: SystemCallPayload) => unknown | Promise<unknown>
 
 export interface ReceivedTree {
   readonly root: ReceivedRoot;
@@ -202,6 +221,50 @@ const addInvokeMethod = (
   })
 }
 
+const createDetachedError = (reason?: unknown) => {
+  return reason instanceof Error
+    ? reason
+    : new RemoteLifecycleError(
+      REMOTE_LIFECYCLE_REASON_HOST_DISCONNECTED,
+      'Remote host commit was aborted because the host lifecycle ended before commit'
+    )
+}
+
+const addSystemCallMethod = (
+  context: Context,
+  updater: Updater,
+  isHostAttached: () => boolean,
+  getDetachReason: () => unknown
+) => {
+  const handlers = new Map<string, SystemCallHandler>([
+    [SYSTEM_CALL_AWAIT_HOST_COMMIT, async () => {
+      if (!isHostAttached()) {
+        throw createDetachedError(getDetachReason())
+      }
+
+      await updater.flush()
+      await nextTick()
+
+      if (!isHostAttached()) {
+        throw createDetachedError(getDetachReason())
+      }
+    }],
+  ])
+
+  addMethod<Runner['systemCall']>(context, 'systemCall', (name, payload) => {
+    const handler = handlers.get(name)
+
+    if (handler == null) {
+      return Promise.reject(new RemoteLifecycleError(
+        REMOTE_LIFECYCLE_REASON_HOST_DISCONNECTED,
+        `Unsupported remote system call: ${name}`
+      ))
+    }
+
+    return Promise.resolve(handler(...payload))
+  })
+}
+
 interface ReceiverContext extends Context, Runner {}
 
 export function createReceiver(): Receiver {
@@ -209,6 +272,8 @@ export function createReceiver(): Receiver {
   const emitter = createEmitter()
   const invoker = createInvoker()
   const updater = createUpdater()
+  let hostAttached = false
+  let detachReason: unknown = null
 
   addMountMethod(context, updater, emitter)
   addInsertMethod(context, updater)
@@ -216,8 +281,8 @@ export function createReceiver(): Receiver {
   addUpdateTextMethod(context, updater)
   addRemoveMethod(context, updater)
   addInvokeMethod(context, invoker)
-
-  return {
+  addSystemCallMethod(context, updater, () => hostAttached, () => detachReason)
+  const receiver = {
     get state () { return context.state },
 
     receive: createChannel(context),
@@ -241,5 +306,20 @@ export function createReceiver(): Receiver {
     on: (event, handler) => emitter.on(event, handler),
 
     flush: () => updater.flush(),
+  } as Receiver & HostLifecycleReceiver
+
+  receiver[RECEIVER_ATTACH_HOST] = () => {
+    hostAttached = true
+    detachReason = null
   }
+
+  receiver[RECEIVER_DETACH_HOST] = (reason?: unknown) => {
+    hostAttached = false
+    detachReason = reason ?? new RemoteLifecycleError(
+      REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
+      'Remote host commit was aborted because the host renderer was unmounted'
+    )
+  }
+
+  return receiver
 }

@@ -26,6 +26,10 @@ import {
   isNativeVModelTag,
   patchNativeVModelElementProperty,
 } from '@/vue/remote/nativeVModel'
+import {
+  attachRemoteRuntime,
+  detachRemoteRuntime,
+} from '@/vue/remote/runtime'
 
 type Component<Root extends RemoteRoot = RemoteRoot> = RemoteComponent<string, Root>
 type Node<Root extends RemoteRoot = RemoteRoot> =
@@ -100,36 +104,62 @@ const insertStaticContent = <Root extends RemoteRoot = RemoteRoot>(
   return [nodes[0], nodes[nodes.length - 1]]
 }
 
-export default <Root extends RemoteRoot = RemoteRoot>(root: Root) => createRenderer<
-  Node<Root>,
-  Component<Root> | Root
->({
-  patchProp (element, key, _, next) {
-    if (isNativeVModelElement(element)) {
-      patchNativeVModelElementProperty(element, key, next)
-      return
-    }
+export default <Root extends RemoteRoot = RemoteRoot>(root: Root) => {
+  const renderer = createRenderer<Node<Root>, Component<Root> | Root>({
+    patchProp (element, key, _, next) {
+      if (isNativeVModelElement(element)) {
+        patchNativeVModelElementProperty(element, key, next)
+        return
+      }
 
-    (element as Component<Root>).updateProperties({ [key]: next })
-  },
+      (element as Component<Root>).updateProperties({ [key]: next })
+    },
 
-  insert: (child, parent, anchor) => parent.insertBefore(child, anchor),
-  remove: node => node.parent?.removeChild(node),
-  createElement: type => {
-    const component = root.createComponent(type) as Component<Root>
+    insert: (child, parent, anchor) => parent.insertBefore(child, anchor),
+    remove: node => node.parent?.removeChild(node),
+    createElement: type => {
+      const component = root.createComponent(type) as Component<Root>
 
-    return isNativeVModelTag(type)
-      ? augmentNativeVModelElement(component)
-      : component
-  },
-  createText: text => root.createText(text) as Node<Root>,
-  createComment: text => root.createComment(text) as Node<Root>,
-  parentNode: node => node.parent,
-  nextSibling,
-  setText,
-  setElementText,
+      return isNativeVModelTag(type)
+        ? augmentNativeVModelElement(component)
+        : component
+    },
+    createText: text => root.createText(text) as Node<Root>,
+    createComment: text => root.createComment(text) as Node<Root>,
+    parentNode: node => node.parent,
+    nextSibling,
+    setText,
+    setElementText,
 
-  insertStaticContent: (content, parent, anchor, namespace) => {
-    return insertStaticContent(root, content, parent as Parent<Root>, anchor as Node<Root> | null, namespace)
-  },
-})
+    insertStaticContent: (content, parent, anchor, namespace) => {
+      return insertStaticContent(root, content, parent as Parent<Root>, anchor as Node<Root> | null, namespace)
+    },
+  })
+
+  const createApp = renderer.createApp.bind(renderer)
+
+  renderer.createApp = ((...args) => {
+    const app = createApp(...args)
+    const mount = app.mount.bind(app)
+    const unmount = app.unmount.bind(app)
+
+    app.mount = ((...mountArgs) => {
+      attachRemoteRuntime(app, root)
+      try {
+        return mount(...mountArgs)
+      } catch (error) {
+        detachRemoteRuntime(root)
+        throw error
+      }
+    }) as typeof app.mount
+
+    app.unmount = (() => {
+      detachRemoteRuntime(root)
+      return unmount()
+    }) as typeof app.unmount
+
+    return app
+  }) as typeof renderer.createApp
+
+  return renderer
+}
