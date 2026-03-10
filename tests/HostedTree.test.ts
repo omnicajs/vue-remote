@@ -46,6 +46,8 @@ import {
   defineRemoteMethod,
   createRemoteRoot,
   createRemoteRenderer,
+  REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
+  nextTick as remoteNextTick,
 } from '@/vue/remote'
 
 import { keysOf } from '@/common/scaffolding'
@@ -225,6 +227,75 @@ describe('HostedTree', () => {
     await receiver.flush()
 
     expect(el?.innerHTML).toBe('<span>1</span>')
+  })
+
+  test('waits for host commit in remote nextTick', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{ revealAndAwait (): Promise<void>; }>({
+      setup (_, { expose }) {
+        const ready = ref(false)
+
+        expose({
+          async revealAndAwait () {
+            ready.value = true
+            await remoteNextTick()
+          },
+        })
+
+        return () => h('span', ready.value ? 'ready' : 'idle')
+      },
+    }, receiver)
+
+    expect(el?.innerHTML).toBe('<span>idle</span>')
+
+    let settled = false
+    const pending = vm.revealAndAwait().then(() => {
+      settled = true
+    })
+
+    await nextTick()
+
+    expect(settled).toBe(false)
+    expect(el?.innerHTML).toBe('<span>idle</span>')
+
+    await pending
+
+    expect(el?.innerHTML).toBe('<span>ready</span>')
+  })
+
+  test('rejects remote nextTick when host is unmounted before commit', async () => {
+    const receiver = createReceiver()
+    const host = createHostApp(receiver)
+
+    host.mount(el as HTMLElement)
+
+    const { vm } = await createRemoteApp<{ revealAndAwait (): Promise<void>; }>({
+      setup (_, { expose }) {
+        const ready = ref(false)
+
+        expose({
+          async revealAndAwait () {
+            ready.value = true
+            await remoteNextTick()
+          },
+        })
+
+        return () => h('span', ready.value ? 'ready' : 'idle')
+      },
+    }, receiver)
+
+    const pending = vm.revealAndAwait()
+
+    host.unmount()
+
+    await expect(pending).rejects.toMatchObject({
+      name: 'RemoteLifecycleError',
+      reason: REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
+      message: expect.stringContaining('host'),
+    })
   })
 
   test('supports template v-model on text inputs in SFC remote components', async () => {

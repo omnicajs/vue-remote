@@ -33,6 +33,7 @@ export default mergeConfig(basic, defineConfig({
       enabled: true,
       provider: playwright(),
       headless: true,
+      screenshotDirectory: 'artifacts/__screenshots__',
       instances: process.argv.includes('--coverage')
         ? [{ browser: 'chromium' }]
         : [

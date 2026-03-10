@@ -12,13 +12,12 @@ This page documents current limitations of `@omnicajs/vue-remote` runtime behavi
 
 1. Calling allowed component methods requires explicit `invoke` usage; there is no higher-level declarative method-call API.
 2. Direct imperative prop assignment on mounted nodes is limited and not universally safe; the primary path remains reactive re-render flow.
-3. `nextTick()` on remote does not guarantee that host UI has already committed updates.
-4. Scoped slot props from host components are not delivered to remote slots.
+3. Scoped slot props from host components are not delivered to remote slots.
 
 ## Additional constraints to account for
 
 1. Refs to native elements in remote templates point to remote node proxies, not real browser DOM elements.
-2. There is no public remote-side await primitive that confirms host render commit for a given update.
+2. Remote `nextTick()` waits for the corresponding host commit, and rejects if teardown happens before that commit completes.
 3. Transport guarantees (ordering, retry, backpressure, reconnect semantics) are defined by the chosen adapter/runtime, not by core API alone.
 4. Cross-runtime errors are normalized at the boundary, so original stack context can be reduced.
 

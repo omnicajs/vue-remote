@@ -22,8 +22,10 @@ import {
 
 import {
   ACTION_INSERT_CHILD,
-  ACTION_REMOVE_CHILD,
   ACTION_INVOKE,
+  ACTION_REMOVE_CHILD,
+  ACTION_SYSTEM_CALL,
+  SYSTEM_CALL_AWAIT_HOST_COMMIT,
 } from '@/dom/common/channel'
 
 import {
@@ -61,6 +63,7 @@ export interface TreeData<R extends RemoteRoot = RemoteRoot> {
 
 export interface TreeContext<R extends RemoteRoot = RemoteRoot> extends TreeData<R> {
   nextId (): string;
+  awaitHostCommit (): Promise<void>;
 
   collect (node: UnknownNode): void
 
@@ -457,6 +460,13 @@ export const createTreeContext = <S extends RemoteComponentOption = RemoteCompon
   let lastId = 0
 
   addMethod(context, 'nextId', () => `${++lastId}`)
+  addMethod(context, 'awaitHostCommit', () => {
+    return Promise.resolve(context.channel(
+      ACTION_SYSTEM_CALL,
+      SYSTEM_CALL_AWAIT_HOST_COMMIT,
+      []
+    )).then(() => undefined)
+  })
 
   addCollectMethod(context)
 

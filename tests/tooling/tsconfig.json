@@ -15,6 +15,9 @@
       "astro:content": ["types/tools/starlight-tooling-stubs.d.ts"]
     }
   },
+  "vueCompilerOptions": {
+    "plugins": []
+  },
   "include": [
     "../../src/**/*.ts",
     "../../types/**/*.d.ts",

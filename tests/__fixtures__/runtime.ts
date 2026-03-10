@@ -37,9 +37,11 @@ const waitTick = async () => {
 
 export interface WorkerRuntime<Snapshot> {
   readonly container: HTMLElement;
+  flushOnce (): Promise<void>;
   flush (): Promise<void>;
   read (): Promise<Snapshot>;
   reset (): Promise<void>;
+  unmountHost (): void;
   tearDown (): Promise<void>;
 }
 
@@ -57,8 +59,10 @@ export const createWorkerRuntime = async <Snapshot>({
   document.body.append(container)
 
   const host = createHost(receiver, provider)
+  let hostMounted = false
 
   host.mount(container)
+  hostMounted = true
 
   const flush = async () => {
     await waitTick()
@@ -72,16 +76,31 @@ export const createWorkerRuntime = async <Snapshot>({
 
   return {
     container,
+    async flushOnce () {
+      await waitTick()
+      await receiver.flush()
+    },
     flush,
     read: () => endpoint.call.getState() as Promise<Snapshot>,
     reset: () => endpoint.call.resetState(),
+    unmountHost () {
+      if (!hostMounted) {
+        return
+      }
+
+      host.unmount()
+      hostMounted = false
+    },
     async tearDown () {
       try {
         await endpoint.call.release()
       } finally {
         endpoint.terminate()
         worker.terminate()
-        host.unmount()
+        if (hostMounted) {
+          host.unmount()
+          hostMounted = false
+        }
         container.remove()
       }
     },

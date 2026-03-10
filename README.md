@@ -499,6 +499,23 @@ Legacy positional form still works:
 const VCard = defineRemoteComponent('VCard', [], ['title'])
 ```
 
+#### `nextTick()`
+
+Remote `nextTick()` is available from the same public entrypoint:
+
+```typescript
+import {
+  defineRemoteComponent,
+  nextTick,
+} from '@omnicajs/vue-remote/remote'
+
+const VDialog = defineRemoteComponent('VDialog')
+
+await nextTick()
+```
+
+Unlike Vue's local-only scheduler boundary, this `nextTick()` resolves only after the relevant remote updates have crossed the boundary and the host renderer has completed its commit cycle. If the host session is torn down before that commit happens, the promise rejects with a lifecycle error instead of waiting forever.
+
 Migration note:
 
 - keep using `defineRemoteComponent(type, emits?, slots?)` if you only need legacy behavior;
