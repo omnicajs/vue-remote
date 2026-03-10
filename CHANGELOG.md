@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.17](https://github.com/omnicajs/vue-remote/compare/v0.2.16...v0.2.17) (2026-03-10)
+
+
+### Features
+
+* **remote:** Host-aware nextTick was added ([11fc27f](https://github.com/omnicajs/vue-remote/commit/11fc27f68680a6d5467497fc83799dc6d107e8cd))
+* **remote:** Strict schema-aware method validation was added ([a3b9cb2](https://github.com/omnicajs/vue-remote/commit/a3b9cb2aa6e0ecc1490761135bc6a76a204b6208))
+* **remote:** Typed remote method delegates were added ([31495c9](https://github.com/omnicajs/vue-remote/commit/31495c912d55e8e621ce08d26e0cc9bf925222fc))
+* **vue:** Native element v-model support was added ([15b68f4](https://github.com/omnicajs/vue-remote/commit/15b68f49fadbfe4495adcfd33db2b552231e5537))
+
+
+### Fixes
+
+* **docs:** Version snapshot links were corrected ([a411e14](https://github.com/omnicajs/vue-remote/commit/a411e1498b283f7e45bb6088147162c484f09cd8))
+
 ### [0.2.16](https://github.com/omnicajs/vue-remote/compare/v0.2.15...v0.2.16) (2026-03-05)
 
 
