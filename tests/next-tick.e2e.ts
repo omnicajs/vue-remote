@@ -12,13 +12,16 @@ import { REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED } from '@/vue/remote'
 import { VNextTickProbe } from './__fixtures__/components/VNextTickProbe.host'
 import { createWorkerRuntime } from './__fixtures__/runtime'
 
+const isExpectedHostUnmountError = (value: unknown) => {
+  return value instanceof Error
+    && value.name === 'RemoteLifecycleError'
+    && 'reason' in value
+    && value.reason === REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED
+}
+
 const waitForExpectedUnmountRejection = () => new Promise<void>((resolve) => {
   const handle = (event: PromiseRejectionEvent) => {
-    if (event.reason?.name !== 'RemoteLifecycleError') {
-      return
-    }
-
-    if (event.reason?.reason !== REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED) {
+    if (!isExpectedHostUnmountError(event.reason)) {
       return
     }
 
@@ -29,6 +32,24 @@ const waitForExpectedUnmountRejection = () => new Promise<void>((resolve) => {
 
   window.addEventListener('unhandledrejection', handle)
 })
+
+const withSuppressedExpectedHostUnmountError = async <T>(run: () => Promise<T>) => {
+  const originalConsoleError = window.console.error
+
+  window.console.error = (...args) => {
+    if (args.some(isExpectedHostUnmountError)) {
+      return
+    }
+
+    originalConsoleError(...args)
+  }
+
+  try {
+    return await run()
+  } finally {
+    window.console.error = originalConsoleError
+  }
+}
 
 describe('remote nextTick', () => {
   let runtime: WorkerRuntime<{
@@ -112,18 +133,21 @@ describe('remote nextTick', () => {
       throw new Error('nextTick worker trigger was not rendered')
     }
 
-    trigger.click()
-    const rejection = waitForExpectedUnmountRejection()
-    runtime.unmountHost()
-    await rejection
+    await withSuppressedExpectedHostUnmountError(async () => {
+      const rejection = waitForExpectedUnmountRejection()
 
-    await expect.poll(async () => {
-      return runtime?.read()
-    }).toEqual({
-      count: 1,
-      observedText: null,
-      rejectionReason: REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
-      status: 'rejected',
+      trigger.click()
+      runtime.unmountHost()
+      await rejection
+
+      await expect.poll(async () => {
+        return runtime?.read()
+      }).toEqual({
+        count: 1,
+        observedText: null,
+        rejectionReason: REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
+        status: 'rejected',
+      })
     })
   })
 })

@@ -64,6 +64,7 @@ describe('remote runtime', () => {
         throw new Error('render failure')
       },
     }))
+    app.config.warnHandler = () => {}
 
     expect(() => app.mount(root)).toThrow('render failure')
     detachRemoteRuntime(root)
