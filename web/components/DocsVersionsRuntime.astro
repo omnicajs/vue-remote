@@ -4,6 +4,7 @@ const rootBase = (import.meta.env.PUBLIC_DOCS_ROOT_BASE || '/').replace(/\/?$/, 
 const fallbackLatest = (import.meta.env.PUBLIC_DOCS_DEFAULT_LATEST_VERSION || '').trim()
 const currentVersion = (import.meta.env.PUBLIC_DOCS_CURRENT_VERSION || '').trim()
 const currentChannel = (import.meta.env.PUBLIC_DOCS_CHANNEL || 'latest').trim()
+const minimumDocsVersion = 'v0.2.16'
 
 const labels = locale === 'ru'
   ? {
@@ -24,6 +25,7 @@ const labels = locale === 'ru'
     fallbackLatest,
     currentVersion,
     currentChannel,
+    minimumDocsVersion,
     labels,
   }}
 >
@@ -37,6 +39,7 @@ const labels = locale === 'ru'
     }
 
     const isNonEmptyString = (value) => typeof value === 'string' && value.trim().length > 0
+    const semverPattern = /^v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/
 
     const unique = (values) => {
       const set = new Set()
@@ -50,9 +53,112 @@ const labels = locale === 'ru'
       return [...set]
     }
 
+    const parseVersion = (value) => {
+      if (!isNonEmptyString(value)) {
+        return null
+      }
+
+      const match = semverPattern.exec(value.trim())
+      if (!match) {
+        return null
+      }
+
+      return {
+        major: Number(match[1]),
+        minor: Number(match[2]),
+        patch: Number(match[3]),
+        prerelease: match[4] ?? '',
+      }
+    }
+
+    const comparePrerelease = (left, right) => {
+      if (!left && !right) {
+        return 0
+      }
+
+      if (!left) {
+        return 1
+      }
+
+      if (!right) {
+        return -1
+      }
+
+      const leftParts = left.split('.')
+      const rightParts = right.split('.')
+      const length = Math.max(leftParts.length, rightParts.length)
+
+      for (let index = 0; index < length; index += 1) {
+        const leftPart = leftParts[index]
+        const rightPart = rightParts[index]
+
+        if (leftPart === undefined) {
+          return -1
+        }
+
+        if (rightPart === undefined) {
+          return 1
+        }
+
+        const leftNumber = Number(leftPart)
+        const rightNumber = Number(rightPart)
+        const leftIsNumber = Number.isInteger(leftNumber) && String(leftNumber) === leftPart
+        const rightIsNumber = Number.isInteger(rightNumber) && String(rightNumber) === rightPart
+
+        if (leftIsNumber && rightIsNumber && leftNumber !== rightNumber) {
+          return leftNumber > rightNumber ? 1 : -1
+        }
+
+        if (leftIsNumber !== rightIsNumber) {
+          return leftIsNumber ? -1 : 1
+        }
+
+        if (leftPart !== rightPart) {
+          return leftPart > rightPart ? 1 : -1
+        }
+      }
+
+      return 0
+    }
+
+    const compareVersions = (left, right) => {
+      const leftParsed = parseVersion(left)
+      const rightParsed = parseVersion(right)
+
+      if (leftParsed && rightParsed) {
+        if (leftParsed.major !== rightParsed.major) {
+          return leftParsed.major > rightParsed.major ? -1 : 1
+        }
+
+        if (leftParsed.minor !== rightParsed.minor) {
+          return leftParsed.minor > rightParsed.minor ? -1 : 1
+        }
+
+        if (leftParsed.patch !== rightParsed.patch) {
+          return leftParsed.patch > rightParsed.patch ? -1 : 1
+        }
+
+        const prerelease = comparePrerelease(leftParsed.prerelease, rightParsed.prerelease)
+        return prerelease === 0 ? 0 : -prerelease
+      }
+
+      if (leftParsed) {
+        return -1
+      }
+
+      if (rightParsed) {
+        return 1
+      }
+
+      return left.localeCompare(right)
+    }
+
+    const isSupportedDocsVersion = (value) => compareVersions(value, minimumDocsVersion) <= 0
+
     const root = normalizeBase(rootBase)
     const latestDocsPath = locale === 'ru' ? `${root}ru/` : root
     const versionsPagePath = locale === 'ru' ? `${root}ru/versions/` : `${root}versions/`
+    const versionsPrefixPath = locale === 'ru' ? `${root}ru/versions/` : `${root}versions/`
     const versionsJsonPath = `${root}versions.json`
 
     const setLatestVersion = (version) => {
@@ -122,7 +228,7 @@ const labels = locale === 'ru'
           item.className = 'docs-versions-item'
 
           const link = document.createElement('a')
-          link.href = `${root}versions/${encodeURIComponent(version)}/`
+          link.href = `${versionsPrefixPath}${encodeURIComponent(version)}/`
           link.textContent = version
           item.appendChild(link)
 
@@ -160,6 +266,7 @@ const labels = locale === 'ru'
       })
       .then((payload) => {
         const versions = unique(Array.isArray(payload?.versions) ? payload.versions : [])
+          .filter(isSupportedDocsVersion)
         const latestFromManifest = isNonEmptyString(payload?.latest) ? payload.latest.trim() : ''
         const latest = latestFromManifest || fallbackLatest || versions[0] || labels.unknownVersion
         const previous = versions.filter((version) => version !== latest)
