@@ -148,3 +148,5 @@ dist-web
 # local generated artifacts
 artifacts/
 var/
+web/content/docs/es-mx/
+web/content/i18n/es-MX.yml

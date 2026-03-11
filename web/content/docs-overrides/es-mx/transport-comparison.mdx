@@ -1,0 +1,48 @@
+---
+title: Comparación de transportes
+description: Compara los modos iframe, window, MessagePort, Web Worker, IPC de escritorio, socket y en memoria para vue-remote.
+template: doc
+---
+
+## Propósito
+
+Esta página te ayuda a elegir el transporte más adecuado para tu modelo de extensiones.
+Todas las opciones comparten la misma semántica de canal de render, pero cambian en aislamiento, costo operativo y viabilidad para producción.
+
+## Matriz comparativa
+
+| Modo | Aislamiento | Qué tan representativo es el transporte | Complejidad de integración | Mejor encaje | Recomendación para producción |
+| --- | --- | --- | --- | --- | --- |
+| `iframe` | 🟢 (frontera de contexto del navegador) | 🟢 (ciclo de vida real de `postMessage`, modelo de `origin`) | 🟡 | Extensiones no confiables con fronteras estrictas | Recomendado por defecto para extensiones en navegador |
+| `Window (popup)` | 🟡 (ventana separada; depende de `origin` y del manejo del ciclo de vida) | 🟢 (`postMessage` con frontera explícita entre ventanas) | 🟡 | Extensiones tipo herramienta que necesitan un espacio visible aparte | Recomendado cuando la UX en popup es aceptable y se aplican controles estrictos de `origin` y ciclo de vida |
+| `MessagePort` | 🟡 (depende de los contenedores conectados por puertos) | 🟢 (canal asíncrono explícito con semántica de structured clone) | 🟡 | Conexiones personalizadas por canal y puentes de orquestación | Recomendado cuando necesitas control explícito sobre la conexión |
+| `Web Worker` | 🟢 (worker separado, sin acceso al DOM en el remoto) | 🟢 (frontera asíncrona con ciclo de vida dedicado) | 🟡 | Entornos remotos con más cómputo o sin necesidad de DOM | Recomendado cuando no necesitas un documento con iframe |
+| `Desktop IPC` | 🟡 (depende del aislamiento entre procesos y de la política de preload/capacidades) | 🟢 (frontera asíncrona explícita entre procesos) | 🔴 | Plataformas de plugins en Electron o Tauri con entornos aislados | Recomendado para aplicaciones de escritorio con una política IPC endurecida |
+| `Socket` | 🟡 (depende del despliegue del entorno y de la política del host) | 🟢 (la latencia, reconexión y orden en red quedan explícitos) | 🔴 | Entornos remotos distribuidos entre procesos, máquinas o sesiones vivas | Recomendado para plataformas avanzadas con buena gobernanza de autenticación y protocolo |
+| `In-memory` | 🔴 (un solo entorno) | 🔴 (no existe una frontera real de transporte) | 🟢 | Desarrollo, pruebas de integración y diagnósticos rápidos | No recomendado como aislamiento de producción |
+
+Leyenda:
+
+- Complejidad de integración: `🟢` baja, `🟡` media, `🔴` alta.
+- Aislamiento y realismo del transporte: `🟢` fuerte, `🟡` dependiente del contexto, `🔴` débil.
+- Estas valoraciones son comparativas para escenarios comunes de plataformas de extensiones; no son garantías absolutas.
+
+## Guía rápida
+
+1. Empieza con `iframe` si buscas una opción conservadora y bien aislada en navegador.
+2. Usa `MessagePort` cuando necesites una conexión explícita y personalizada entre contenedores.
+3. Usa `Web Worker` cuando el código remoto no necesite un documento y quieras un aislamiento ligero.
+4. Usa `Desktop IPC` para extensiones separadas por proceso en Electron o Tauri.
+5. Usa `Socket` cuando la topología cruce fronteras de proceso o de máquina.
+6. Usa `In-memory` solo para acelerar desarrollo y pruebas.
+
+## Documentación relacionada
+
+- [Resumen](/es-mx/overview/)
+- [Integración con iframe](/es-mx/integration/)
+- [Transporte Window](/es-mx/window-transport/)
+- [Transporte MessagePort](/es-mx/message-port-transport/)
+- [Runtime de Web Worker](/es-mx/web-workers/)
+- [Transporte IPC de escritorio](/es-mx/desktop-ipc-transport/)
+- [Transporte Socket](/es-mx/socket-transport/)
+- [Transporte en memoria](/es-mx/memory-transport/)

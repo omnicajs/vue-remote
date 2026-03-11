@@ -1,0 +1,95 @@
+---
+title: Transporte en memoria
+description: Ejecuta host y remoto en un mismo entorno pasando el canal del receiver directamente; útil para desarrollo y pruebas.
+template: doc
+---
+
+## Qué es este modo
+
+El transporte en memoria significa que host y remoto se ejecutan en el mismo entorno de JavaScript.
+En lugar de usar `iframe` o `worker`, el remoto recibe directamente el canal del host:
+
+```ts
+const receiver = createReceiver()
+const root = createRemoteRoot(receiver.receive)
+```
+
+Es el mismo patrón de conexión que normalmente se usa en pruebas de integración.
+
+## Cuándo usarlo
+
+Este modo sirve bien para:
+
+- entornos locales de desarrollo;
+- pruebas de integración o unitarias;
+- diagnósticos rápidos del comportamiento de sincronización del render.
+
+## No sustituye el aislamiento de producción
+
+El transporte en memoria **no se recomienda como aislamiento para extensiones en producción**.
+
+Motivos:
+
+- no existe una frontera real de sandbox;
+- no hay aislamiento por proceso ni por hilo;
+- ofrece menos señales sobre el comportamiento real del transporte, por ejemplo latencia, serialización y orden bajo enlaces asíncronos;
+- si el código remoto se comporta mal, el impacto alcanza a todo el entorno.
+
+Trátalo como una topología de desarrollo y pruebas, no como una frontera de seguridad.
+
+## Ejemplo mínimo de conexión
+
+```ts
+import { createApp, defineComponent, h } from 'vue'
+import { createReceiver } from '@omnicajs/vue-remote/host'
+import { HostedTree, createProvider } from '@omnicajs/vue-remote/host'
+import { createRemoteRoot, createRemoteRenderer, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+import VSignalBadge from './components/VSignalBadge.vue'
+
+const provider = createProvider({ VSignalBadge })
+const receiver = createReceiver()
+
+// Host app (same runtime)
+createApp(defineComponent({
+  setup() {
+    return () => h(HostedTree, { provider, receiver })
+  },
+})).mount('#host')
+
+// Remote app (same runtime)
+const root = createRemoteRoot(receiver.receive, {
+  components: ['VSignalBadge'],
+})
+
+const VRemoteSignal = defineRemoteComponent<'VSignalBadge', {
+  tone: 'neutral' | 'success' | 'warning';
+  label: string;
+}>('VSignalBadge')
+
+const remote = createRemoteRenderer(root).createApp(defineComponent({
+  setup() {
+    return () => h(VRemoteSignal, {
+      tone: 'success',
+      label: 'In-memory transport is active',
+    })
+  },
+}))
+
+remote.mount(root)
+await root.mount()
+await receiver.flush()
+```
+
+## Consideraciones prácticas
+
+1. Mantén separadas las pruebas específicas de transporte para modos con worker, iframe o red.
+2. No uses este modo para validar supuestos de seguridad.
+3. Úsalo para iterar rápido y después valida el comportamiento en el transporte real de producción.
+
+## Documentación relacionada
+
+- [Resumen](/es-mx/overview/)
+- [Primeros pasos](/es-mx/getting-started/)
+- [Integración con iframe](/es-mx/integration/)
+- [Runtime de Web Worker](/es-mx/web-workers/)

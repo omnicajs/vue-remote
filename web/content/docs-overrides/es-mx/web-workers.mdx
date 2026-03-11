@@ -1,0 +1,266 @@
+---
+title: Runtime de Web Worker
+description: Ejecuta un entorno remoto de Vue en un Web Worker dedicado y sincroniza la UI mediante canales controlados por el host.
+template: doc
+---
+
+## Por qué existe este modo
+
+`@omnicajs/vue-remote` no depende de iframe para funcionar.
+Si tu modelo de extensiones no necesita un documento visual remoto, un `Web Worker` dedicado puede alojar la lógica de render remoto y seguir controlando la UI del host mediante el mismo contrato de canal.
+
+Este modo resulta útil cuando quieres:
+
+- aislarte del contexto de ejecución del hilo principal del host;
+- tener una topología de ejecución más predecible, sin un iframe oculto de por medio;
+- usar un transporte que después pueda crecer hacia un puente por proceso o por socket.
+
+## Topología del entorno
+
+```text
+Host Vue App (main thread)
+  -> createReceiver()
+  -> HostedTree(provider, receiver)
+  -> Endpoint(fromWebWorker(worker))
+  -> call.run(receiver.receive, hostBridge)
+
+Remote Vue App (dedicated worker)
+  -> createEndpoint(self-as-MessageEndpoint)
+  -> expose run/release
+  -> createRemoteRoot(channel)
+  -> createRemoteRenderer(root).createApp(...)
+```
+
+## Ejemplo del lado host
+
+```ts
+import type { Channel } from '@omnicajs/vue-remote/host'
+import type { Endpoint } from '@remote-ui/rpc'
+
+import { createApp, defineComponent, h, onBeforeUnmount, onMounted } from 'vue'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createEndpoint, fromWebWorker } from '@remote-ui/rpc'
+
+import VSignalBadge from './components/VSignalBadge.vue'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+type WorkerApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const provider = createProvider({
+  VSignalBadge,
+})
+
+export function mountWorkerRemote() {
+  return createApp(defineComponent({
+    setup() {
+      const receiver = createReceiver()
+      const worker = new Worker(new URL('./remote.worker.ts', import.meta.url), { type: 'module' })
+
+      let endpoint: Endpoint<WorkerApi> | null = null
+
+      onMounted(() => {
+        endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+        endpoint.call.run(receiver.receive, {
+          acknowledge(id: string) {
+            console.info('Acknowledged signal', id)
+          },
+        })
+      })
+
+      onBeforeUnmount(() => {
+        endpoint?.call.release()
+        endpoint?.terminate()
+      })
+
+      return () => h(HostedTree, { provider, receiver })
+    },
+  }))
+}
+```
+
+## Ejemplo del lado worker
+
+`remote.worker.ts`:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+
+import { createEndpoint, release, retain } from '@remote-ui/rpc'
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+const endpoint = createEndpoint(self as unknown as MessageEndpoint)
+
+const VSignalBadge = defineRemoteComponent<'VSignalBadge', {
+  tone: 'neutral' | 'success' | 'warning';
+  label: string;
+}>('VSignalBadge', [
+  'dismiss',
+] as unknown as {
+  dismiss: (id: string) => true;
+})
+
+let onRelease = () => {}
+
+endpoint.expose({
+  async run(channel: Channel, bridge: HostBridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, {
+      components: ['VSignalBadge'],
+    })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        const signalId = ref('signal-42')
+        const visible = ref(true)
+
+        return () => visible.value
+          ? h(VSignalBadge, {
+            tone: 'warning',
+            label: 'Background sync is delayed',
+            onDismiss: (id: string) => {
+              visible.value = false
+              bridge.acknowledge(id || signalId.value)
+            },
+          })
+          : h('p', 'All clear')
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+
+  release() {
+    onRelease()
+  },
+})
+```
+
+## Cargar una extensión ya construida por URL HTTP
+
+Si tu extensión ya está compilada y publicada como archivos estáticos, puedes cargar el código del worker por URL.
+
+### URL del mismo origen: script directo del worker
+
+Úsalo cuando la aplicación host y los archivos de la extensión compartan el mismo origen.
+
+```ts
+const worker = new Worker('/extensions/acme/remote.worker.js', {
+  type: 'module',
+})
+
+const endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+Es la opción más simple y, por lo general, también la más estable para producción.
+
+### URL de otro origen: bootstrap local e import dinámico
+
+Si los archivos están en otro origen, arranca un worker bootstrap local y deja que importe el módulo remoto usando CORS.
+
+Lado host:
+
+```ts
+import { createEndpoint, fromWebWorker } from '@remote-ui/rpc'
+
+type WorkerApi = {
+  ready(): boolean;
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const extensionUrl = encodeURIComponent('https://extensions.example-cdn.com/acme/remote.worker.js')
+const worker = new Worker(`/workers/remote-bootstrap.worker.js?extension=${extensionUrl}`, {
+  type: 'module',
+})
+
+const endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+await endpoint.call.ready()
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+`/workers/remote-bootstrap.worker.js`:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+import { createEndpoint } from '@remote-ui/rpc'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+type ExtensionApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const extensionUrl = new URL(self.location.href).searchParams.get('extension')
+if (!extensionUrl) {
+  throw new Error('Missing extension URL')
+}
+
+const mod = await import(/* @vite-ignore */ extensionUrl) as ExtensionApi
+
+const endpoint = createEndpoint<{
+  ready(): boolean;
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}>(self as unknown as MessageEndpoint)
+
+endpoint.expose({
+  ready: () => true,
+  run: mod.run,
+  release: mod.release,
+})
+```
+
+Requisitos cuando trabajas entre orígenes:
+
+- el bootstrap del worker debe servirse desde el mismo origen que el host;
+- la URL remota debe permitir CORS para cargar el módulo;
+- la CSP debe permitir los valores configurados en `worker-src` y `script-src`;
+- la URL de la extensión debe validarse antes de iniciar, por ejemplo con una allowlist o con firmas.
+
+## Restricciones de diseño del modo worker
+
+1. No hay acceso directo al DOM del navegador en el entorno remoto.
+   El código del worker debe seguir siendo declarativo y expresar intención por medio de props, eventos y métodos.
+2. Mantén serializables los payloads que cruzan la frontera.
+   Cualquier valor no serializable debe tratarse como un problema del contrato entre host y remoto.
+3. Separa el transporte de render del transporte de negocio.
+   `channel` sirve para sincronizar el árbol de UI; `hostBridge` sirve para el comportamiento del producto.
+
+## Consideraciones operativas
+
+- Si usas `SharedWorker` o topologías multi-peer personalizadas, conviene partir de un handshake con `MessagePort` y construir el endpoint sobre ese puerto.
+- Mantén `run/release` simétrico e idempotente para simplificar el ciclo de vida y facilitar una integración futura con herramientas de debugging.
+- Si más adelante mueves la lógica del worker a un servicio por socket, conserva primero la misma semántica de canal y luego optimiza el transporte.
+
+## Documentación relacionada
+
+- [Resumen](/es-mx/overview/)
+- [Primeros pasos](/es-mx/getting-started/)
+- [Integración con iframe](/es-mx/integration/)
+- [Componentes remotos](/es-mx/remote-components/)

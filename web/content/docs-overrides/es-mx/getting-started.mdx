@@ -1,0 +1,110 @@
+---
+title: Primeros pasos
+description: Inicializa los entornos host y remoto de un ecosistema de extensiones con @omnicajs/vue-remote.
+template: doc
+---
+
+## Qué cubre esta guía
+
+Esta guía te ayuda a poner en marcha la capa de sincronización de render entre:
+
+- un producto host que controla los componentes de UI disponibles;
+- un entorno remoto independiente para extensiones.
+
+`@omnicajs/vue-remote` se encarga del render sincronizado.
+Las APIs del producto, la autenticación, el descubrimiento y la lógica de marketplace se resuelven por separado.
+
+## Instalación
+
+```bash
+yarn add @omnicajs/vue-remote @remote-ui/rpc
+```
+
+## Integración con el IDE
+
+Para que las template refs nativas del lado remoto se tipen como proxies de elementos remotos en `*.remote.vue`, agrega el plugin de Vue tooling:
+
+```json
+{
+  "vueCompilerOptions": {
+    "plugins": [
+      "@omnicajs/vue-remote/tooling"
+    ]
+  }
+}
+```
+
+Qué puedes esperar:
+
+- `<div ref="panel" />` dentro de `*.remote.vue` se infiere como un proxy remoto de `@omnicajs/vue-remote/remote`, no como `HTMLDivElement`.
+- `useTemplateRef(...)`, `ref(null)` y `shallowRef(null)` siguen el mismo modelo de frontera remota para refs nativas.
+- Las refs a componentes host conservan el tipado de instancia del componente.
+
+Recomendaciones para IDE:
+
+- VS Code: usa la extensión `Vue - Official`.
+- PhpStorm / WebStorm: usa `Vue Language Server (Volar)` y habilita el motor de tipos basado en servicios para obtener la inferencia más precisa.
+- Otros IDE: si usan `@vue/language-server` o un cliente Vue compatible con Volar, también deberían respetar `vueCompilerOptions.plugins`.
+
+Si estás desarrollando dentro de este repositorio en vez de consumir el paquete publicado, usa `./tooling.cjs` en `vueCompilerOptions.plugins`.
+
+## 1. Inicializar el entorno host
+
+Del lado host:
+
+1. Registra los componentes permitidos con `createProvider(...)`.
+2. Crea el receiver del canal de render con `createReceiver()`.
+3. Renderiza `HostedTree` y pásale `provider + receiver`.
+4. Inicia el entorno remoto (iframe o worker) y pásale `receiver.receive` a `run(...)`.
+
+Consulta: [Componentes del host](/es-mx/host-components/) y [Resumen](/es-mx/overview/).
+
+## 2. Inicializar el entorno remoto
+
+Del lado remoto:
+
+1. Crea la raíz remota con `createRemoteRoot(channel, options)`.
+2. Crea la aplicación con `createRemoteRenderer(root).createApp(...)`.
+3. Define los componentes publicados por el host mediante `defineRemoteComponent(...)`.
+4. Monta la raíz y la app dentro de `run(...)` y limpia en `release()`.
+
+Consulta: [Componentes remotos](/es-mx/remote-components/) y [Resumen](/es-mx/overview/).
+
+## 3. Conectar host y remoto
+
+Usa un transporte por canal, normalmente `@remote-ui/rpc`, y mantén un proceso de arranque estable:
+
+1. El host carga la URL del entorno remoto.
+2. El remoto expone `run/release`.
+3. El host llama a `run(channel, hostBridge)`.
+4. El remoto monta la UI a través del canal.
+5. La sesión termina con `release()`.
+
+Si prefieres usar un worker dedicado en vez de un iframe, consulta [Runtime de Web Worker](/es-mx/web-workers/).
+Para una configuración específica con iframe, consulta [Integración con iframe](/es-mx/integration/).
+Si necesitas una conexión explícita por canal entre contenedores personalizados, consulta [Transporte MessagePort](/es-mx/message-port-transport/).
+Para entornos separados por proceso en Electron o Tauri, consulta [Transporte IPC de escritorio](/es-mx/desktop-ipc-transport/).
+Para sesiones entre procesos o incluso entre máquinas, consulta [Transporte Socket](/es-mx/socket-transport/).
+Para pruebas locales, también puedes ejecutar host y remoto dentro del mismo entorno usando [Transporte en memoria](/es-mx/memory-transport/) (solo para desarrollo y pruebas).
+Si quieres una comparación directa entre modos, consulta [Comparación de transportes](/es-mx/transport-comparison/).
+
+## 4. Validar fronteras
+
+Antes de ampliar la integración, revisa:
+
+- que el host controle la allowlist de componentes expuestos;
+- que las props y los eventos que cruzan entre entornos sean serializables;
+- que el entorno remoto no dependa de APIs directas del DOM del navegador.
+
+## Qué sigue
+
+- Construir contratos seguros del host: [Componentes del host](/es-mx/host-components/).
+- Modelar la UI remota y sus fronteras: [Componentes remotos](/es-mx/remote-components/).
+- Revisar el modelo de entorno independiente del transporte: [Resumen](/es-mx/overview/).
+- Ver la integración específica con iframe: [Integración con iframe](/es-mx/integration/).
+- Comparar los modos disponibles: [Comparación de transportes](/es-mx/transport-comparison/).
+- Revisar la topología y el ciclo de vida de worker: [Runtime de Web Worker](/es-mx/web-workers/).
+- Ver el modo de conexión explícita por canal: [Transporte MessagePort](/es-mx/message-port-transport/).
+- Revisar el puente entre procesos de escritorio: [Transporte IPC de escritorio](/es-mx/desktop-ipc-transport/).
+- Ver el modelo de puente por red o sesión: [Transporte Socket](/es-mx/socket-transport/).
+- Revisar la configuración de un solo entorno para desarrollo y pruebas: [Transporte en memoria](/es-mx/memory-transport/).
