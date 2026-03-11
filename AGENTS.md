@@ -107,6 +107,9 @@ make help
 
 ## Important Project Rules
 - Commit messages follow Conventional Commits.
+- Run `git` commands that modify repository state sequentially, not in
+  parallel, to reduce the chance of hitting `.git/index.lock` and similar
+  repository locks.
 - Prefer behavior-oriented tests through public host/remote APIs over brittle
   implementation-coupled checks.
 - Never edit `yarn.lock` manually.
