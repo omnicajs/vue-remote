@@ -60,5 +60,8 @@
     "web/*.config.*.ts",
     "eslint.config.js",
     "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "tests/types/**/*"
   ]
 }

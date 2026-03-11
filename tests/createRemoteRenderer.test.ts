@@ -26,6 +26,7 @@ import type {
   RemoteRoot,
   RemoteText,
 } from '@/vue/remote'
+import { createNoopChannel } from './__fixtures__/channel'
 
 type RemoteNode =
   | RemoteComment<RemoteRoot>
@@ -49,7 +50,7 @@ describe('createRemoteRenderer', () => {
     vi.stubGlobal('document', undefined)
     vi.stubGlobal('DOMParser', undefined)
 
-    const root = createRemoteRoot(() => {}, {
+    const root = createRemoteRoot(createNoopChannel(), {
       strict: false,
     })
     const { createApp } = createRemoteRenderer(root)
@@ -82,7 +83,7 @@ describe('createRemoteRenderer', () => {
     vi.stubGlobal('document', undefined)
     vi.stubGlobal('DOMParser', undefined)
 
-    const root = createRemoteRoot(() => {}, {
+    const root = createRemoteRoot(createNoopChannel(), {
       strict: false,
     })
     const { createApp } = createRemoteRenderer(root)
@@ -120,7 +121,7 @@ describe('createRemoteRenderer', () => {
     vi.stubGlobal('document', undefined)
     vi.stubGlobal('DOMParser', undefined)
 
-    const root = createRemoteRoot(() => {}, {
+    const root = createRemoteRoot(createNoopChannel(), {
       strict: false,
     })
     const { createApp } = createRemoteRenderer(root)
@@ -142,7 +143,7 @@ describe('createRemoteRenderer', () => {
     vi.stubGlobal('document', undefined)
     vi.stubGlobal('DOMParser', undefined)
 
-    const root = createRemoteRoot(() => {}, {
+    const root = createRemoteRoot(createNoopChannel(), {
       strict: false,
     })
     const { createApp } = createRemoteRenderer(root)
@@ -163,7 +164,7 @@ describe('createRemoteRenderer', () => {
   })
 
   test('limits native v-model runtime listeners to supported events', () => {
-    const root = createRemoteRoot(() => {}, {
+    const root = createRemoteRoot(createNoopChannel(), {
       strict: false,
     })
     const { createApp } = createRemoteRenderer(root)

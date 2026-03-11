@@ -23,6 +23,7 @@ import {
   registerRemoteRuntime,
   resolveRemoteRuntime,
 } from '@/vue/remote/runtime'
+import { createNoopChannel } from './__fixtures__/channel'
 
 describe('remote runtime', () => {
   test('rejects nextTick when no active remote runtime exists', async () => {
@@ -41,7 +42,7 @@ describe('remote runtime', () => {
     attachRemoteRuntime(app, unregisteredRoot)
     expect(resolveRemoteRuntime()).toBeNull()
 
-    const root = createRemoteRoot(() => {}, { strict: false })
+    const root = createRemoteRoot(createNoopChannel(), { strict: false })
     const controller = {
       awaitHostCommit: () => Promise.resolve(),
     }
@@ -57,7 +58,7 @@ describe('remote runtime', () => {
   })
 
   test('detaches active runtime when remote app mount fails', async () => {
-    const root = createRemoteRoot(() => {}, { strict: false })
+    const root = createRemoteRoot(createNoopChannel(), { strict: false })
     const { createApp } = createRemoteRenderer(root)
     const app = createApp(defineComponent({
       setup: () => {
@@ -71,7 +72,7 @@ describe('remote runtime', () => {
   })
 
   test('detaches active runtime when remote app unmounts', () => {
-    const root = createRemoteRoot(() => {}, { strict: false })
+    const root = createRemoteRoot(createNoopChannel(), { strict: false })
     const { createApp } = createRemoteRenderer(root)
     const app = createApp(defineComponent({
       render: () => h('div', 'ok'),

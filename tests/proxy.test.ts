@@ -11,10 +11,11 @@ import {
   prepareProxiesUnset,
   proxyFunctionsIn,
 } from '@/dom/remote/proxy'
+import { createNoopChannel } from './__fixtures__/channel'
 
 describe('proxyFunctionsIn', () => {
   test('supports fragments, cycles and pre-visited values', () => {
-    const root = createRemoteRoot(() => {}, { strict: false })
+    const root = createRemoteRoot(createNoopChannel(), { strict: false })
     const fragment = root.createFragment()
 
     const source: {

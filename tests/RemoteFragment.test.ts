@@ -12,10 +12,11 @@ import {
   KIND_COMPONENT,
   KIND_TEXT,
 } from '@/dom/common/tree'
+import { createNoopChannel } from './__fixtures__/channel'
 
 describe('RemoteFragment', () => {
   test('appends children', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const fragment = root.createFragment()
 
     fragment.append(
@@ -29,7 +30,7 @@ describe('RemoteFragment', () => {
   })
 
   test('inserts child before another one', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const fragment = root.createFragment()
 
     const image = root.createComponent('VImage')
@@ -52,7 +53,7 @@ describe('RemoteFragment', () => {
   })
 
   test('reorders children', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
 
     const fragment = root.createFragment()
     const card1 = root.createComponent('VCard')
@@ -68,7 +69,7 @@ describe('RemoteFragment', () => {
   })
 
   test('replaces children', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const fragment = root.createFragment()
 
     fragment.append(root.createComponent('VImage'), 'Some text')
@@ -83,7 +84,7 @@ describe('RemoteFragment', () => {
   })
 
   test('removes children', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
 
     const fragment = root.createFragment()
     const card1 = root.createComponent('VCard')

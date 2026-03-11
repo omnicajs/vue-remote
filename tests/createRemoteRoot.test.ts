@@ -15,11 +15,12 @@ import {
   isRemoteComment,
   isRemoteText,
 } from '@/dom/remote/tree'
+import { createNoopChannel } from './__fixtures__/channel'
 
 describe('createRemoteRoot', () => {
   describe('createComment', () => {
     test('creates comment', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const comment = root.createComment('v-if')
 
       expect(comment.id).toEqual('1')
@@ -28,7 +29,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('matches remote comment guard', () => {
-      const root = createRemoteRoot(() => {}, { strict: false })
+      const root = createRemoteRoot(createNoopChannel(), { strict: false })
       const comment = root.createComment('note')
       const text = root.createText('value')
 
@@ -45,7 +46,7 @@ describe('createRemoteRoot', () => {
         'orientation',
       ])
 
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const card = root.createComponent(VCard, {
         orientation: 'horizontal',
       })
@@ -61,7 +62,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('creates component with children', () => {
-      const root = createRemoteRoot(() => {}, {
+      const root = createRemoteRoot(createNoopChannel(), {
         strict: false,
       })
 
@@ -77,7 +78,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('creates component with single child', () => {
-      const root = createRemoteRoot(() => {}, {
+      const root = createRemoteRoot(createNoopChannel(), {
         strict: false,
       })
 
@@ -89,7 +90,7 @@ describe('createRemoteRoot', () => {
 
     test('does not throw error for allowed components', () => {
       const components = [defineRemoteComponent('VCard')]
-      const root = createRemoteRoot(() => {}, { components })
+      const root = createRemoteRoot(createNoopChannel(), { components })
 
       expect(() => {
         root.createComponent('VCard')
@@ -101,7 +102,7 @@ describe('createRemoteRoot', () => {
         defineRemoteComponent('VCard'),
         defineRemoteComponent('VList'),
       ]
-      const root = createRemoteRoot(() => {}, { components })
+      const root = createRemoteRoot(createNoopChannel(), { components })
 
       expect(() => {
         root.createComponent('VCard')
@@ -116,7 +117,7 @@ describe('createRemoteRoot', () => {
 
     test('throws error when empty components is set', () => {
       const components: string[] = []
-      const root = createRemoteRoot(() => {}, { components })
+      const root = createRemoteRoot(createNoopChannel(), { components })
 
       expect(() => {
         root.createComponent('VButton')
@@ -162,7 +163,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('rejects unsupported descriptor methods on invoke', async () => {
-      const root = createRemoteRoot(() => {}, { strict: false })
+      const root = createRemoteRoot(createNoopChannel(), { strict: false })
       type FocusMethods = { focus: (...payload: unknown[]) => Promise<unknown> }
       const descriptor = defineRemoteComponent<'VInput', {}, FocusMethods>('VInput', [], ['focus'])
       const input = root.createComponent(descriptor)
@@ -171,7 +172,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('detaches fragment properties when a component is removed', () => {
-      const root = createRemoteRoot(() => {}, { strict: false })
+      const root = createRemoteRoot(createNoopChannel(), { strict: false })
       const fragment = root.createFragment()
       fragment.append('payload')
 
@@ -188,7 +189,7 @@ describe('createRemoteRoot', () => {
 
   describe('createFragment', () => {
     test('creates fragment', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
 
       const fragment = root.createFragment()
 
@@ -207,7 +208,7 @@ describe('createRemoteRoot', () => {
 
   describe('createText', () => {
     test('creates text', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const text = root.createText()
 
       expect(text.id).toEqual('1')
@@ -219,7 +220,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('matches remote text guard', () => {
-      const root = createRemoteRoot(() => {}, { strict: false })
+      const root = createRemoteRoot(createNoopChannel(), { strict: false })
       const text = root.createText('value')
 
       expect(isRemoteText(text)).toBe(true)

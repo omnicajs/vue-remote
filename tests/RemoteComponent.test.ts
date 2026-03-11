@@ -9,10 +9,11 @@ import { createRemoteRoot } from '@/dom/remote'
 import { isRemoteComponent } from '@/dom/remote/tree'
 
 import { ACTION_INVOKE } from '@/dom/common/channel'
+import { createNoopChannel } from './__fixtures__/channel'
 
 describe('RemoteComponent', () => {
   test('matches remote component guard and prints raw text children', () => {
-    const root = createRemoteRoot(() => {}, { strict: false })
+    const root = createRemoteRoot(createNoopChannel(), { strict: false })
     const component = root.createComponent('VPrintable', null, 'raw')
 
     expect(isRemoteComponent(component)).toBe(true)
@@ -21,7 +22,7 @@ describe('RemoteComponent', () => {
   })
 
   test('appends children', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const card = root.createComponent('VCard')
     const image = root.createComponent('VImage')
     const button = root.createComponent('VButton')
@@ -41,7 +42,7 @@ describe('RemoteComponent', () => {
   })
 
   test('takes children from another parent', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const owner = root.createComponent('VList')
     const hijacker = root.createComponent('VList')
     const card = root.createComponent('VCard')
@@ -77,7 +78,7 @@ describe('RemoteComponent', () => {
   })
 
   test('inserts child before another one', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const card = root.createComponent('VCard')
     const image = root.createComponent('VImage')
     const button = root.createComponent('VButton')
@@ -92,7 +93,7 @@ describe('RemoteComponent', () => {
   })
 
   test('replaces children', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const card = root.createComponent('VCard')
     const image1 = root.createComponent('VImage')
     const image2 = root.createComponent('VImage')
@@ -115,7 +116,7 @@ describe('RemoteComponent', () => {
   })
 
   test('removes child', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const card = root.createComponent('VCard')
     const image = root.createComponent('VImage')
     const button = root.createComponent('VButton')
@@ -135,7 +136,7 @@ describe('RemoteComponent', () => {
   })
 
   test('removes itself from a root', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const card = root.createComponent('VCard')
     const image = root.createComponent('VImage')
     const button = root.createComponent('VButton')
@@ -155,7 +156,7 @@ describe('RemoteComponent', () => {
   })
 
   test('removes itself from a parent', () => {
-    const root = createRemoteRoot(() => {})
+    const root = createRemoteRoot(createNoopChannel())
     const list = root.createComponent('VList')
     const card = root.createComponent('VCard')
     const image = root.createComponent('VImage')

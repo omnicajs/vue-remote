@@ -75,12 +75,13 @@ describe('remote nextTick', () => {
         VNextTickProbe,
       },
     })
+    const activeRuntime = runtime
 
-    const trigger = runtime.container.querySelector('#next-tick-trigger')
-    const count = runtime.container.querySelector('#next-tick-count')
-    const observed = runtime.container.querySelector('#next-tick-observed')
-    const probe = runtime.container.querySelector('#next-tick-probe')
-    const status = runtime.container.querySelector('#next-tick-status')
+    const trigger = activeRuntime.container.querySelector('#next-tick-trigger')
+    const count = activeRuntime.container.querySelector('#next-tick-count')
+    const observed = activeRuntime.container.querySelector('#next-tick-observed')
+    const probe = activeRuntime.container.querySelector('#next-tick-probe')
+    const status = activeRuntime.container.querySelector('#next-tick-status')
 
     if (
       !(trigger instanceof HTMLButtonElement) ||
@@ -95,13 +96,13 @@ describe('remote nextTick', () => {
     trigger.click()
 
     await expect.poll(async () => {
-      await runtime?.flush()
+      await activeRuntime.flush()
       return {
         count: count.textContent,
         observed: observed.textContent,
         probe: probe.textContent,
         status: status.textContent,
-        snapshot: await runtime?.read(),
+        snapshot: await activeRuntime.read(),
       }
     }).toEqual({
       count: 'Count: 1',
@@ -126,8 +127,9 @@ describe('remote nextTick', () => {
         VNextTickProbe,
       },
     })
+    const activeRuntime = runtime
 
-    const trigger = runtime.container.querySelector('#next-tick-trigger')
+    const trigger = activeRuntime.container.querySelector('#next-tick-trigger')
 
     if (!(trigger instanceof HTMLButtonElement)) {
       throw new Error('nextTick worker trigger was not rendered')
@@ -137,11 +139,11 @@ describe('remote nextTick', () => {
       const rejection = waitForExpectedUnmountRejection()
 
       trigger.click()
-      runtime.unmountHost()
+      activeRuntime.unmountHost()
       await rejection
 
       await expect.poll(async () => {
-        return runtime?.read()
+        return activeRuntime.read()
       }).toEqual({
         count: 1,
         observedText: null,

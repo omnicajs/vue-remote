@@ -20,6 +20,7 @@ import {
   isNativeVModelTag,
   patchNativeVModelElementProperty,
 } from '@/vue/remote/nativeVModel'
+import { createNoopChannel } from './__fixtures__/channel'
 
 type TestNativeElement = ReturnType<typeof createAugmented> & {
   _falseValue?: unknown;
@@ -37,7 +38,7 @@ type TestNativeElement = ReturnType<typeof createAugmented> & {
 }
 
 const createAugmented = (tag: string) => {
-  const root = createRemoteRoot(() => {}, {
+  const root = createRemoteRoot(createNoopChannel(), {
     strict: false,
   })
 
@@ -156,7 +157,7 @@ describe('nativeVModel', () => {
   })
 
   test('tracks select option state for nested options and single or multiple selection', () => {
-    const root = createRemoteRoot(() => {}, {
+    const root = createRemoteRoot(createNoopChannel(), {
       strict: false,
     })
     const select = augmentNativeVModelElement(

@@ -14,10 +14,11 @@ import {
   ACTION_REMOVE_CHILD,
   ACTION_UPDATE_TEXT,
 } from '@/dom/common/channel'
+import { createNoopChannel } from './__fixtures__/channel'
 
 describe('RemoteText', () => {
   test('matches remote text guard', () => {
-    const root = createRemoteRoot(() => {}, { strict: false })
+    const root = createRemoteRoot(createNoopChannel(), { strict: false })
     const text = root.createText('value')
 
     expect(isRemoteText(text)).toBe(true)
