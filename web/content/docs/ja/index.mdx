@@ -1,0 +1,45 @@
+---
+title: vue-remote
+description: Vue 3 アプリケーション向けの制御可能なリモートレンダリング。
+template: splash
+next: false
+hero:
+  title: <span class="landing-kicker">Vue Remote</span><br/><span class="hero-title-line">分離サンドボックス向けの</span><br/><span class="hero-title-line">Vue プロキシレンダラー</span>
+  tagline: 'ホストが許可されたコンポーネントを制御し、リモートアプリケーションは同期されたチャネル更新を通じてレンダリングします。<br/><span class="hero-latest-chip">最新: <span data-docs-latest-version>不明</span></span>'
+  image:
+    html: '<div class="hero-logo-shell" aria-hidden="true"><svg class="hero-logo-mark" viewBox="52 68.1 56 46.9" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(0 80 87.6)"><g class="hero-logo-waves"><path class="hero-wave hero-wave-1" d="M71.97 78.68 A12 12 0 0 0 71.97 96.52"/><path class="hero-wave hero-wave-2" d="M67.96 74.22 A18 18 0 0 0 67.96 100.98"/><path class="hero-wave hero-wave-3" d="M63.94 69.77 A24 24 0 0 0 63.94 105.43"/><path class="hero-wave hero-wave-1" d="M88.03 78.68 A12 12 0 0 1 88.03 96.52"/><path class="hero-wave hero-wave-2" d="M92.04 74.22 A18 18 0 0 1 92.04 100.98"/><path class="hero-wave hero-wave-3" d="M96.06 69.77 A24 24 0 0 1 96.06 105.43"/></g></g><g class="hero-logo-v"><polygon class="hero-v-outer" points="61,73.1 80,111.1 99,73.1 90,73.1 80,93.1 70,73.1"/><polygon class="hero-v-inner" points="72,73.1 80,89.1 88,73.1 84.8,73.1 80,82.5 75.2,73.1"/></g></svg></div>'
+  actions:
+    - text: 紹介
+      link: /ja/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: 概要
+      link: /ja/overview/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/omnicajs/vue-remote
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import DocsVersionsRuntime from '../../../components/DocsVersionsRuntime.astro';
+
+<div class="landing-feature-grid">
+  <div class="landing-links" data-docs-versions-link hidden>
+    <a data-docs-versions-anchor href="/ja/versions/">過去のバージョン</a>
+  </div>
+  <CardGrid>
+    <Card title="ホストが制御するコンポーネント" icon="puzzle">
+      ホストは <code>createProvider()</code> を通じて、使用を許可する Vue コンポーネントのマップを明示的に提供します。
+    </Card>
+    <Card title="双方向の props とイベント" icon="random">
+      Props と emit されたイベントは、receiver と remote root のチャネルを通じてホストとリモートの間を移動します。
+    </Card>
+    <Card title="チャネルベースのトランスポート" icon="comment-alt">
+      ランタイム同期は <code>@remote-ui/rpc</code> のチャネルと、postMessage 互換のトランスポートを中心に構築されています。
+    </Card>
+  </CardGrid>
+</div>
+
+<DocsVersionsRuntime locale="ja" />

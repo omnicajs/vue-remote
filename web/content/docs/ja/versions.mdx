@@ -1,0 +1,21 @@
+---
+title: バージョン
+description: 過去バージョン向けに公開されたドキュメントスナップショット。
+---
+
+import DocsVersionsRuntime from '../../../components/DocsVersionsRuntime.astro';
+
+# バージョン
+
+最新のドキュメント: <a data-docs-latest-link href="/ja/">latest を開く</a>（<span data-docs-latest-version>不明</span>）。
+
+このページでは、`latest` より前のバージョンのドキュメントスナップショットを開けます。
+
+<div class="docs-versions-page" data-docs-versions-page>
+  <p>このリポジトリの latest バージョン: <strong data-docs-versions-latest>不明</strong>。</p>
+  <p data-docs-versions-loading>バージョンを読み込み中...</p>
+  <p data-docs-versions-empty hidden>まだ過去のバージョンは公開されていません。</p>
+  <ul data-docs-versions-list hidden></ul>
+</div>
+
+<DocsVersionsRuntime locale="ja" />

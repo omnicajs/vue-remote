@@ -3,6 +3,8 @@ const locale = Astro.props.locale === 'ru'
   ? 'ru'
   : Astro.props.locale === 'es'
     ? 'es'
+    : Astro.props.locale === 'ja'
+      ? 'ja'
     : Astro.props.locale === 'zh'
       ? 'zh'
     : 'en'
@@ -22,6 +24,11 @@ const labels = locale === 'ru'
         unknownVersion: 'desconocida',
         currentLabel: 'actual',
       }
+    : locale === 'ja'
+      ? {
+          unknownVersion: '不明',
+          currentLabel: '現在',
+        }
     : locale === 'zh'
       ? {
           unknownVersion: '未知',

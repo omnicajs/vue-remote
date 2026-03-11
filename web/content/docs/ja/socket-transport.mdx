@@ -1,0 +1,113 @@
+---
+title: Socket トランスポート
+description: 同じチャネルセマンティクスを使って、socket ブリッジ越しにホストとリモートのランタイムを接続する。
+template: doc
+---
+
+## Socket トランスポートを使うとき
+
+Socket トランスポートは、ホストとリモートが同じブラウザコンテキストにおらず、ネットワーク境界が必要な場合に有効です:
+
+- リモートランタイムが別プロセスや別マシンで動作する。
+- 拡張開発のためにライブなリモートセッションが必要。
+- デバッガやオブザーバクライアントを独立して接続したい。
+
+## 位置づけ
+
+`@omnicajs/vue-remote` はレンダリング同期をチャネル契約として扱います。
+Socket トランスポートは、その契約をネットワーク越しに届けるための実装選択肢です。
+
+iframe / worker トランスポートと比べると、このモードは運用上の責務を増やします:
+
+- 再接続をまたぐセッションライフサイクル。
+- 認証と capability チェック。
+- メッセージ順序と冪等性。
+- payload サイズ制限と秘匿情報のマスキング方針。
+
+## 高レベルなトポロジー
+
+```text
+Host Runtime
+  -> createReceiver()
+  -> createEndpoint(fromSocket(...))
+  -> call.run(receiver.receive, hostBridge)
+
+Socket Gateway
+  -> session routing (host <-> remote)
+  -> auth + protocol version checks
+
+Remote Runtime
+  -> createEndpoint(fromSocket(...))
+  -> expose run/release
+```
+
+## WebSocket 上の最小 `MessageEndpoint` ラッパー
+
+`@remote-ui/rpc` は `MessageEndpoint` を実装するオブジェクトで動作します。
+WebSocket をその形に適応できます:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+export function fromSocket(socket: WebSocket): MessageEndpoint {
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  socket.addEventListener('message', (event) => {
+    const message = JSON.parse(event.data as string)
+    const wrapped = { data: message } as MessageEvent
+    for (const listener of listeners) {
+      listener(wrapped)
+    }
+  })
+
+  return {
+    postMessage(message: any) {
+      socket.send(JSON.stringify(message))
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') {
+        listeners.add(listener)
+      }
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') {
+        listeners.delete(listener)
+      }
+    },
+    terminate() {
+      socket.close()
+    },
+  }
+}
+```
+
+その後は他のトランスポートと同じように endpoint を接続します:
+
+```ts
+const socket = new WebSocket('wss://runtime.example.com/remote-session?sessionId=abc')
+const endpoint = createEndpoint<RemoteApi>(fromSocket(socket))
+
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## 本番運用上の注意
+
+1. `run(...)` の前にすべてのセッションを認証する。
+2. プロトコルにバージョンを付け、互換性のないクライアントを拒否する。
+3. ゲートウェイ層で順序と correlation ID を強制する。
+4. 明示的なセッション再開ルールを伴う再接続ポリシーを追加する。
+5. payload サイズ制限と機微情報のマスキングを適用する。
+
+## 推奨される適用範囲
+
+- 高度な拡張プラットフォームやリモートデバッグに向いている。
+- 基本的な単一ページのホスト + 拡張構成には過剰なことが多い。
+
+ブラウザローカルの構成なら、まずは [Web Worker ランタイム](/ja/web-workers/) か iframe トランスポートを優先してください。
+
+## 関連ドキュメント
+
+- [概要](/ja/overview/)
+- [Iframe 統合](/ja/integration/)
+- [Web Worker ランタイム](/ja/web-workers/)
+- [インメモリトランスポート](/ja/memory-transport/)

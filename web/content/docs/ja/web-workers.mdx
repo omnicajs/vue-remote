@@ -1,0 +1,266 @@
+---
+title: Web Worker ランタイム
+description: 専用 Web Worker 上でリモート Vue ランタイムを動かし、ホスト制御のチャネル経由で UI を同期する。
+template: doc
+---
+
+## このモードが存在する理由
+
+`@omnicajs/vue-remote` は iframe 専用の統合を前提にしていません。
+拡張モデルに視覚的なリモートドキュメントが不要なら、専用の `Web Worker` 上でリモート描画ロジックを動かしつつ、同じチャネル契約でホスト UI を駆動できます。
+
+このモードが有用なのは、次のような場合です:
+
+- ホストのメインスレッド実行コンテキストから分離したい
+- 隠れた iframe ライフサイクルに左右されない、予測しやすいランタイムトポロジーが欲しい
+- 将来的にプロセス / socket ブリッジへ発展させられるトランスポートを使いたい
+
+## ランタイムトポロジー
+
+```text
+Host Vue App (main thread)
+  -> createReceiver()
+  -> HostedTree(provider, receiver)
+  -> Endpoint(fromWebWorker(worker))
+  -> call.run(receiver.receive, hostBridge)
+
+Remote Vue App (dedicated worker)
+  -> createEndpoint(self-as-MessageEndpoint)
+  -> expose run/release
+  -> createRemoteRoot(channel)
+  -> createRemoteRenderer(root).createApp(...)
+```
+
+## ホスト側の例
+
+```ts
+import type { Channel } from '@omnicajs/vue-remote/host'
+import type { Endpoint } from '@remote-ui/rpc'
+
+import { createApp, defineComponent, h, onBeforeUnmount, onMounted } from 'vue'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createEndpoint, fromWebWorker } from '@remote-ui/rpc'
+
+import VSignalBadge from './components/VSignalBadge.vue'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+type WorkerApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const provider = createProvider({
+  VSignalBadge,
+})
+
+export function mountWorkerRemote() {
+  return createApp(defineComponent({
+    setup() {
+      const receiver = createReceiver()
+      const worker = new Worker(new URL('./remote.worker.ts', import.meta.url), { type: 'module' })
+
+      let endpoint: Endpoint<WorkerApi> | null = null
+
+      onMounted(() => {
+        endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+        endpoint.call.run(receiver.receive, {
+          acknowledge(id: string) {
+            console.info('Acknowledged signal', id)
+          },
+        })
+      })
+
+      onBeforeUnmount(() => {
+        endpoint?.call.release()
+        endpoint?.terminate()
+      })
+
+      return () => h(HostedTree, { provider, receiver })
+    },
+  }))
+}
+```
+
+## Worker 側の例
+
+`remote.worker.ts`:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+
+import { createEndpoint, release, retain } from '@remote-ui/rpc'
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+const endpoint = createEndpoint(self as unknown as MessageEndpoint)
+
+const VSignalBadge = defineRemoteComponent<'VSignalBadge', {
+  tone: 'neutral' | 'success' | 'warning';
+  label: string;
+}>('VSignalBadge', [
+  'dismiss',
+] as unknown as {
+  dismiss: (id: string) => true;
+})
+
+let onRelease = () => {}
+
+endpoint.expose({
+  async run(channel: Channel, bridge: HostBridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, {
+      components: ['VSignalBadge'],
+    })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        const signalId = ref('signal-42')
+        const visible = ref(true)
+
+        return () => visible.value
+          ? h(VSignalBadge, {
+            tone: 'warning',
+            label: 'Background sync is delayed',
+            onDismiss: (id: string) => {
+              visible.value = false
+              bridge.acknowledge(id || signalId.value)
+            },
+          })
+          : h('p', 'All clear')
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+
+  release() {
+    onRelease()
+  },
+})
+```
+
+## HTTP URL からビルド済み拡張を読み込む
+
+拡張がすでにビルドされて静的アセットとして公開されているなら、worker コードを URL 経由で読み込めます。
+
+### 同一オリジン URL（worker スクリプトを直接指定）
+
+ホストアプリと拡張アセットが同じオリジンを共有している場合に使います。
+
+```ts
+const worker = new Worker('/extensions/acme/remote.worker.js', {
+  type: 'module',
+})
+
+const endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+これは最もシンプルな選択肢で、通常は本番運用でも最も安定します。
+
+### クロスオリジン URL（同一オリジン bootstrap + dynamic import）
+
+クロスオリジンのアセットでは、ローカルの bootstrap worker を起動し、CORS を介してリモートモジュールを import させます。
+
+ホスト側:
+
+```ts
+import { createEndpoint, fromWebWorker } from '@remote-ui/rpc'
+
+type WorkerApi = {
+  ready(): boolean;
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const extensionUrl = encodeURIComponent('https://extensions.example-cdn.com/acme/remote.worker.js')
+const worker = new Worker(`/workers/remote-bootstrap.worker.js?extension=${extensionUrl}`, {
+  type: 'module',
+})
+
+const endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+await endpoint.call.ready()
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+`/workers/remote-bootstrap.worker.js`:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+import { createEndpoint } from '@remote-ui/rpc'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+type ExtensionApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const extensionUrl = new URL(self.location.href).searchParams.get('extension')
+if (!extensionUrl) {
+  throw new Error('Missing extension URL')
+}
+
+const mod = await import(/* @vite-ignore */ extensionUrl) as ExtensionApi
+
+const endpoint = createEndpoint<{
+  ready(): boolean;
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}>(self as unknown as MessageEndpoint)
+
+endpoint.expose({
+  ready: () => true,
+  run: mod.run,
+  release: mod.release,
+})
+```
+
+クロスオリジン時の要件:
+
+- worker bootstrap はホストと同一オリジンで提供する
+- リモート URL はモジュール読み込み用の CORS を許可している必要がある
+- CSP で設定された `worker-src` と `script-src` が許可されている必要がある
+- 拡張 URL は起動前に allowlist / signature policy で検証するべき
+
+## worker モードの設計上の制約
+
+1. リモートランタイムではブラウザ DOM に直接アクセスしない。
+   Worker コードは宣言的に保ち、props / events / methods を通じて意図を伝えます。
+2. 境界をまたぐ payload はシリアライズ可能に保つ。
+   シリアライズ不能な値は、ホスト / リモート境界の契約違反として扱います。
+3. 描画トランスポートとビジネストランスポートを分離する。
+   `channel` は UI ツリー同期用、`hostBridge` は製品の振る舞い用です。
+
+## 運用メモ
+
+- `SharedWorker` やカスタム multi-peer topology では、`MessagePort` ベースのハンドシェイクを優先し、その port 上に endpoint を構築します。
+- ライフサイクルや将来のデバッガ統合を簡単にするため、`run/release` は対称かつ idempotent に保ってください。
+- 将来 worker ロジックを socket / runtime service に移す場合も、まずは同じチャネルセマンティクスを保ち、その後でトランスポートの詳細を最適化してください。
+
+## 関連ドキュメント
+
+- [概要](/ja/overview/)
+- [クイックスタート](/ja/getting-started/)
+- [Iframe 統合](/ja/integration/)
+- [リモートコンポーネント](/ja/remote-components/)

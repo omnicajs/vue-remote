@@ -1,0 +1,117 @@
+---
+title: デスクトップ IPC トランスポート
+description: IPC ブリッジを使って Electron / Tauri のプロセス間でホストとリモートのランタイムを動かす。
+template: doc
+---
+
+## このモードを使うとき
+
+デスクトップ IPC トランスポートは、ホストとリモートのランタイムが異なるプロセスや webview に存在する Electron / Tauri 系アーキテクチャ向けです。
+
+典型的な適用先:
+
+- デスクトップ拡張プラットフォーム。
+- メイン UI プロセスから分離されたプラグインランタイム。
+- 明示的な IPC ポリシーを持つネイティブシェルのオーケストレーション。
+
+## 基本モデル
+
+`@omnicajs/vue-remote` はここでも同じチャネル契約を必要とします。
+IPC はあくまで配送手段にすぎません。
+
+```text
+Host Renderer (Desktop UI)
+  -> createReceiver()
+  -> createEndpoint(fromDesktopIpc(...))
+  -> call.run(receiver.receive, hostBridge)
+
+Desktop Main Process / IPC Layer
+  -> routes messages between host and remote peers
+  -> applies policy, auth/capability checks, and lifecycle rules
+
+Remote Runtime (isolated renderer/webview/process)
+  -> createEndpoint(fromDesktopIpc(...))
+  -> expose run/release
+```
+
+## 最小 endpoint ラッパーパターン
+
+デスクトップ IPC ブリッジの上に `MessageEndpoint` アダプタを構築します:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+type DesktopBridge = {
+  send(channel: string, payload: unknown): void;
+  on(channel: string, listener: (payload: unknown) => void): void;
+  off(channel: string, listener: (payload: unknown) => void): void;
+  close?(): void;
+}
+
+export function fromDesktopIpc(
+  bridge: DesktopBridge,
+  channel = 'vue-remote:rpc'
+): MessageEndpoint {
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onPayload = (payload: unknown) => {
+    const event = { data: payload } as MessageEvent
+    for (const listener of listeners) {
+      listener(event)
+    }
+  }
+
+  bridge.on(channel, onPayload)
+
+  return {
+    postMessage(message: any) {
+      bridge.send(channel, message)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      bridge.off(channel, onPayload)
+      bridge.close?.()
+    },
+  }
+}
+```
+
+その後は標準の endpoint フローを使います:
+
+```ts
+const endpoint = createEndpoint<RemoteApi>(fromDesktopIpc(window.desktopBridge))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## Electron と Tauri の注意点
+
+Electron:
+
+- preload (`contextBridge`) から狭い IPC API を公開する。
+- `contextIsolation: true` を維持する。
+- メインプロセスから無制限なオブジェクトを渡さない。
+
+Tauri:
+
+- command / event チャネルを制約付きブリッジとして使う。
+- capabilities 内で allowlist を明示的に保つ。
+- 信頼できないプラグインに対して広いワイルドカード event pipe を避ける。
+
+## 本番運用上の注意
+
+1. IPC チャネルを特権境界として扱う。
+2. プロトコルにバージョンを付け、互換性チェックを強制する。
+3. 拡張セッションごとに capability ベースのルーティングを追加する。
+4. teardown 時にチャネルを閉じ、retained 参照を解放する。
+
+## 関連ドキュメント
+
+- [概要](/ja/overview/)
+- [Iframe 統合](/ja/integration/)
+- [トランスポート比較](/ja/transport-comparison/)
+- [Socket トランスポート](/ja/socket-transport/)

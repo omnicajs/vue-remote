@@ -1,0 +1,48 @@
+---
+title: SES / ShadowRealm ランタイム
+description: SES または ShadowRealm 風の隔離を使う、能力指向の実験的ランタイムモデル。
+template: doc
+---
+
+## 実験的な位置づけ
+
+SES / ShadowRealm との統合は実験的です。
+`@omnicajs/vue-remote` はこのモデルに適応できますが、完全なサポートは保証されず、ホストランタイムの能力にも依存します。
+
+## なぜ検討するのか
+
+- 単一プロセス内での capability 指向 sandboxing。
+- 単純なインメモリ統合より厳密な権限境界。
+- 高い制御が求められる拡張ランタイムへの適性。
+
+## 現実的な注意点
+
+1. ランタイムの可用性はプラットフォームとツールチェーンによって異なる。
+2. サードパーティパッケージは適応が必要になる場合がある。
+3. チャネルメッセージとライフサイクルのための堅牢なブリッジは依然として必要。
+
+## 概念的な統合パターン
+
+```ts
+// Pseudocode: adapter shape depends on SES/ShadowRealm implementation.
+
+const realm = createRealm()
+
+const bridge = createRealmBridge(realm) // implements MessageEndpoint-like behavior
+const endpoint = createEndpoint<RemoteApi>(bridge)
+
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## ガイドライン
+
+1. これは R&D あるいは制御されたパイロット向け機能として扱う。
+2. realm に公開する API には厳格な capability allowlist を維持する。
+3. 標準の `run/release` と cleanup セマンティクスを保つ。
+4. 本番展開に備えて fallback トランスポートを維持する。
+
+## 関連ドキュメント
+
+- [実験機能の概要](/ja/experimental-overview/)
+- [実験機能の比較](/ja/experimental-comparison/)
+- [インメモリトランスポート](/ja/memory-transport/)

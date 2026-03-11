@@ -1,0 +1,110 @@
+---
+title: クイックスタート
+description: "@omnicajs/vue-remote を使って拡張エコシステム向けのホスト / リモートランタイムを立ち上げる。"
+template: doc
+---
+
+## このガイドで扱う内容
+
+このガイドでは、次の間にあるレンダリング同期レイヤーを立ち上げます:
+
+- 許可された UI コンポーネントを管理するホスト製品。
+- 独立して動作するリモート拡張ランタイム。
+
+`@omnicajs/vue-remote` が同期レンダリングを担当します。
+ビジネス API、認証、ディスカバリ、マーケットプレイスのロジックは周辺ツールに残します。
+
+## インストール
+
+```bash
+yarn add @omnicajs/vue-remote @remote-ui/rpc
+```
+
+## IDE ツール
+
+`*.remote.vue` 内のネイティブ template ref をリモート要素プロキシとして型付けするには、Vue tooling プラグインを追加します:
+
+```json
+{
+  "vueCompilerOptions": {
+    "plugins": [
+      "@omnicajs/vue-remote/tooling"
+    ]
+  }
+}
+```
+
+期待できること:
+
+- `*.remote.vue` 内の `<div ref="panel" />` は `HTMLDivElement` ではなく、`@omnicajs/vue-remote/remote` のリモートプロキシとして推論されます。
+- `useTemplateRef(...)`、`ref(null)`、`shallowRef(null)` も、ネイティブ ref では同じリモート境界モデルに従います。
+- ホストコンポーネントの ref はコンポーネントインスタンスの型付けを維持します。
+
+IDE の推奨:
+
+- VS Code: `Vue - Official` 拡張を使います。
+- PhpStorm / WebStorm: `Vue Language Server (Volar)` を使い、最も正確な型評価のために service-powered type engine を有効にします。
+- その他の IDE: `@vue/language-server` または Volar 互換の Vue 言語クライアントを使っているなら、`vueCompilerOptions.plugins` を解釈できるはずです。
+
+公開済みパッケージを使うのではなく、このリポジトリ内で開発している場合は `vueCompilerOptions.plugins` に `./tooling.cjs` を使ってください。
+
+## 1. ホストランタイムを立ち上げる
+
+ホスト側では:
+
+1. `createProvider(...)` でホストコンポーネントを登録する。
+2. `createReceiver()` でレンダーチャネル receiver を作る。
+3. `HostedTree` を描画し、`provider + receiver` を渡す。
+4. リモートランタイム（iframe / worker）を起動し、`receiver.receive` を `run(...)` に渡す。
+
+参照: [ホストコンポーネント](/ja/host-components/)、[概要](/ja/overview/)。
+
+## 2. リモートランタイムを立ち上げる
+
+リモート側では:
+
+1. `createRemoteRoot(channel, options)` でリモート root を作る。
+2. `createRemoteRenderer(root).createApp(...)` でアプリを作る。
+3. `defineRemoteComponent(...)` でホスト公開コンポーネントを定義する。
+4. `run(...)` 中で root と app をマウントし、`release()` でクリーンアップする。
+
+参照: [リモートコンポーネント](/ja/remote-components/)、[概要](/ja/overview/)。
+
+## 3. ホストとリモートを接続する
+
+チャネルトランスポート、通常は `@remote-ui/rpc` を使い、安定したハンドシェイクを保ちます:
+
+1. ホストがリモートランタイム URL を読み込む。
+2. リモートが `run/release` を公開する。
+3. ホストが `run(channel, hostBridge)` を呼ぶ。
+4. リモートがチャネルを通じて UI をマウントする。
+5. セッションは `release()` で終わる。
+
+iframe より専用 worker ランタイムを使いたいなら [Web Worker ランタイム](/ja/web-workers/) を参照してください。
+iframe 固有の設定は [Iframe 統合](/ja/integration/) を参照してください。
+カスタムコンテナ間で明示的にチャネルハンドシェイクを行いたいなら [MessagePort トランスポート](/ja/message-port-transport/) を参照してください。
+Electron / Tauri のようなプロセス分離ランタイムでは [デスクトップ IPC トランスポート](/ja/desktop-ipc-transport/) を参照してください。
+クロスプロセスやクロスマシンのセッションでは [Socket トランスポート](/ja/socket-transport/) を参照してください。
+ローカルのハーネスやテストなら [インメモリトランスポート](/ja/memory-transport/) で同一ランタイムにホストとリモートを載せることもできます（dev/test のみ）。
+横並び比較をしたい場合は [トランスポート比較](/ja/transport-comparison/) を参照してください。
+
+## 4. 境界を検証する
+
+さらに広げる前に、次を確認してください:
+
+- ホストが公開コンポーネントの allowlist を制御している。
+- ランタイムをまたぐ props / events がシリアライズ可能である。
+- リモートランタイムがブラウザの直接 DOM API に依存していない。
+
+## 次にやること
+
+- 安全なホスト契約を作る: [ホストコンポーネント](/ja/host-components/)。
+- リモート UI と境界をモデル化する: [リモートコンポーネント](/ja/remote-components/)。
+- トランスポート非依存のランタイムモデルを見る: [概要](/ja/overview/)。
+- iframe 固有の接続モデルを見る: [Iframe 統合](/ja/integration/)。
+- ランタイムモードを横並び比較する: [トランスポート比較](/ja/transport-comparison/)。
+- worker 固有のトポロジーとライフサイクルを見る: [Web Worker ランタイム](/ja/web-workers/)。
+- 明示的なチャネル接続モードを見る: [MessagePort トランスポート](/ja/message-port-transport/)。
+- デスクトップのプロセス間ブリッジを見る: [デスクトップ IPC トランスポート](/ja/desktop-ipc-transport/)。
+- ネットワーク / セッションブリッジを見る: [Socket トランスポート](/ja/socket-transport/)。
+- dev/test 用の単一ランタイム構成を見る: [インメモリトランスポート](/ja/memory-transport/)。

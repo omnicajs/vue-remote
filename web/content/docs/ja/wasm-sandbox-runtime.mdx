@@ -1,0 +1,50 @@
+---
+title: WASM サンドボックスランタイム
+description: リモートロジックを WebAssembly ベースの sandbox 内で実行する実験的ランタイムモデル。
+template: doc
+---
+
+## 実験的な位置づけ
+
+WASM サンドボックスランタイムは `@omnicajs/vue-remote` において実験的です。
+カスタム adapter を通じてこの環境でも使えますが、完全なサポートは現時点では保証されていません。
+
+## なぜ検討するのか
+
+- 計算とランタイムの厳格な隔離を目指したい。
+- ホスト環境をまたいだ移植性が欲しい。
+- 拡張ロジックの制御された実行モデルが必要。
+
+## 統合モデル
+
+`@omnicajs/vue-remote` はここでもチャネルセマンティクスを前提にします。
+WASM guest とホストブリッジは、互換性のある endpoint プロトコルでメッセージをやり取りしなければなりません。
+
+```ts
+// Pseudocode
+
+const sandbox = createWasmSandbox()
+const bridge = createWasmMessageBridge(sandbox) // MessageEndpoint-like adapter
+
+const endpoint = createEndpoint<RemoteApi>(bridge)
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## 実際の制約
+
+1. ブリッジの複雑さは高い。guest-host のマーシャリング、所有権、ライフサイクル管理が必要。
+2. デバッグと観測性には専用ツールが必要。
+3. 性能特性はブリッジ設計に強く依存する。
+4. 本番導入には通常、段階的な検証と fallback パスが必要。
+
+## ガイドライン
+
+- 高度な実験やプラットフォーム R&D 用に使う。
+- `run/release` と更新フローまわりのプロトコル互換テストを維持する。
+- 明示的な検証なしにベースラインのトランスポートと同等だとみなさない。
+
+## 関連ドキュメント
+
+- [実験機能の概要](/ja/experimental-overview/)
+- [実験機能の比較](/ja/experimental-comparison/)
+- [Socket トランスポート](/ja/socket-transport/)

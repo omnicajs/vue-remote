@@ -1,0 +1,82 @@
+---
+title: BroadcastChannel トランスポート
+description: オブザーバ型ランタイムトポロジー向けの、BroadcastChannel を使った実験的なブラウザローカルトランスポート。
+template: doc
+---
+
+## 実験的な位置づけ
+
+このモードは `@omnicajs/vue-remote` では実験扱いです。
+ブラウザローカルなシナリオでは使えますが、完全なサポートや長期保証は現時点ではありません。
+
+## 向いている場面
+
+- マルチタブ / マルチウィンドウの診断。
+- ローカルな観測 / デバッグクライアント。
+- 強い peer 所有権を必要としない軽量なブラウザ内オーケストレーション。
+
+## 重要な注意点
+
+`BroadcastChannel` は本質的に pub/sub であり、デフォルトでは point-to-point ではありません。
+そのため adapter 内でセッションスコープとメッセージ相関を実装する必要があります。
+
+## 最小 adapter スケッチ
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+type Envelope = {
+  sessionId: string;
+  sender: string;
+  payload: unknown;
+}
+
+export function fromBroadcastChannel(
+  channelName: string,
+  sessionId: string,
+  sender: string
+): MessageEndpoint {
+  const channel = new BroadcastChannel(channelName)
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onMessage = (event: MessageEvent<Envelope>) => {
+    const data = event.data
+    if (!data) return
+    if (data.sessionId !== sessionId) return
+    if (data.sender === sender) return
+    const wrapped = { data: data.payload } as MessageEvent
+    for (const listener of listeners) listener(wrapped)
+  }
+
+  channel.addEventListener('message', onMessage as EventListener)
+
+  return {
+    postMessage(message: any) {
+      channel.postMessage({ sessionId, sender, payload: message } satisfies Envelope)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      channel.removeEventListener('message', onMessage as EventListener)
+      channel.close()
+    },
+  }
+}
+```
+
+## ガイドライン
+
+1. 明示的な `sessionId` 境界を使う。
+2. sender identity で self-echo ループを防ぐ。
+3. BroadcastChannel をセキュリティ境界と見なさない。
+4. 本番クリティカルな拡張セッションではベースラインのトランスポートを優先する。
+
+## 関連ドキュメント
+
+- [実験機能の概要](/ja/experimental-overview/)
+- [実験機能の比較](/ja/experimental-comparison/)
+- [MessagePort トランスポート](/ja/message-port-transport/)

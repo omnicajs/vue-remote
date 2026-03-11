@@ -1,0 +1,112 @@
+---
+title: ホストコンポーネント
+description: ホストコンポーネントとは何か、そして RPC/postMessage 越しに安全なデータ契約は何か。
+template: doc
+---
+
+## ホストコンポーネントとは？
+
+ホストコンポーネントは、ホストアプリケーション内に存在し、`createProvider({ ... })` に登録される通常の Vue コンポーネントです。
+
+リモートアプリケーションは、ホストが名前で明示的に公開したコンポーネントだけを描画できます。
+これが `@omnicajs/vue-remote` の主要な制御境界です。
+
+## なぜ重要なのか
+
+- ホストが許可された UI サーフェスを制御する。
+- リモートコードは任意のローカルコンポーネントをマウントできない。
+- 共有 UI 契約が明示的になる。対象は名前、props、events、slots です。
+
+## データ契約の要件
+
+ホストコンポーネントへ送られるすべての props と、リモートへ返されるイベント payload は、RPC / `postMessage` 越しに安全にシリアライズできる必要があります。
+
+使用するもの:
+
+- スカラー値: `string`、`number`、`boolean`、`null`。
+- シリアライズ可能な値の配列。
+- ネストした値もシリアライズ可能なプレーンオブジェクト（POJO）。
+- 上記 3 種類の組み合わせ。
+
+props とイベント payload で避けるもの:
+
+- 関数。
+- クラスインスタンス。
+- DOM ノード。
+- Symbol。
+- カスタムの非シリアライズ可能なランタイムオブジェクト。
+
+## 例: ホストボタン
+
+```ts
+import { defineComponent, h } from 'vue'
+
+export default defineComponent({
+  name: 'VButton',
+  props: {
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    variant: {
+      type: String as () => 'primary' | 'secondary',
+      default: 'primary',
+    },
+  },
+  emits: ['click'],
+  setup (props, { emit, slots, attrs }) {
+    return () => h('button', {
+      ...attrs,
+      disabled: props.disabled,
+      class: ['btn', `btn-${props.variant}`],
+      onClick: () => emit('click'),
+    }, slots.default?.())
+  },
+})
+```
+
+## 例: ホスト入力
+
+```ts
+import { defineComponent, h } from 'vue'
+
+export default defineComponent({
+  name: 'VInput',
+  props: {
+    value: {
+      type: String,
+      default: '',
+    },
+    placeholder: {
+      type: String,
+      default: '',
+    },
+  },
+  emits: ['update:value'],
+  setup (props, { emit, attrs }) {
+    return () => h('input', {
+      ...attrs,
+      value: props.value,
+      placeholder: props.placeholder,
+      onInput: (event: Event) => emit(
+        'update:value',
+        (event.target as HTMLInputElement).value
+      ),
+    })
+  },
+})
+```
+
+## Provider の登録
+
+```ts
+import { createProvider } from '@omnicajs/vue-remote/host'
+
+import VButton from './VButton'
+import VInput from './VInput'
+
+export const provider = createProvider({
+  VButton,
+  VInput,
+})
+```
