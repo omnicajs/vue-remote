@@ -47,6 +47,7 @@
       ]
     }
   },
+  "web-types": "./web-types.json",
   "scripts": {
     "build": "vite build",
     "coverage:clean": "rm -rf coverage && mkdir -p coverage",
@@ -123,6 +124,7 @@
     "index.mjs",
     "tooling.cjs",
     "tooling.mjs",
+    "web-types.json",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"

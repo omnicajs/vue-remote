@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JetBrains/web-types/master/schema/web-types.json",
+  "name": "@omnicajs/vue-remote",
+  "version": "0.2.17",
+  "framework": "vue",
+  "description-markup": "markdown",
+  "contributions": {
+    "html": {
+      "tags": [
+        {
+          "name": "script",
+          "attributes": [
+            {
+              "name": "remote",
+              "description": "Marks a Vue SFC `<script>` or `<script setup>` block as remote so `@omnicajs/vue-remote/tooling` can treat it as a remote entry."
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
