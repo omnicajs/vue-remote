@@ -37,6 +37,10 @@ export default defineConfig({
           label: 'Español',
           lang: 'es',
         },
+        ja: {
+          label: '日本語',
+          lang: 'ja',
+        },
         zh: {
           label: '简体中文',
           lang: 'zh-CN',
@@ -81,6 +85,7 @@ export default defineConfig({
           label: 'Introduction',
           translations: {
             es: 'Introducción',
+            ja: 'イントロダクション',
             'zh-CN': '简介',
             ru: 'Введение',
           },
@@ -89,6 +94,7 @@ export default defineConfig({
               label: 'Introduction',
               translations: {
                 es: 'Introducción',
+                ja: '紹介',
                 'zh-CN': '介绍',
                 ru: 'Обзор',
               },
@@ -98,6 +104,7 @@ export default defineConfig({
               label: 'Getting Started',
               translations: {
                 es: 'Primeros pasos',
+                ja: 'クイックスタート',
                 'zh-CN': '快速开始',
                 ru: 'Быстрый старт',
               },
@@ -107,6 +114,7 @@ export default defineConfig({
               label: 'Versions',
               translations: {
                 es: 'Versiones',
+                ja: 'バージョン',
                 'zh-CN': '版本',
                 ru: 'Версии',
               },
@@ -118,6 +126,7 @@ export default defineConfig({
           label: 'Core Concepts',
           translations: {
             es: 'Conceptos clave',
+            ja: 'コアコンセプト',
             'zh-CN': '核心概念',
             ru: 'Ключевые концепции',
           },
@@ -126,6 +135,7 @@ export default defineConfig({
               label: 'Host Components',
               translations: {
                 es: 'Componentes del host',
+                ja: 'ホストコンポーネント',
                 'zh-CN': '宿主组件',
                 ru: 'Компоненты хоста',
               },
@@ -135,6 +145,7 @@ export default defineConfig({
               label: 'Remote Components',
               translations: {
                 es: 'Componentes remotos',
+                ja: 'リモートコンポーネント',
                 'zh-CN': '远程组件',
                 ru: 'Компоненты remote',
               },
@@ -144,6 +155,7 @@ export default defineConfig({
               label: 'Known Limitations',
               translations: {
                 es: 'Limitaciones conocidas',
+                ja: '既知の制限',
                 'zh-CN': '已知限制',
                 ru: 'Известные ограничения',
               },
@@ -155,6 +167,7 @@ export default defineConfig({
           label: 'Runtime And Transports',
           translations: {
             es: 'Runtime y transportes',
+            ja: 'ランタイムとトランスポート',
             'zh-CN': '运行时与传输',
             ru: 'Рантайм и транспорты',
           },
@@ -163,6 +176,7 @@ export default defineConfig({
               label: 'Overview',
               translations: {
                 es: 'Resumen',
+                ja: '概要',
                 'zh-CN': '概览',
                 ru: 'Обзор',
               },
@@ -172,6 +186,7 @@ export default defineConfig({
               label: 'Iframe Integration',
               translations: {
                 es: 'Integración con iframe',
+                ja: 'Iframe 統合',
                 'zh-CN': 'Iframe 集成',
                 ru: 'Интеграция через iframe',
               },
@@ -181,6 +196,7 @@ export default defineConfig({
               label: 'Web Worker Runtime',
               translations: {
                 es: 'Runtime de Web Worker',
+                ja: 'Web Worker ランタイム',
                 'zh-CN': 'Web Worker 运行时',
                 ru: 'Web Worker Runtime',
               },
@@ -190,6 +206,7 @@ export default defineConfig({
               label: 'Window Transport',
               translations: {
                 es: 'Transporte Window',
+                ja: 'Window トランスポート',
                 'zh-CN': 'Window 传输',
                 ru: 'Window Transport',
               },
@@ -199,6 +216,7 @@ export default defineConfig({
               label: 'MessagePort Transport',
               translations: {
                 es: 'Transporte MessagePort',
+                ja: 'MessagePort トランスポート',
                 'zh-CN': 'MessagePort 传输',
                 ru: 'MessagePort Transport',
               },
@@ -208,6 +226,7 @@ export default defineConfig({
               label: 'Desktop IPC Transport',
               translations: {
                 es: 'Transporte IPC de escritorio',
+                ja: 'デスクトップ IPC トランスポート',
                 'zh-CN': '桌面 IPC 传输',
                 ru: 'Desktop IPC Transport',
               },
@@ -217,6 +236,7 @@ export default defineConfig({
               label: 'Socket Transport',
               translations: {
                 es: 'Transporte Socket',
+                ja: 'Socket トランスポート',
                 'zh-CN': 'Socket 传输',
                 ru: 'Socket Transport',
               },
@@ -226,6 +246,7 @@ export default defineConfig({
               label: 'In-Memory Transport',
               translations: {
                 es: 'Transporte en memoria',
+                ja: 'インメモリトランスポート',
                 'zh-CN': '内存传输',
                 ru: 'In-Memory Transport',
               },
@@ -235,6 +256,7 @@ export default defineConfig({
               label: 'Transport Comparison',
               translations: {
                 es: 'Comparación de transportes',
+                ja: 'トランスポート比較',
                 'zh-CN': '传输方式对比',
                 ru: 'Сравнение транспортов',
               },
@@ -246,6 +268,7 @@ export default defineConfig({
           label: 'Experimental Capabilities',
           translations: {
             es: 'Capacidades experimentales',
+            ja: '実験的機能',
             'zh-CN': '实验能力',
             ru: 'Экспериментальные возможности',
           },
@@ -254,6 +277,7 @@ export default defineConfig({
               label: 'Overview',
               translations: {
                 es: 'Resumen',
+                ja: '概要',
                 'zh-CN': '概览',
                 ru: 'Обзор',
               },
@@ -263,6 +287,7 @@ export default defineConfig({
               label: 'BroadcastChannel Transport',
               translations: {
                 es: 'Transporte BroadcastChannel',
+                ja: 'BroadcastChannel トランスポート',
                 'zh-CN': 'BroadcastChannel 传输',
                 ru: 'BroadcastChannel Transport',
               },
@@ -272,6 +297,7 @@ export default defineConfig({
               label: 'SES And ShadowRealm Runtime',
               translations: {
                 es: 'Runtime de SES y ShadowRealm',
+                ja: 'SES / ShadowRealm ランタイム',
                 'zh-CN': 'SES 与 ShadowRealm 运行时',
                 ru: 'SES и ShadowRealm Runtime',
               },
@@ -281,6 +307,7 @@ export default defineConfig({
               label: 'WASM Sandbox Runtime',
               translations: {
                 es: 'Runtime de sandbox WASM',
+                ja: 'WASM サンドボックスランタイム',
                 'zh-CN': 'WASM 沙箱运行时',
                 ru: 'WASM Sandbox Runtime',
               },
@@ -290,6 +317,7 @@ export default defineConfig({
               label: 'Comparison',
               translations: {
                 es: 'Comparación',
+                ja: '比較',
                 'zh-CN': '对比',
                 ru: 'Сравнение',
               },

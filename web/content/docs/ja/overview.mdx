@@ -1,0 +1,81 @@
+---
+title: 概要
+description: "@omnicajs/vue-remote のトランスポート非依存アーキテクチャとランタイム構成。"
+template: doc
+---
+
+まず素早くモードを選びたいなら [トランスポート比較](/ja/transport-comparison/) を見てください。
+
+## エコシステムモデル
+
+対象は拡張エコシステムです:
+
+- あらゆる製品が拡張サーフェスを公開できる。
+- サードパーティチームが独立してリモート拡張を提供できる。
+- `@omnicajs/vue-remote` がホストとリモートのランタイム間で UI ツリーを同期する。
+
+## このライブラリのスコープ
+
+`@omnicajs/vue-remote` が扱うのはレンダリング同期のみです:
+
+- ホスト: `createProvider`、`createReceiver`、`HostedTree`。
+- リモート: `createRemoteRoot`、`createRemoteRenderer`、`defineRemoteComponent`。
+- 更新はチャネル契約を通じて流れ、トランスポート実装は差し替え可能。
+
+設計上スコープ外:
+
+- ビジネスデータ契約や製品 API。
+- 拡張ディスカバリ、認証、課金、ガバナンス。
+- マーケットプレイスのポリシーやコンプライアンスフロー。
+
+## 推奨トポロジー
+
+ホスト製品とリモート拡張は別々の成果物にするのが望ましいです。
+
+```text
+host-product/
+  src/
+    extensions/
+      host-components/
+      runtime/
+      hostBridge.ts
+
+remote-extension/
+  src/
+    entry.ts
+    App.vue
+    bridge/
+```
+
+## ランタイムの構成レイヤー
+
+1. UI provider layer:
+   `createProvider(...)` で公開されるホストコンポーネント。
+2. Runtime transport layer:
+   iframe、worker、window、MessagePort、デスクトップ IPC、socket など。
+3. Business bridge layer:
+   製品固有のメソッドとデータ。
+4. Security layer:
+   能力チェックとライフサイクルポリシーの強制。
+
+## 起動契約
+
+トランスポートに関係なく、このハンドシェイクを安定させてください:
+
+1. ホストがランタイムシェルと receiver を初期化する。
+2. リモートが `run/release` を公開する。
+3. ホストが `run(channel, hostBridge)` を呼ぶ。
+4. リモートがチャネル更新を通じてマウントと描画を行う。
+5. セッションは `release()` で終了する。
+
+## トランスポートの選び方
+
+- ブラウザの標準的な隔離: [Iframe 統合](/ja/integration/)。
+- Worker ランタイム: [Web Worker ランタイム](/ja/web-workers/)。
+- Popup ランタイム: [Window トランスポート](/ja/window-transport/)。
+- 明示的なチャネル接続: [MessagePort トランスポート](/ja/message-port-transport/)。
+- デスクトッププロセスブリッジ: [デスクトップ IPC トランスポート](/ja/desktop-ipc-transport/)。
+- ネットワーク / セッションブリッジ: [Socket トランスポート](/ja/socket-transport/)。
+- dev/test 向け単一ランタイム: [インメモリトランスポート](/ja/memory-transport/)。
+
+ベースライン外や研究指向の環境については [実験的機能](/ja/experimental-overview/) を参照してください。

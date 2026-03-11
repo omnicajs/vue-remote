@@ -1,0 +1,166 @@
+---
+title: Iframe 統合
+description: iframe と postMessage トランスポートを通じてホストとリモートのランタイムを統合する。
+template: doc
+---
+
+トランスポート非依存のアーキテクチャから見たい場合は [概要](/ja/overview/) から始めてください。
+
+## なぜ iframe モードなのか
+
+iframe トランスポートは、分離されたリモート拡張向けのブラウザ基準構成です:
+
+- ホストとリモートが別々のブラウザコンテキストで動作する。
+- 通信には `@remote-ui/rpc` を介した `postMessage` を使う。
+- ホストは provider と receiver の境界を通じて描画制御を維持する。
+
+## ホスト側の例
+
+```ts
+import type { Channel } from '@omnicajs/vue-remote/host'
+import type { Endpoint } from '@remote-ui/rpc'
+
+import { createApp, defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createEndpoint, fromIframe } from '@remote-ui/rpc'
+
+import VButton from './components/VButton.vue'
+import VInput from './components/VInput.vue'
+
+type HostBridge = {
+  track(event: { type: string; payload: Record<string, unknown> }): void;
+}
+
+type RemoteApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const provider = createProvider({ VButton, VInput })
+
+export function mountIframeRemote(remoteUrl: string, bridge: HostBridge) {
+  return createApp(defineComponent({
+    setup() {
+      const iframe = ref<HTMLIFrameElement | null>(null)
+      const receiver = createReceiver()
+      let endpoint: Endpoint<RemoteApi> | null = null
+
+      onMounted(() => {
+        endpoint = createEndpoint<RemoteApi>(fromIframe(iframe.value as HTMLIFrameElement, {
+          terminate: false,
+        }))
+      })
+
+      onBeforeUnmount(() => endpoint?.call.release())
+
+      return () => [
+        h(HostedTree, { provider, receiver }),
+        h('iframe', {
+          ref: iframe,
+          src: remoteUrl,
+          style: { display: 'none' },
+          onLoad: () => endpoint?.call.run(receiver.receive, bridge),
+        }),
+      ]
+    },
+  }))
+}
+```
+
+## リモート側の例
+
+```ts
+import { createEndpoint, fromInsideIframe, release, retain } from '@remote-ui/rpc'
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+type HostBridge = {
+  track(event: { type: string; payload: Record<string, unknown> }): void;
+}
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const endpoint = createEndpoint(fromInsideIframe())
+let onRelease = () => {}
+
+endpoint.expose({
+  async run(channel, bridge: HostBridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, {
+      components: ['VButton', 'VInput'],
+    })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        const text = ref('')
+        return () => [
+          h(VInput, {
+            value: text.value,
+            'onUpdate:value': (value: string) => text.value = value,
+          }),
+          h(VButton, {
+            onClick: () => bridge.track({
+              type: 'remote.clear',
+              payload: { value: text.value },
+            }),
+          }, 'Clear'),
+        ]
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+
+  release() {
+    onRelease()
+  },
+})
+```
+
+## Iframe の起動シーケンス
+
+1. ホストが `HostedTree` を描画し、`receiver` を作成する。
+2. ホストがリモート URL を隠し iframe に読み込む。
+3. リモート iframe が `run/release` を公開する。
+4. iframe の `load` 時に、ホストが `run(receiver.receive, hostBridge)` を呼ぶ。
+5. リモートがマウントし、チャネル経由でツリー更新を同期する。
+6. teardown 時にホストが `release()` を呼ぶ。
+
+## Iframe セキュリティチェックリスト
+
+1. Origin を制限する:
+   許容しすぎるワイルドカードより、明示的な target origin を優先する。
+2. リモート URL を検証する:
+   拡張ランタイムの配信元には allowlist を使う。
+3. iframe 属性を強化する:
+   信頼モデルに合わせて `sandbox` 能力を構成する。
+4. CSP / frame ポリシーを適用する:
+   `frame-src` / `child-src` を承認済みの拡張 origin と一致させる。
+
+## よくある落とし穴
+
+- iframe の読み込み前に `run(...)` を呼んでしまう。
+- provider にホストコンポーネントを登録し忘れる。
+- 境界をまたいで非シリアライズ可能な payload を渡す。
+- `release()` を忘れて retained 参照をリークさせる。
+
+## 関連ドキュメント
+
+- [概要](/ja/overview/)
+- [トランスポート比較](/ja/transport-comparison/)
+- [Web Worker ランタイム](/ja/web-workers/)
+- [Window トランスポート](/ja/window-transport/)

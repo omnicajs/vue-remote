@@ -1,0 +1,78 @@
+---
+title: MessagePort トランスポート
+description: リモートランタイムのハンドシェイク用トランスポート原語として MessageChannel / MessagePort を使う。
+template: doc
+---
+
+## なぜこのモードが重要か
+
+`MessagePort` はカスタムなランタイムトポロジーと相性のよい低レベルのトランスポート原語です。
+特に、単一のコンテナモデルに縛られず、明示的にチャネル配線したい場合に有効です。
+
+典型的な用途:
+
+- ホストシェルとリモートランタイム間のカスタムハンドシェイク。
+- popup / iframe / worker / session のオーケストレーションを橋渡しするレイヤー。
+- 明示的な双方向チャネルを必要とする開発・診断ツール。
+
+## 基本アイデア
+
+`@remote-ui/rpc` はすでに `fromMessagePort(...)` を提供しています。
+双方が接続済みポートを持てば、統合は通常の `run/release` フローと同じです:
+
+```ts
+import { createEndpoint, fromMessagePort } from '@remote-ui/rpc'
+
+const endpoint = createEndpoint<RemoteApi>(fromMessagePort(port))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## 最小の同一ランタイム例
+
+```ts
+import { MessageChannel } from 'node:worker_threads'
+import { createEndpoint, fromMessagePort } from '@remote-ui/rpc'
+
+type Api = { ping(message: string): string }
+
+const { port1, port2 } = new MessageChannel()
+
+const host = createEndpoint<Api>(fromMessagePort(port1))
+const remote = createEndpoint(fromMessagePort(port2))
+
+remote.expose({
+  ping(message: string) {
+    return `pong: ${message}`
+  },
+})
+
+const result = await host.call.ping('hello')
+console.info(result) // pong: hello
+```
+
+ブラウザ環境では、同じパターンでネイティブの `MessageChannel` API を使います。
+
+## ブラウザでのハンドシェイクパターン
+
+1. ホストが `MessageChannel` を作成する。
+2. ホストが `port2` を `postMessage` でリモートコンテナ（`iframe`、`popup`、worker bootstrap など）へ渡す。
+3. ホストは `port1` を保持し、`createEndpoint(fromMessagePort(port1))` を初期化する。
+4. リモートは受け取ったポートを受信し、自身の endpoint を初期化する。
+5. 双方が標準の `run/release` を実行する。
+
+## 設計上の注意
+
+1. 隔離性はコンテキスト依存:
+   `MessagePort` 自体は sandbox 境界を作らない。
+2. トランスポート特性は強い:
+   明示的な非同期境界と structured clone 制約がある。
+3. ライフサイクルは明示的に扱う必要がある:
+   teardown 時にポートを閉じ、retained 参照を解放する。
+
+## 関連ドキュメント
+
+- [概要](/ja/overview/)
+- [Iframe 統合](/ja/integration/)
+- [トランスポート比較](/ja/transport-comparison/)
+- [Web Worker ランタイム](/ja/web-workers/)
+- [Window トランスポート](/ja/window-transport/)

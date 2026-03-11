@@ -53,6 +53,8 @@ const localeOptions = config.locales
         ? 'ru'
         : (locale!.lang || code).startsWith('es')
           ? 'es'
+          : (locale!.lang || code).startsWith('ja')
+            ? 'jp'
           : (locale!.lang || code).startsWith('zh')
             ? 'cn'
           : 'gb',
@@ -294,6 +296,12 @@ const selectedOption = localeOptions.find((option) => option.selected) ?? locale
       background:
         radial-gradient(circle at 28% 28%, #ffde00 0 12%, transparent 13%),
         #de2910;
+    }
+
+    .flag-jp {
+      background:
+        radial-gradient(circle at 50% 50%, #bc002d 0 28%, transparent 29%),
+        #fff;
     }
   }
 </style>

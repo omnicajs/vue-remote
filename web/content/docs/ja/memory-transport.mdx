@@ -1,0 +1,95 @@
+---
+title: インメモリトランスポート
+description: receiver チャネルを直接渡してホストとリモートを 1 つのランタイムで動かす。開発やテストハーネス向け。
+template: doc
+---
+
+## このモードとは
+
+インメモリトランスポートでは、ホストとリモートが同じ JavaScript ランタイム上で動作します。
+`iframe` や `worker` トランスポートの代わりに、リモートはホストチャネルを直接受け取ります:
+
+```ts
+const receiver = createReceiver()
+const root = createRemoteRoot(receiver.receive)
+```
+
+これは統合テストでも使われている配線モデルです。
+
+## 想定用途
+
+このモードは次の用途向けです:
+
+- ローカル開発用のランタイムシェル。
+- 統合 / 単体テストのベンチ。
+- レンダリング同期の振る舞いを素早く診断するケース。
+
+## 本番の隔離用途ではない
+
+インメモリトランスポートは **本番の拡張隔離には推奨されません**。
+
+理由:
+
+- sandbox 境界がない。
+- プロセス / スレッド隔離がない。
+- 実際のトランスポート挙動、たとえば遅延、シリアライズ、非同期リンク下での順序に関するシグナルが少ない。
+- リモートコードが誤動作したときの影響範囲が大きい。
+
+これはセキュリティ境界ではなく、開発・テスト用トポロジーとして扱ってください。
+
+## 最小の接続例
+
+```ts
+import { createApp, defineComponent, h } from 'vue'
+import { createReceiver } from '@omnicajs/vue-remote/host'
+import { HostedTree, createProvider } from '@omnicajs/vue-remote/host'
+import { createRemoteRoot, createRemoteRenderer, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+import VSignalBadge from './components/VSignalBadge.vue'
+
+const provider = createProvider({ VSignalBadge })
+const receiver = createReceiver()
+
+// Host app (same runtime)
+createApp(defineComponent({
+  setup() {
+    return () => h(HostedTree, { provider, receiver })
+  },
+})).mount('#host')
+
+// Remote app (same runtime)
+const root = createRemoteRoot(receiver.receive, {
+  components: ['VSignalBadge'],
+})
+
+const VRemoteSignal = defineRemoteComponent<'VSignalBadge', {
+  tone: 'neutral' | 'success' | 'warning';
+  label: string;
+}>('VSignalBadge')
+
+const remote = createRemoteRenderer(root).createApp(defineComponent({
+  setup() {
+    return () => h(VRemoteSignal, {
+      tone: 'success',
+      label: 'In-memory transport is active',
+    })
+  },
+}))
+
+remote.mount(root)
+await root.mount()
+await receiver.flush()
+```
+
+## 実運用上の注意
+
+1. worker / iframe / ネットワークモード向けのテストは別に維持する。
+2. セキュリティ前提の検証にインメモリモードを使わない。
+3. まずこのモードで素早く反復し、その後で本番トランスポート上で確認する。
+
+## 関連ドキュメント
+
+- [概要](/ja/overview/)
+- [クイックスタート](/ja/getting-started/)
+- [Iframe 統合](/ja/integration/)
+- [Web Worker ランタイム](/ja/web-workers/)
