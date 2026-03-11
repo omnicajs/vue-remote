@@ -9,10 +9,19 @@ import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 
 const shouldRenderSearch =
   config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
-const isRussian = Astro.currentLocale === 'ru';
-const guideHref = isRussian ? '/ru/introduction/' : '/introduction/';
-const topNavLabel = isRussian ? 'Основная навигация' : 'Primary';
-const guideLabel = isRussian ? 'Руководство' : 'Guide';
+const currentLocale = Astro.currentLocale ?? 'root';
+const localePrefix = currentLocale === 'root' ? '' : `/${currentLocale}`;
+const guideHref = `${localePrefix}/introduction/`;
+const topNavLabel = currentLocale === 'ru'
+  ? 'Основная навигация'
+  : currentLocale === 'es'
+    ? 'Navegación principal'
+    : 'Primary';
+const guideLabel = currentLocale === 'ru'
+  ? 'Руководство'
+  : currentLocale === 'es'
+    ? 'Guía'
+    : 'Guide';
 ---
 
 <div class="header">

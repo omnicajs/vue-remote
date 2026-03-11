@@ -1,0 +1,266 @@
+---
+title: Runtime de Web Worker
+description: Ejecuta un runtime remoto de Vue en un Web Worker dedicado y sincroniza la UI mediante canales controlados por el host.
+template: doc
+---
+
+## Por qué existe este modo
+
+`@omnicajs/vue-remote` no requiere una integración basada solo en iframe.
+Si tu modelo de extensiones no necesita un documento visual remoto, un `Web Worker` dedicado puede alojar la lógica de render remoto y seguir controlando la UI del host mediante el mismo contrato de canal.
+
+Este modo es útil cuando quieres:
+
+- aislamiento respecto al contexto de ejecución del hilo principal del host;
+- una topología de runtime predecible sin un ciclo de vida de iframe oculto;
+- un transporte que más adelante pueda evolucionar hacia un puente por proceso o socket.
+
+## Topología del runtime
+
+```text
+Host Vue App (main thread)
+  -> createReceiver()
+  -> HostedTree(provider, receiver)
+  -> Endpoint(fromWebWorker(worker))
+  -> call.run(receiver.receive, hostBridge)
+
+Remote Vue App (dedicated worker)
+  -> createEndpoint(self-as-MessageEndpoint)
+  -> expose run/release
+  -> createRemoteRoot(channel)
+  -> createRemoteRenderer(root).createApp(...)
+```
+
+## Ejemplo del lado host
+
+```ts
+import type { Channel } from '@omnicajs/vue-remote/host'
+import type { Endpoint } from '@remote-ui/rpc'
+
+import { createApp, defineComponent, h, onBeforeUnmount, onMounted } from 'vue'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createEndpoint, fromWebWorker } from '@remote-ui/rpc'
+
+import VSignalBadge from './components/VSignalBadge.vue'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+type WorkerApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const provider = createProvider({
+  VSignalBadge,
+})
+
+export function mountWorkerRemote() {
+  return createApp(defineComponent({
+    setup() {
+      const receiver = createReceiver()
+      const worker = new Worker(new URL('./remote.worker.ts', import.meta.url), { type: 'module' })
+
+      let endpoint: Endpoint<WorkerApi> | null = null
+
+      onMounted(() => {
+        endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+        endpoint.call.run(receiver.receive, {
+          acknowledge(id: string) {
+            console.info('Acknowledged signal', id)
+          },
+        })
+      })
+
+      onBeforeUnmount(() => {
+        endpoint?.call.release()
+        endpoint?.terminate()
+      })
+
+      return () => h(HostedTree, { provider, receiver })
+    },
+  }))
+}
+```
+
+## Ejemplo del lado worker
+
+`remote.worker.ts`:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+
+import { createEndpoint, release, retain } from '@remote-ui/rpc'
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+const endpoint = createEndpoint(self as unknown as MessageEndpoint)
+
+const VSignalBadge = defineRemoteComponent<'VSignalBadge', {
+  tone: 'neutral' | 'success' | 'warning';
+  label: string;
+}>('VSignalBadge', [
+  'dismiss',
+] as unknown as {
+  dismiss: (id: string) => true;
+})
+
+let onRelease = () => {}
+
+endpoint.expose({
+  async run(channel: Channel, bridge: HostBridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, {
+      components: ['VSignalBadge'],
+    })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        const signalId = ref('signal-42')
+        const visible = ref(true)
+
+        return () => visible.value
+          ? h(VSignalBadge, {
+            tone: 'warning',
+            label: 'Background sync is delayed',
+            onDismiss: (id: string) => {
+              visible.value = false
+              bridge.acknowledge(id || signalId.value)
+            },
+          })
+          : h('p', 'All clear')
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+
+  release() {
+    onRelease()
+  },
+})
+```
+
+## Cargar una extensión preconstruida por URL HTTP
+
+Si tu extensión ya está construida y publicada como assets estáticos, puedes cargar el código del worker por URL.
+
+### URL del mismo origin: script directo del worker
+
+Úsalo cuando la app host y los assets de la extensión compartan el mismo origen.
+
+```ts
+const worker = new Worker('/extensions/acme/remote.worker.js', {
+  type: 'module',
+})
+
+const endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+Esta es la opción más simple y normalmente la más estable para producción.
+
+### URL cross-origin: bootstrap del mismo origin e import dinámico
+
+Para assets cross-origin, arranca un worker bootstrap local y deja que importe el módulo remoto con CORS.
+
+Lado host:
+
+```ts
+import { createEndpoint, fromWebWorker } from '@remote-ui/rpc'
+
+type WorkerApi = {
+  ready(): boolean;
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const extensionUrl = encodeURIComponent('https://extensions.example-cdn.com/acme/remote.worker.js')
+const worker = new Worker(`/workers/remote-bootstrap.worker.js?extension=${extensionUrl}`, {
+  type: 'module',
+})
+
+const endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+await endpoint.call.ready()
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+`/workers/remote-bootstrap.worker.js`:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+import { createEndpoint } from '@remote-ui/rpc'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+type ExtensionApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const extensionUrl = new URL(self.location.href).searchParams.get('extension')
+if (!extensionUrl) {
+  throw new Error('Missing extension URL')
+}
+
+const mod = await import(/* @vite-ignore */ extensionUrl) as ExtensionApi
+
+const endpoint = createEndpoint<{
+  ready(): boolean;
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}>(self as unknown as MessageEndpoint)
+
+endpoint.expose({
+  ready: () => true,
+  run: mod.run,
+  release: mod.release,
+})
+```
+
+Requisitos cross-origin:
+
+- el bootstrap del worker debe ser del mismo origin que el host;
+- la URL remota debe permitir CORS para la carga del módulo;
+- la CSP debe permitir los `worker-src` y `script-src` configurados;
+- la URL de la extensión debería validarse mediante una política de allowlist o firmas antes del lanzamiento.
+
+## Restricciones de diseño del modo worker
+
+1. Sin acceso directo al DOM del navegador en el runtime remoto.
+   El código del worker debe seguir siendo declarativo y comunicar intención mediante props, eventos y métodos.
+2. Mantén serializables los payloads que cruzan la frontera.
+   Trata cualquier valor no serializable como un problema de contrato en la frontera host/remoto.
+3. Separa el transporte de render del transporte de negocio.
+   `channel` es para sincronización del árbol de UI y `hostBridge` es para el comportamiento del producto.
+
+## Notas operativas
+
+- Para `SharedWorker` o topologías multi-peer personalizadas, prefiere un handshake basado en `MessagePort` y construye el endpoint sobre ese puerto.
+- Mantén `run/release` simétrico e idempotente para simplificar el ciclo de vida y una futura integración con herramientas de debugging.
+- Si más adelante mueves la lógica del worker a un servicio socket/runtime, conserva primero la misma semántica de canal y solo después optimiza detalles del transporte.
+
+## Documentación relacionada
+
+- [Resumen](/es/overview/)
+- [Primeros pasos](/es/getting-started/)
+- [Integración con iframe](/es/integration/)
+- [Componentes remotos](/es/remote-components/)

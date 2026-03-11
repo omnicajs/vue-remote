@@ -1,0 +1,181 @@
+---
+title: Transporte Window
+description: Ejecuta el runtime remoto en una ventana popup dedicada y sincroniza la UI del host sobre postMessage.
+template: doc
+---
+
+## Cuándo usar este modo
+
+El transporte con `window.open` encaja bien cuando el runtime remoto necesita su propio espacio de trabajo visible:
+
+- la extensión se comporta como un panel de herramientas o un editor;
+- la UI remota debe quedar aislada del layout y del ciclo de vida del host;
+- quieres fronteras explícitas de postMessage sin incrustar un iframe.
+
+## Modelo principal
+
+El host abre una ventana popup y ambos lados intercambian mensajes mediante `postMessage`.
+`@remote-ui/rpc` puede funcionar aquí mediante un wrapper personalizado de `MessageEndpoint`.
+
+```text
+Host App
+  -> popup = window.open(...)
+  -> createEndpoint(fromWindow(popup))
+  -> call.run(receiver.receive, hostBridge)
+
+Popup Remote App
+  -> createEndpoint(fromOpener(window.opener))
+  -> expose run/release
+```
+
+## Ejemplo del lado host
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+
+import { createEndpoint } from '@remote-ui/rpc'
+import { createReceiver } from '@omnicajs/vue-remote/host'
+
+type RemoteApi = {
+  run(channel: Channel, bridge: { closeRequested(): void }): Promise<void>;
+  release(): void;
+}
+
+function fromWindow(target: Window, targetOrigin: string): MessageEndpoint {
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onMessage = (event: MessageEvent) => {
+    if (event.origin !== targetOrigin) return
+    if (event.source !== target) return
+    for (const listener of listeners) listener(event)
+  }
+
+  window.addEventListener('message', onMessage)
+
+  return {
+    postMessage(message: any) {
+      target.postMessage(message, targetOrigin)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      window.removeEventListener('message', onMessage)
+      target.close()
+    },
+  }
+}
+
+const popup = window.open('/remote/popup.html', 'remote-runtime', 'width=1200,height=800')
+if (!popup) throw new Error('Popup blocked')
+
+const receiver = createReceiver()
+const endpoint = createEndpoint<RemoteApi>(fromWindow(popup, window.location.origin))
+
+await endpoint.call.run(receiver.receive, {
+  closeRequested() {
+    popup.close()
+  },
+})
+```
+
+## Ejemplo del lado remoto en popup
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+
+import { createEndpoint, release, retain } from '@remote-ui/rpc'
+import { createRemoteRoot, createRemoteRenderer, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h } from 'vue'
+
+function fromOpener(opener: Window, targetOrigin: string): MessageEndpoint {
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onMessage = (event: MessageEvent) => {
+    if (event.origin !== targetOrigin) return
+    if (event.source !== opener) return
+    for (const listener of listeners) listener(event)
+  }
+
+  window.addEventListener('message', onMessage)
+
+  return {
+    postMessage(message: any) {
+      opener.postMessage(message, targetOrigin)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      window.removeEventListener('message', onMessage)
+      window.close()
+    },
+  }
+}
+
+const endpoint = createEndpoint<{
+  run(channel: Channel, bridge: { closeRequested(): void }): Promise<void>;
+  release(): void;
+}>(fromOpener(window.opener as Window, window.location.origin))
+
+let onRelease = () => {}
+
+const VInspectorBadge = defineRemoteComponent('VInspectorBadge')
+
+endpoint.expose({
+  async run(channel, bridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, { components: ['VInspectorBadge'] })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        return () => h(VInspectorBadge, {
+          tone: 'neutral',
+          label: 'Popup runtime connected',
+          onClose: () => bridge.closeRequested(),
+        })
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+  release() {
+    onRelease()
+  },
+})
+```
+
+## Consideraciones operativas
+
+1. Popup blocking:
+   abre el popup desde una interacción directa del usuario.
+2. Origin checks:
+   valida siempre `event.origin` y `event.source`.
+3. Lifecycle sync:
+   maneja de forma simétrica el cierre del popup y la descarga del host.
+4. Security model:
+   esto es una frontera de transporte, no una gobernanza de políticas completa.
+
+## Documentación relacionada
+
+- [Resumen](/es/overview/)
+- [Integración con iframe](/es/integration/)
+- [Comparación de transportes](/es/transport-comparison/)
+- [Transporte Socket](/es/socket-transport/)

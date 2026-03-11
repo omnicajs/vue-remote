@@ -1,0 +1,110 @@
+---
+title: Primeros pasos
+description: Inicializa los runtimes host y remoto de un ecosistema de extensiones con @omnicajs/vue-remote.
+template: doc
+---
+
+## Qué cubre esta guía
+
+Esta guía te ayuda a arrancar la capa de sincronización de render entre:
+
+- un producto host que controla los componentes de UI permitidos;
+- un runtime remoto independiente para extensiones.
+
+`@omnicajs/vue-remote` se encarga del renderizado sincronizado.
+Las APIs de negocio, la auth, el discovery y la lógica de marketplace permanecen en tooling adyacente.
+
+## Instalación
+
+```bash
+yarn add @omnicajs/vue-remote @remote-ui/rpc
+```
+
+## Tooling para IDE
+
+Para que las template refs nativas del lado remoto se tipen como proxies de elementos remotos en `*.remote.vue`, añade el plugin de tooling de Vue:
+
+```json
+{
+  "vueCompilerOptions": {
+    "plugins": [
+      "@omnicajs/vue-remote/tooling"
+    ]
+  }
+}
+```
+
+Qué esperar:
+
+- `<div ref="panel" />` dentro de `*.remote.vue` se infiere como un proxy remoto de `@omnicajs/vue-remote/remote`, no como `HTMLDivElement`.
+- `useTemplateRef(...)`, `ref(null)` y `shallowRef(null)` siguen el mismo modelo de frontera remota para refs nativas.
+- Las refs a componentes host conservan el tipado de instancia de componente.
+
+Recomendaciones para IDE:
+
+- VS Code: usa la extensión `Vue - Official`.
+- PhpStorm / WebStorm: usa `Vue Language Server (Volar)` y habilita el motor de tipos basado en servicios para obtener la evaluación más precisa.
+- Otros IDE: si están basados en `@vue/language-server` u otro cliente Vue compatible con Volar, también deberían respetar `vueCompilerOptions.plugins`.
+
+Si estás desarrollando dentro de este repositorio en lugar de consumir el paquete publicado, usa `./tooling.cjs` en `vueCompilerOptions.plugins`.
+
+## 1. Inicializar el runtime host
+
+En el lado host:
+
+1. Registra los componentes host con `createProvider(...)`.
+2. Crea el receiver del canal de render con `createReceiver()`.
+3. Renderiza `HostedTree` y pásale `provider + receiver`.
+4. Inicia el runtime remoto (iframe/worker) y pasa `receiver.receive` a `run(...)`.
+
+Consulta: [Componentes del host](/es/host-components/) y [Resumen](/es/overview/).
+
+## 2. Inicializar el runtime remoto
+
+En el lado remoto:
+
+1. Crea la raíz remota con `createRemoteRoot(channel, options)`.
+2. Crea la app con `createRemoteRenderer(root).createApp(...)`.
+3. Define los componentes expuestos por el host mediante `defineRemoteComponent(...)`.
+4. Monta la raíz y la app dentro de `run(...)` y limpia en `release()`.
+
+Consulta: [Componentes remotos](/es/remote-components/) y [Resumen](/es/overview/).
+
+## 3. Conectar host y remoto
+
+Usa un transporte por canal, normalmente `@remote-ui/rpc`, y mantén un handshake estable:
+
+1. El host carga la URL del runtime remoto.
+2. El remoto expone `run/release`.
+3. El host llama a `run(channel, hostBridge)`.
+4. El remoto monta la UI a través del canal.
+5. La sesión termina con `release()`.
+
+Si prefieres un worker dedicado en lugar de transporte por iframe, consulta [Runtime de Web Worker](/es/web-workers/).
+Para una configuración específica de iframe, consulta [Integración con iframe](/es/integration/).
+Para handshakes explícitos de canal entre contenedores personalizados, consulta [Transporte MessagePort](/es/message-port-transport/).
+Para runtimes separados por proceso en Electron/Tauri, consulta [Transporte IPC de escritorio](/es/desktop-ipc-transport/).
+Para sesiones entre procesos o entre máquinas, consulta [Transporte Socket](/es/socket-transport/).
+Para harnesses locales y pruebas, también puedes ejecutar host + remoto en un solo runtime mediante [Transporte en memoria](/es/memory-transport/) (solo dev/test).
+Para una guía comparativa lado a lado, consulta [Comparación de transportes](/es/transport-comparison/).
+
+## 4. Validar fronteras
+
+Antes de seguir ampliando, verifica:
+
+- que el host controla la allowlist de componentes expuestos;
+- que las props/eventos que cruzan runtimes son serializables;
+- que el runtime remoto no depende de APIs directas del DOM del navegador.
+
+## Siguiente paso
+
+- Construir contratos host seguros: [Componentes del host](/es/host-components/).
+- Modelar la UI remota y sus fronteras: [Componentes remotos](/es/remote-components/).
+- Ver el modelo de runtime agnóstico al transporte: [Resumen](/es/overview/).
+- Ver el cableado específico de iframe: [Integración con iframe](/es/integration/).
+- Comparar modos de runtime lado a lado: [Comparación de transportes](/es/transport-comparison/).
+- Ver la topología y el ciclo de vida específicos de worker: [Runtime de Web Worker](/es/web-workers/).
+- Ver el modo de cableado explícito por canal: [Transporte MessagePort](/es/message-port-transport/).
+- Ver el modo de puente entre procesos de escritorio: [Transporte IPC de escritorio](/es/desktop-ipc-transport/).
+- Ver el modelo de puente de red/sesión: [Transporte Socket](/es/socket-transport/).
+- Ver la configuración de un solo runtime para dev/test: [Transporte en memoria](/es/memory-transport/).

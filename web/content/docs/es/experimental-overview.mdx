@@ -1,0 +1,38 @@
+---
+title: Resumen
+description: Capacidades experimentales de runtime y transporte para @omnicajs/vue-remote.
+template: doc
+---
+
+¿Necesitas opciones estables y listas para producción? Empieza por [Runtime y transportes](/es/overview/).
+
+## Qué es esta sección
+
+Esta sección cubre entornos técnicamente compatibles con la semántica de canal de `@omnicajs/vue-remote`, pero que todavía no tienen soporte total garantizado en este proyecto.
+
+La biblioteca puede seguir utilizándose ahí siempre que construyas y mantengas la capa de adapters.
+
+## Declaración de soporte
+
+Las capacidades experimentales son:
+
+- útiles para investigación, prototipos de plataforma y pilotos controlados;
+- válidas para integraciones personalizadas donde tu equipo controla la infraestructura del runtime;
+- no garantizan el mismo perfil de estabilidad que los transportes baseline.
+
+## Temas incluidos
+
+1. [Transporte BroadcastChannel](/es/broadcast-channel-transport/)
+2. [Runtime de SES y ShadowRealm](/es/ses-shadowrealm-runtime/)
+3. [Runtime de sandbox WASM](/es/wasm-sandbox-runtime/)
+
+Usa [Comparación experimental](/es/experimental-comparison/) para una selección lado a lado.
+
+## El contrato base no cambia
+
+Incluso en runtimes experimentales, mantén:
+
+1. un ciclo de vida `run/release` estable;
+2. disciplina estricta en los payloads del canal;
+3. una política de seguridad explícita en la frontera del adapter;
+4. teardown determinista y liberación de recursos.

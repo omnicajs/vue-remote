@@ -1,0 +1,28 @@
+---
+title: Limitaciones conocidas
+description: Huecos actuales y restricciones de comportamiento respecto a las expectativas del runtime nativo de Vue.
+template: doc
+---
+
+## Alcance
+
+Esta página documenta las limitaciones actuales del comportamiento del runtime de `@omnicajs/vue-remote` en comparación con el uso nativo de Vue en un único contexto DOM.
+
+## Limitaciones actuales
+
+1. Llamar métodos de componentes permitidos requiere usar `invoke` explícitamente; no existe una API declarativa de más alto nivel para llamadas de método.
+2. La asignación imperativa directa de props sobre nodos montados es limitada y no siempre segura; el camino principal sigue siendo el re-render reactivo.
+3. Las props de slots con scope desde componentes host no se entregan a los slots remotos.
+
+## Restricciones adicionales a tener en cuenta
+
+1. Las refs a elementos nativos en plantillas remotas apuntan a proxies de nodos remotos, no a elementos reales del DOM del navegador.
+2. `nextTick()` del lado remoto espera al commit correspondiente del host y falla si el teardown ocurre antes de que ese commit termine.
+3. Las garantías del transporte, como orden, reintentos, backpressure o semántica de reconexión, las define el adapter/runtime elegido, no solo la API central.
+4. Los errores entre runtimes se normalizan en la frontera, por lo que el contexto original del stack puede reducirse.
+
+## Documentación relacionada
+
+- [Componentes remotos](/es/remote-components/)
+- [Resumen](/es/overview/)
+- [Comparación de transportes](/es/transport-comparison/)

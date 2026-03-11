@@ -1,0 +1,45 @@
+---
+title: vue-remote
+description: Renderizado remoto controlado para aplicaciones Vue 3.
+template: splash
+next: false
+hero:
+  title: <span class="landing-kicker">Vue Remote</span><br/><span class="hero-title-line">Renderizador proxy de Vue</span><br/><span class="hero-title-line">para sandboxes aislados</span>
+  tagline: 'El host controla los componentes permitidos mientras las aplicaciones remotas renderizan mediante actualizaciones de canal sincronizadas.<br/><span class="hero-latest-chip">Última: <span data-docs-latest-version>desconocida</span></span>'
+  image:
+    html: '<div class="hero-logo-shell" aria-hidden="true"><svg class="hero-logo-mark" viewBox="52 68.1 56 46.9" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(0 80 87.6)"><g class="hero-logo-waves"><path class="hero-wave hero-wave-1" d="M71.97 78.68 A12 12 0 0 0 71.97 96.52"/><path class="hero-wave hero-wave-2" d="M67.96 74.22 A18 18 0 0 0 67.96 100.98"/><path class="hero-wave hero-wave-3" d="M63.94 69.77 A24 24 0 0 0 63.94 105.43"/><path class="hero-wave hero-wave-1" d="M88.03 78.68 A12 12 0 0 1 88.03 96.52"/><path class="hero-wave hero-wave-2" d="M92.04 74.22 A18 18 0 0 1 92.04 100.98"/><path class="hero-wave hero-wave-3" d="M96.06 69.77 A24 24 0 0 1 96.06 105.43"/></g></g><g class="hero-logo-v"><polygon class="hero-v-outer" points="61,73.1 80,111.1 99,73.1 90,73.1 80,93.1 70,73.1"/><polygon class="hero-v-inner" points="72,73.1 80,89.1 88,73.1 84.8,73.1 80,82.5 75.2,73.1"/></g></svg></div>'
+  actions:
+    - text: Introducción
+      link: /es/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: Resumen
+      link: /es/overview/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/omnicajs/vue-remote
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import DocsVersionsRuntime from '../../../components/DocsVersionsRuntime.astro';
+
+<div class="landing-feature-grid">
+  <div class="landing-links" data-docs-versions-link hidden>
+    <a data-docs-versions-anchor href="/es/versions/">Versiones anteriores</a>
+  </div>
+  <CardGrid>
+    <Card title="Componentes controlados por el host" icon="puzzle">
+      El host proporciona explícitamente el mapa de componentes Vue permitidos mediante <code>createProvider()</code>.
+    </Card>
+    <Card title="Props y eventos bidireccionales" icon="random">
+      Las props y los eventos emitidos viajan entre host y remoto a través de los canales del receiver y del remote root.
+    </Card>
+    <Card title="Transporte basado en canales" icon="comment-alt">
+      La sincronización del runtime se construye alrededor de canales de <code>@remote-ui/rpc</code> y de un transporte compatible con postMessage.
+    </Card>
+  </CardGrid>
+</div>
+
+<DocsVersionsRuntime locale="es" />

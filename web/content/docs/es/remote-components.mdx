@@ -1,0 +1,312 @@
+---
+title: Componentes remotos
+description: Cómo modelar la UI del lado remoto con defineRemoteComponent y etiquetas nativas HTML/SVG/MathML.
+template: doc
+---
+
+## ¿Qué es un componente remoto?
+
+Un componente remoto es un componente Vue renderizado dentro del runtime remoto aislado y sincronizado con el host mediante actualizaciones por canal.
+
+Los componentes remotos describen _qué_ debe renderizarse. Los componentes host, registrados en el host, deciden _cómo_ se renderiza eso en el DOM real.
+
+## Responsabilidad de host frente a remoto
+
+- `createProvider()` existe solo en el lado host.
+- En el lado remoto no hay paso de registro del provider.
+- El lado remoto construye árboles con:
+  - `defineRemoteComponent(...)` para componentes expuestos por el host;
+  - etiquetas nativas (`html`, `svg`, `mathml`) para la estructura local.
+
+## Dónde se requiere serialización
+
+El código Vue remoto en sí no está limitado a datos escalares.
+Dentro de los componentes remotos puedes usar patrones normales de Vue, como `ref`, `computed`, funciones locales u objetos ricos.
+
+Las reglas de serialización se aplican solo en las fronteras que se reflejan en el host:
+
+1. `defineRemoteComponent(...)`:
+   props/attrs y payloads emitidos que van hacia componentes host.
+2. Nodos nativos `html` / `svg` / `mathml`:
+   attrs/props e hijos que se sincronizan con el DOM del host.
+   En la práctica se comportan como mini componentes host incorporados.
+
+Para estas fronteras, usa datos compatibles con postMessage:
+
+- Escalares: `string`, `number`, `boolean`, `null`.
+- Arrays de valores serializables.
+- Objetos planos (POJO) con valores anidados serializables.
+- Combinaciones de los tres anteriores.
+
+Si un valor no es serializable, normalízalo antes de cruzar la frontera.
+
+## Utilidad `defineRemoteComponent`
+
+Usa `defineRemoteComponent` para definir un puente tipado hacia componentes host por nombre.
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const VDialog = defineRemoteComponent('VDialog', {
+  methods: {
+    open: defineRemoteMethod<[id: string], boolean>(),
+    close: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+La forma de objeto mantiene `emits`, `slots` con nombre y `methods` del host en un solo lugar:
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
+import { ref } from 'vue'
+
+const VInput = defineRemoteComponent('VInput', {
+  emits: {
+    'update:value': (value: string) => value.length >= 0,
+  },
+  slots: ['prefix', 'suffix'],
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[start: number, end: number], void>(),
+  },
+})
+
+const input = ref<InstanceType<typeof VInput> | null>(null)
+
+await input.value?.focus()
+await input.value?.setSelectionRange(0, 2)
+```
+
+`methods` admite tres estilos:
+
+- `string[]` para delegados simples `() => Promise<void>`.
+- objetos validador para tuplas de argumentos tipadas con validación en runtime antes de `invoke`.
+- `defineRemoteMethod<Args, Result>(validator?)` para argumentos tipados y resultados asíncronos tipados.
+
+Cuando `type` se modela como `SchemaType<...>`, `methods` pasa a ser consciente del esquema:
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+  type SchemaType,
+} from '@omnicajs/vue-remote/remote'
+
+type VInputSchema = SchemaType<
+  'VInput',
+  { modelValue: string },
+  {
+    focus: () => Promise<void>;
+    setSelectionRange: (start: number, end: number) => Promise<void>;
+  }
+>
+
+const VInputType = 'VInput' as VInputSchema
+
+const VInput = defineRemoteComponent(VInputType, {
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[number, number], void>(),
+    // @ts-expect-error method is not declared in schema
+    scrollToTop: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+En modo consciente del esquema:
+
+- los nombres de métodos quedan limitados por el esquema;
+- las tuplas de argumentos del validador deben coincidir con el método definido en el esquema;
+- las firmas incompatibles de `defineRemoteMethod<Args, Result>` fallan en tiempo de compilación.
+
+La forma posicional legacy sigue soportada:
+
+```ts
+const VCard = defineRemoteComponent('VCard', [], ['title'])
+```
+
+Nota de migración:
+
+- mantén la forma posicional para usos totalmente legacy;
+- pasa a la forma de objeto cuando quieras métodos `ref` tipados;
+- añade `SchemaType` solo cuando quieras validación en compilación de nombres y firmas permitidas.
+
+## Ejemplo: app remota con componentes host
+
+```ts
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+export async function mountRemote(channel: Parameters<typeof createRemoteRoot>[0]) {
+  const root = createRemoteRoot(channel, {
+    components: ['VButton', 'VInput'],
+  })
+
+  await root.mount()
+
+  const app = createRemoteRenderer(root).createApp(defineComponent({
+    setup () {
+      const text = ref('')
+
+      return () => h('section', { class: 'remote-form' }, [
+        h('h2', 'Remote form'),
+        h(VInput, {
+          value: text.value,
+          placeholder: 'Type here',
+          'onUpdate:value': (value: string) => text.value = value,
+        }),
+        h(VButton, { onClick: () => text.value = '' }, 'Clear'),
+      ])
+    },
+  }))
+
+  app.mount(root)
+}
+```
+
+## Ejemplo: SVG + MathML + componente host en un solo árbol
+
+```ts
+import { defineComponent, h } from 'vue'
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VCard = defineRemoteComponent('VCard', [], ['title'])
+
+export default defineComponent({
+  setup () {
+    return () => h('article', { class: 'metrics' }, [
+      h('svg', { viewBox: '0 0 120 24', width: '100%', height: '24' }, [
+        h('path', { d: 'M0 18 L20 12 L40 14 L60 6 L80 10 L100 4 L120 8', stroke: 'currentColor', fill: 'none' }),
+      ]),
+      h('math', { display: 'block' }, [
+        h('mrow', [h('mi', 'x'), h('mo', '='), h('mn', '42')]),
+      ]),
+      h(VCard, {}, {
+        title: () => 'Summary',
+        default: () => 'Rendered by host, composed by remote.',
+      }),
+    ])
+  },
+})
+```
+
+## Ejemplos con Vue SFC
+
+### SFC con componentes host
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const text = ref('')
+</script>
+
+<template>
+  <section class="remote-form">
+    <h2>Remote form</h2>
+    <VInput
+      :value="text"
+      placeholder="Type here"
+      @update:value="text = $event"
+    />
+    <VButton @click="text = ''">Clear</VButton>
+  </section>
+</template>
+```
+
+### SFC con HTML/SVG/MathML nativo y componentes host
+
+```vue
+<script setup lang="ts">
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VCard = defineRemoteComponent('VCard', [], ['title'])
+</script>
+
+<template>
+  <article class="metrics">
+    <svg viewBox="0 0 120 24" width="100%" height="24">
+      <path d="M0 18 L20 12 L40 14 L60 6 L80 10 L100 4 L120 8" stroke="currentColor" fill="none" />
+    </svg>
+
+    <math display="block">
+      <mrow>
+        <mi>x</mi>
+        <mo>=</mo>
+        <mn>42</mn>
+      </mrow>
+    </math>
+
+    <VCard>
+      <template #title>Summary</template>
+      Rendered by host, composed by remote.
+    </VCard>
+  </article>
+</template>
+```
+
+## Advertencia sobre `ref` en el lado remoto
+
+Para elementos nativos `html` / `svg` / `mathml` en plantillas remotas, las refs no apuntan a nodos reales del DOM del navegador.
+Apuntan a nodos del árbol remoto, es decir, objetos proxy como `RemoteComponent` y tipos de nodo relacionados.
+
+```vue
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+
+const el = ref<unknown>(null)
+
+onMounted(() => {
+  // Not HTMLElement/SVGElement/MathMLElement.
+  // This is a remote tree node proxy.
+  console.log(el.value)
+})
+</script>
+
+<template>
+  <div ref="el" />
+</template>
+```
+
+Por eso, muchas APIs de DOM habituales no están disponibles en refs remotas,
+como `getBoundingClientRect`, `classList`, `querySelector` directo, etc.
+
+## Bibliotecas DOM en el runtime remoto
+
+La mayoría de bibliotecas que requieren acceso al DOM real no funcionarán en el lado remoto por la misma razón:
+el runtime remoto manipula nodos proxy del árbol, no elementos reales del navegador.
+
+Si necesitas una biblioteca de ese tipo:
+
+- intégrala en el lado host, dentro de un componente host;
+- expón una API estrecha y serializable mediante props/eventos;
+- mantén el lado remoto centrado en estado declarativo e intención.

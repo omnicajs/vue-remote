@@ -1,0 +1,82 @@
+---
+title: Transporte BroadcastChannel
+description: Transporte experimental local al navegador sobre BroadcastChannel para topologías de runtime orientadas a observadores.
+template: doc
+---
+
+## Estado experimental
+
+Este modo es experimental en `@omnicajs/vue-remote`.
+Puede funcionar para escenarios locales al navegador, pero actualmente no se ofrece soporte total ni garantías a largo plazo.
+
+## Dónde encaja
+
+- diagnósticos entre varias pestañas o ventanas;
+- clientes locales de observación o debugging;
+- orquestación ligera en navegador donde no se requiere una propiedad fuerte entre peers.
+
+## Advertencia principal
+
+`BroadcastChannel` es pub/sub, no punto a punto por defecto.
+Debes implementar delimitación de sesión y correlación de mensajes en tu adapter.
+
+## Boceto mínimo del adapter
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+type Envelope = {
+  sessionId: string;
+  sender: string;
+  payload: unknown;
+}
+
+export function fromBroadcastChannel(
+  channelName: string,
+  sessionId: string,
+  sender: string
+): MessageEndpoint {
+  const channel = new BroadcastChannel(channelName)
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onMessage = (event: MessageEvent<Envelope>) => {
+    const data = event.data
+    if (!data) return
+    if (data.sessionId !== sessionId) return
+    if (data.sender === sender) return
+    const wrapped = { data: data.payload } as MessageEvent
+    for (const listener of listeners) listener(wrapped)
+  }
+
+  channel.addEventListener('message', onMessage as EventListener)
+
+  return {
+    postMessage(message: any) {
+      channel.postMessage({ sessionId, sender, payload: message } satisfies Envelope)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      channel.removeEventListener('message', onMessage as EventListener)
+      channel.close()
+    },
+  }
+}
+```
+
+## Recomendaciones
+
+1. Usa fronteras explícitas de `sessionId`.
+2. Evita bucles de eco propio mediante la identidad del emisor.
+3. No trates BroadcastChannel como una frontera de seguridad.
+4. Prefiere transportes baseline para sesiones de extensiones críticas para producción.
+
+## Documentación relacionada
+
+- [Resumen experimental](/es/experimental-overview/)
+- [Comparación experimental](/es/experimental-comparison/)
+- [Transporte MessagePort](/es/message-port-transport/)

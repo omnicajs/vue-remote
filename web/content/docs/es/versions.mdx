@@ -1,0 +1,21 @@
+---
+title: Versiones
+description: Instantáneas publicadas de la documentación para versiones anteriores.
+---
+
+import DocsVersionsRuntime from '../../../components/DocsVersionsRuntime.astro';
+
+# Versiones
+
+Documentación actual: <a data-docs-latest-link href="/es/">Abrir latest</a> (<span data-docs-latest-version>desconocida</span>).
+
+Usa esta página para abrir instantáneas de la documentación para versiones anteriores a `latest`.
+
+<div class="docs-versions-page" data-docs-versions-page>
+  <p>Versión latest en este repositorio: <strong data-docs-versions-latest>desconocida</strong>.</p>
+  <p data-docs-versions-loading>Cargando versiones...</p>
+  <p data-docs-versions-empty hidden>Todavía no se han publicado versiones anteriores.</p>
+  <ul data-docs-versions-list hidden></ul>
+</div>
+
+<DocsVersionsRuntime locale="es" />

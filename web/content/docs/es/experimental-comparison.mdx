@@ -1,0 +1,31 @@
+---
+title: Comparación
+description: Comparación lado a lado de capacidades experimentales de runtime y transporte.
+template: doc
+---
+
+## Matriz comparativa
+
+| Capacidad | Disponibilidad del runtime | Potencial de aislamiento | Complejidad de integración | Mejor encaje | Estado del soporte |
+| --- | --- | --- | --- | --- | --- |
+| `BroadcastChannel` | 🟢 (navegadores modernos) | 🟡 (acotado al contexto, no es una frontera de seguridad) | 🟡 | Diagnóstico entre pestañas/ventanas y tooling de observación | Experimental, sin garantía de soporte total |
+| `SES/ShadowRealm` | 🟡 (depende de la plataforma y del tooling) | 🟢 (modelo de sandbox orientado a capacidades) | 🔴 | Investigación de runtimes con alto control e integraciones piloto | Experimental, sin garantía de soporte total |
+| `WASM Sandbox` | 🟡 (depende del stack de sandbox) | 🟢 (fuerte potencial de frontera entre guest y host) | 🔴 | I+D avanzada de plataforma y modelos de ejecución controlados | Experimental, sin garantía de soporte total |
+
+Leyenda:
+- `Integration complexity`: `🟢` baja, `🟡` media, `🔴` alta.
+- `Runtime availability` e `Isolation potential`: `🟢` postura por defecto más fuerte, `🟡` dependiente del contexto.
+- Las filas experimentales indican potencial de capacidad, no compromisos de soporte baseline.
+
+## Postura de uso recomendada
+
+1. Valida primero el comportamiento del adapter en bancos de prueba controlados.
+2. Conserva rutas de fallback hacia transportes baseline.
+3. Llévalo a producción solo tras validar explícitamente protocolo y ciclo de vida.
+
+## Documentación relacionada
+
+- [Resumen experimental](/es/experimental-overview/)
+- [Transporte BroadcastChannel](/es/broadcast-channel-transport/)
+- [Runtime de SES y ShadowRealm](/es/ses-shadowrealm-runtime/)
+- [Runtime de sandbox WASM](/es/wasm-sandbox-runtime/)
