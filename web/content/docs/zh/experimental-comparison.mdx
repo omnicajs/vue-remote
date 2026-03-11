@@ -1,0 +1,31 @@
+---
+title: 对比
+description: 对实验性运行时与传输能力进行横向对比。
+template: doc
+---
+
+## 对比矩阵
+
+| 能力 | 运行时可用性 | 隔离潜力 | 集成复杂度 | 最适合 | 支持状态 |
+| --- | --- | --- | --- | --- | --- |
+| `BroadcastChannel` | 🟢（现代浏览器） | 🟡（受上下文约束，不是安全边界） | 🟡 | 多标签页/窗口诊断与观察工具 | 实验性，不保证完整支持 |
+| `SES/ShadowRealm` | 🟡（依赖平台和工具链） | 🟢（面向能力的 sandbox 模型） | 🔴 | 高控制力运行时研究与试点集成 | 实验性，不保证完整支持 |
+| `WASM Sandbox` | 🟡（依赖具体 sandbox 栈） | 🟢（具备较强的 guest-host 边界潜力） | 🔴 | 高级平台研发与受控执行模型 | 实验性，不保证完整支持 |
+
+说明：
+- `集成复杂度`：`🟢` 低，`🟡` 中，`🔴` 高。
+- `运行时可用性` 与 `隔离潜力`：`🟢` 默认更强，`🟡` 取决于上下文。
+- 实验性条目代表能力潜力，而不是基线支持承诺。
+
+## 推荐使用姿势
+
+1. 先在受控测试环境中验证 adapter 的行为。
+2. 保留回退到基线传输的路径。
+3. 只有在协议和生命周期经过明确验证后，再考虑进入生产。
+
+## 相关文档
+
+- [实验概览](/zh/experimental-overview/)
+- [BroadcastChannel 传输](/zh/broadcast-channel-transport/)
+- [SES 与 ShadowRealm 运行时](/zh/ses-shadowrealm-runtime/)
+- [WASM 沙箱运行时](/zh/wasm-sandbox-runtime/)

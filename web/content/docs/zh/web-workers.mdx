@@ -1,0 +1,266 @@
+---
+title: Web Worker 运行时
+description: 在专用 Web Worker 中运行远程 Vue 运行时，并通过宿主控制的通道同步 UI。
+template: doc
+---
+
+## 为什么会有这种模式
+
+`@omnicajs/vue-remote` 并不要求只能通过 iframe 集成。
+如果你的扩展模型不需要可见的远程文档，那么专用 `Web Worker` 完全可以承载远程渲染逻辑，同时仍然通过相同的通道合约驱动宿主 UI。
+
+当你希望以下能力时，这种模式会很有帮助：
+
+- 与宿主主线程执行上下文隔离；
+- 获得不依赖隐藏 iframe 生命周期的可预测运行时拓扑；
+- 未来可以演化为进程桥或 socket 桥的传输方式。
+
+## 运行时拓扑
+
+```text
+Host Vue App (main thread)
+  -> createReceiver()
+  -> HostedTree(provider, receiver)
+  -> Endpoint(fromWebWorker(worker))
+  -> call.run(receiver.receive, hostBridge)
+
+Remote Vue App (dedicated worker)
+  -> createEndpoint(self-as-MessageEndpoint)
+  -> expose run/release
+  -> createRemoteRoot(channel)
+  -> createRemoteRenderer(root).createApp(...)
+```
+
+## 宿主侧示例
+
+```ts
+import type { Channel } from '@omnicajs/vue-remote/host'
+import type { Endpoint } from '@remote-ui/rpc'
+
+import { createApp, defineComponent, h, onBeforeUnmount, onMounted } from 'vue'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createEndpoint, fromWebWorker } from '@remote-ui/rpc'
+
+import VSignalBadge from './components/VSignalBadge.vue'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+type WorkerApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const provider = createProvider({
+  VSignalBadge,
+})
+
+export function mountWorkerRemote() {
+  return createApp(defineComponent({
+    setup() {
+      const receiver = createReceiver()
+      const worker = new Worker(new URL('./remote.worker.ts', import.meta.url), { type: 'module' })
+
+      let endpoint: Endpoint<WorkerApi> | null = null
+
+      onMounted(() => {
+        endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+        endpoint.call.run(receiver.receive, {
+          acknowledge(id: string) {
+            console.info('Acknowledged signal', id)
+          },
+        })
+      })
+
+      onBeforeUnmount(() => {
+        endpoint?.call.release()
+        endpoint?.terminate()
+      })
+
+      return () => h(HostedTree, { provider, receiver })
+    },
+  }))
+}
+```
+
+## Worker 侧示例
+
+`remote.worker.ts`:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+
+import { createEndpoint, release, retain } from '@remote-ui/rpc'
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+const endpoint = createEndpoint(self as unknown as MessageEndpoint)
+
+const VSignalBadge = defineRemoteComponent<'VSignalBadge', {
+  tone: 'neutral' | 'success' | 'warning';
+  label: string;
+}>('VSignalBadge', [
+  'dismiss',
+] as unknown as {
+  dismiss: (id: string) => true;
+})
+
+let onRelease = () => {}
+
+endpoint.expose({
+  async run(channel: Channel, bridge: HostBridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, {
+      components: ['VSignalBadge'],
+    })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        const signalId = ref('signal-42')
+        const visible = ref(true)
+
+        return () => visible.value
+          ? h(VSignalBadge, {
+            tone: 'warning',
+            label: 'Background sync is delayed',
+            onDismiss: (id: string) => {
+              visible.value = false
+              bridge.acknowledge(id || signalId.value)
+            },
+          })
+          : h('p', 'All clear')
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+
+  release() {
+    onRelease()
+  },
+})
+```
+
+## 通过 HTTP URL 加载预构建扩展
+
+如果你的扩展已经构建完成并作为静态资源发布，那么你可以通过 URL 加载 worker 代码。
+
+### 同源 URL：直接加载 worker 脚本
+
+当宿主应用与扩展资源位于同一 origin 时使用这种方式。
+
+```ts
+const worker = new Worker('/extensions/acme/remote.worker.js', {
+  type: 'module',
+})
+
+const endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+这是最简单的方式，通常也是生产环境中最稳定的选择。
+
+### 跨源 URL：同源 bootstrap + 动态导入
+
+对于跨源资源，可以先启动一个本地 bootstrap worker，再让它通过 CORS 导入远程模块。
+
+宿主侧：
+
+```ts
+import { createEndpoint, fromWebWorker } from '@remote-ui/rpc'
+
+type WorkerApi = {
+  ready(): boolean;
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const extensionUrl = encodeURIComponent('https://extensions.example-cdn.com/acme/remote.worker.js')
+const worker = new Worker(`/workers/remote-bootstrap.worker.js?extension=${extensionUrl}`, {
+  type: 'module',
+})
+
+const endpoint = createEndpoint<WorkerApi>(fromWebWorker(worker))
+await endpoint.call.ready()
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+`/workers/remote-bootstrap.worker.js`:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+import type { Channel } from '@omnicajs/vue-remote/host'
+import { createEndpoint } from '@remote-ui/rpc'
+
+type HostBridge = {
+  acknowledge(id: string): void;
+}
+
+type ExtensionApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const extensionUrl = new URL(self.location.href).searchParams.get('extension')
+if (!extensionUrl) {
+  throw new Error('Missing extension URL')
+}
+
+const mod = await import(/* @vite-ignore */ extensionUrl) as ExtensionApi
+
+const endpoint = createEndpoint<{
+  ready(): boolean;
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}>(self as unknown as MessageEndpoint)
+
+endpoint.expose({
+  ready: () => true,
+  run: mod.run,
+  release: mod.release,
+})
+```
+
+跨源要求：
+
+- worker bootstrap 必须与宿主同源；
+- 远程 URL 必须允许模块加载所需的 CORS；
+- CSP 必须允许所配置的 `worker-src` 和 `script-src`；
+- 启动前应通过 allowlist 或签名策略校验扩展 URL。
+
+## Worker 模式的设计约束
+
+1. 远程运行时中不能直接访问浏览器 DOM。
+   Worker 代码应保持声明式，并通过 props、events 和 methods 表达意图。
+2. 保持跨边界 payload 可序列化。
+   任何不可序列化的值都应被视为宿主/远程边界上的合约问题。
+3. 把渲染传输与业务传输分开。
+   `channel` 负责 UI 树同步，`hostBridge` 负责产品行为。
+
+## 运行注意事项
+
+- 对于 `SharedWorker` 或自定义多 peer 拓扑，优先使用基于 `MessagePort` 的握手，并在端口之上构建 endpoint。
+- 保持 `run/release` 对称且幂等，以简化生命周期管理和未来的调试器集成。
+- 如果之后要把 worker 逻辑迁移到 socket 或独立运行时服务，先保持相同的通道语义，再优化传输细节。
+
+## 相关文档
+
+- [概览](/zh/overview/)
+- [快速开始](/zh/getting-started/)
+- [Iframe 集成](/zh/integration/)
+- [远程组件](/zh/remote-components/)

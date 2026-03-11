@@ -1,0 +1,38 @@
+---
+title: 概览
+description: "@omnicajs/vue-remote 的实验性运行时与传输能力。"
+template: doc
+---
+
+如果你需要稳定且可用于生产的方案，请先阅读 [运行时与传输](/zh/overview/)。
+
+## 本节内容
+
+本节覆盖一些在技术上兼容 `@omnicajs/vue-remote` 通道语义、但当前项目尚未提供完整支持保证的环境。
+
+只要你自己构建并维护 adapter 层，库依然可以在这些环境中使用。
+
+## 支持说明
+
+实验能力意味着：
+
+- 适合研究、平台原型和受控试点项目；
+- 适用于由你团队掌控运行时基础设施的自定义集成；
+- 不保证拥有与基线传输相同的稳定性。
+
+## 包含的主题
+
+1. [BroadcastChannel 传输](/zh/broadcast-channel-transport/)
+2. [SES 与 ShadowRealm 运行时](/zh/ses-shadowrealm-runtime/)
+3. [WASM 沙箱运行时](/zh/wasm-sandbox-runtime/)
+
+若需横向对比，请查看 [实验能力对比](/zh/experimental-comparison/)。
+
+## 基线合约保持不变
+
+即使在实验性运行时中，也应保持：
+
+1. 稳定的 `run/release` 生命周期；
+2. 严格的通道 payload 纪律；
+3. adapter 边界上的显式安全策略；
+4. 可预测的 teardown 与资源释放。

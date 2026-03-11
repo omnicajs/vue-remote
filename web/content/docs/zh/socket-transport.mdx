@@ -1,0 +1,113 @@
+---
+title: Socket 传输
+description: 使用相同的通道语义，通过 socket 桥连接宿主与远程运行时。
+template: doc
+---
+
+## 什么时候使用 Socket 传输
+
+当宿主与远程不在同一浏览器上下文中，并且你需要网络边界时，Socket 传输很有用：
+
+- 远程运行时运行在另一个进程或另一台机器上；
+- 你需要用于扩展开发的实时远程会话；
+- 你希望调试器或观察者客户端可以独立连接。
+
+## 定位
+
+`@omnicajs/vue-remote` 把渲染同步定义为通道合约。
+Socket 传输只是把这份合约通过网络传递的一种实现选择。
+
+相较于 iframe 或 worker 传输，这种模式会带来更多运行责任：
+
+- 跨重连的会话生命周期；
+- 认证与能力检查；
+- 消息顺序与幂等性；
+- payload 限制与敏感字段脱敏策略。
+
+## 高层拓扑
+
+```text
+Host Runtime
+  -> createReceiver()
+  -> createEndpoint(fromSocket(...))
+  -> call.run(receiver.receive, hostBridge)
+
+Socket Gateway
+  -> session routing (host <-> remote)
+  -> auth + protocol version checks
+
+Remote Runtime
+  -> createEndpoint(fromSocket(...))
+  -> expose run/release
+```
+
+## 基于 WebSocket 的最小 `MessageEndpoint` 包装器
+
+`@remote-ui/rpc` 可以与实现了 `MessageEndpoint` 的对象协作。
+你可以把 WebSocket 适配成这种形状：
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+export function fromSocket(socket: WebSocket): MessageEndpoint {
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  socket.addEventListener('message', (event) => {
+    const message = JSON.parse(event.data as string)
+    const wrapped = { data: message } as MessageEvent
+    for (const listener of listeners) {
+      listener(wrapped)
+    }
+  })
+
+  return {
+    postMessage(message: any) {
+      socket.send(JSON.stringify(message))
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') {
+        listeners.add(listener)
+      }
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') {
+        listeners.delete(listener)
+      }
+    },
+    terminate() {
+      socket.close()
+    },
+  }
+}
+```
+
+之后就可以像其他传输方式一样接线：
+
+```ts
+const socket = new WebSocket('wss://runtime.example.com/remote-session?sessionId=abc')
+const endpoint = createEndpoint<RemoteApi>(fromSocket(socket))
+
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## 生产注意事项
+
+1. 在执行 `run(...)` 之前对每个会话进行认证。
+2. 对协议进行版本化，并拒绝不兼容客户端。
+3. 在网关层强制执行顺序与关联 ID。
+4. 加入带有显式会话恢复规则的重连策略。
+5. 对 payload 大小进行限制，并对敏感字段做脱敏。
+
+## 推荐适用范围
+
+- 适合高级扩展平台和远程调试场景。
+- 对于基础的单页宿主加扩展方案来说，通常过于复杂。
+
+如果场景完全在浏览器内，优先考虑 [Web Worker 运行时](/zh/web-workers/) 或 iframe 传输。
+
+## 相关文档
+
+- [概览](/zh/overview/)
+- [Iframe 集成](/zh/integration/)
+- [Web Worker 运行时](/zh/web-workers/)
+- [内存传输](/zh/memory-transport/)

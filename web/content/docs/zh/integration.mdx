@@ -1,0 +1,166 @@
+---
+title: Iframe 集成
+description: 通过 iframe 与 postMessage 传输集成宿主和远程运行时。
+template: doc
+---
+
+如果你想先理解与传输无关的架构，请从 [概览](/zh/overview/) 开始。
+
+## 为什么选择 iframe 模式
+
+对于隔离的远程扩展，iframe 传输是浏览器中的基线方案：
+
+- 宿主与远程运行在不同的浏览器上下文中；
+- 通信通过 `@remote-ui/rpc` 使用 `postMessage` 完成；
+- 宿主通过 provider 和 receiver 边界保持对渲染的控制。
+
+## 宿主侧示例
+
+```ts
+import type { Channel } from '@omnicajs/vue-remote/host'
+import type { Endpoint } from '@remote-ui/rpc'
+
+import { createApp, defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createEndpoint, fromIframe } from '@remote-ui/rpc'
+
+import VButton from './components/VButton.vue'
+import VInput from './components/VInput.vue'
+
+type HostBridge = {
+  track(event: { type: string; payload: Record<string, unknown> }): void;
+}
+
+type RemoteApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const provider = createProvider({ VButton, VInput })
+
+export function mountIframeRemote(remoteUrl: string, bridge: HostBridge) {
+  return createApp(defineComponent({
+    setup() {
+      const iframe = ref<HTMLIFrameElement | null>(null)
+      const receiver = createReceiver()
+      let endpoint: Endpoint<RemoteApi> | null = null
+
+      onMounted(() => {
+        endpoint = createEndpoint<RemoteApi>(fromIframe(iframe.value as HTMLIFrameElement, {
+          terminate: false,
+        }))
+      })
+
+      onBeforeUnmount(() => endpoint?.call.release())
+
+      return () => [
+        h(HostedTree, { provider, receiver }),
+        h('iframe', {
+          ref: iframe,
+          src: remoteUrl,
+          style: { display: 'none' },
+          onLoad: () => endpoint?.call.run(receiver.receive, bridge),
+        }),
+      ]
+    },
+  }))
+}
+```
+
+## 远程侧示例
+
+```ts
+import { createEndpoint, fromInsideIframe, release, retain } from '@remote-ui/rpc'
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+type HostBridge = {
+  track(event: { type: string; payload: Record<string, unknown> }): void;
+}
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const endpoint = createEndpoint(fromInsideIframe())
+let onRelease = () => {}
+
+endpoint.expose({
+  async run(channel, bridge: HostBridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, {
+      components: ['VButton', 'VInput'],
+    })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        const text = ref('')
+        return () => [
+          h(VInput, {
+            value: text.value,
+            'onUpdate:value': (value: string) => text.value = value,
+          }),
+          h(VButton, {
+            onClick: () => bridge.track({
+              type: 'remote.clear',
+              payload: { value: text.value },
+            }),
+          }, 'Clear'),
+        ]
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+
+  release() {
+    onRelease()
+  },
+})
+```
+
+## Iframe 启动顺序
+
+1. 宿主渲染 `HostedTree` 并创建 `receiver`。
+2. 宿主把远程 URL 加载到隐藏 iframe 中。
+3. 远程 iframe 暴露 `run/release`。
+4. 当 iframe `load` 后，宿主调用 `run(receiver.receive, hostBridge)`。
+5. 远程侧挂载并通过通道同步树更新。
+6. 在 teardown 时宿主调用 `release()`。
+
+## Iframe 安全检查清单
+
+1. 限制 origin：
+   优先使用明确的目标 origin，而不是宽泛的通配符。
+2. 校验远程 URL：
+   对扩展运行时来源使用 allowlist。
+3. 加固 iframe 属性：
+   按照你的信任模型配置 `sandbox` 能力。
+4. 落实 CSP / frame 策略：
+   让 `frame-src`/`child-src` 与批准的扩展 origin 保持一致。
+
+## 常见陷阱
+
+- 在 iframe 加载完成前调用 `run(...)`。
+- 忘记在 provider 中注册宿主组件。
+- 跨边界传递不可序列化的 payload。
+- 忘记调用 `release()`，导致 retained 引用泄漏。
+
+## 相关文档
+
+- [概览](/zh/overview/)
+- [传输方式对比](/zh/transport-comparison/)
+- [Web Worker 运行时](/zh/web-workers/)
+- [Window 传输](/zh/window-transport/)

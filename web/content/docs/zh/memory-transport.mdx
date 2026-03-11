@@ -1,0 +1,95 @@
+---
+title: 内存传输
+description: 通过直接传递 receiver 通道在同一运行时中运行宿主和远程，适用于开发与测试脚手架。
+template: doc
+---
+
+## 这种模式是什么
+
+内存传输意味着宿主与远程运行在同一个 JavaScript 运行时中。
+远程侧不再通过 `iframe` 或 `worker` 传输，而是直接接收宿主通道：
+
+```ts
+const receiver = createReceiver()
+const root = createRemoteRoot(receiver.receive)
+```
+
+这种接线方式与集成测试中使用的模型相同。
+
+## 适用场景
+
+可用于：
+
+- 本地开发运行时外壳；
+- 集成测试和单元测试工作台；
+- 快速诊断渲染同步行为。
+
+## 不适用于生产隔离
+
+**不建议**把内存传输用作生产环境中的扩展隔离方案。
+
+原因：
+
+- 没有 sandbox 边界；
+- 没有进程或线程隔离；
+- 对真实传输行为，例如延迟、序列化和异步链路下的顺序，反馈不足；
+- 如果远程代码行为异常，影响范围更大。
+
+应把它视为开发和测试拓扑，而不是安全边界。
+
+## 最小接线示例
+
+```ts
+import { createApp, defineComponent, h } from 'vue'
+import { createReceiver } from '@omnicajs/vue-remote/host'
+import { HostedTree, createProvider } from '@omnicajs/vue-remote/host'
+import { createRemoteRoot, createRemoteRenderer, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+import VSignalBadge from './components/VSignalBadge.vue'
+
+const provider = createProvider({ VSignalBadge })
+const receiver = createReceiver()
+
+// Host app (same runtime)
+createApp(defineComponent({
+  setup() {
+    return () => h(HostedTree, { provider, receiver })
+  },
+})).mount('#host')
+
+// Remote app (same runtime)
+const root = createRemoteRoot(receiver.receive, {
+  components: ['VSignalBadge'],
+})
+
+const VRemoteSignal = defineRemoteComponent<'VSignalBadge', {
+  tone: 'neutral' | 'success' | 'warning';
+  label: string;
+}>('VSignalBadge')
+
+const remote = createRemoteRenderer(root).createApp(defineComponent({
+  setup() {
+    return () => h(VRemoteSignal, {
+      tone: 'success',
+      label: 'In-memory transport is active',
+    })
+  },
+}))
+
+remote.mount(root)
+await root.mount()
+await receiver.flush()
+```
+
+## 实际注意事项
+
+1. 为 worker、iframe 和网络模式保留独立的传输专项测试。
+2. 不要用内存模式验证安全假设。
+3. 可以用它快速迭代，但最终仍应在生产传输上验证。
+
+## 相关文档
+
+- [概览](/zh/overview/)
+- [快速开始](/zh/getting-started/)
+- [Iframe 集成](/zh/integration/)
+- [Web Worker 运行时](/zh/web-workers/)

@@ -1,0 +1,113 @@
+---
+title: 宿主组件
+description: 什么是宿主组件，以及哪些数据合约可以安全地通过 RPC/postMessage 传递。
+template: doc
+---
+
+## 什么是宿主组件？
+
+宿主组件是一个存在于宿主应用中的普通 Vue 组件，并注册在
+`createProvider({ ... })` 中。
+
+远程应用只能渲染宿主通过名称显式暴露出来的组件。
+这正是 `@omnicajs/vue-remote` 的主要控制边界。
+
+## 为什么这很重要
+
+- 宿主控制允许的 UI 表面。
+- 远程代码不能挂载任意本地组件。
+- 共享的 UI 合约变得显式，包括名称、props、events 和 slots。
+
+## 数据合约要求
+
+所有传递给宿主组件的 props，以及从宿主发回远程的事件 payload，都应能安全地通过 RPC 或 `postMessage` 序列化。
+
+推荐使用：
+
+- 标量：`string`、`number`、`boolean`、`null`。
+- 可序列化值组成的数组。
+- 带有可序列化嵌套值的普通对象（POJO）。
+- 以上几种的组合。
+
+在 props 和事件 payload 中应避免：
+
+- 函数。
+- 类实例。
+- DOM 节点。
+- Symbol。
+- 任何自定义的不可序列化运行时对象。
+
+## 示例：宿主按钮
+
+```ts
+import { defineComponent, h } from 'vue'
+
+export default defineComponent({
+  name: 'VButton',
+  props: {
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    variant: {
+      type: String as () => 'primary' | 'secondary',
+      default: 'primary',
+    },
+  },
+  emits: ['click'],
+  setup (props, { emit, slots, attrs }) {
+    return () => h('button', {
+      ...attrs,
+      disabled: props.disabled,
+      class: ['btn', `btn-${props.variant}`],
+      onClick: () => emit('click'),
+    }, slots.default?.())
+  },
+})
+```
+
+## 示例：宿主输入框
+
+```ts
+import { defineComponent, h } from 'vue'
+
+export default defineComponent({
+  name: 'VInput',
+  props: {
+    value: {
+      type: String,
+      default: '',
+    },
+    placeholder: {
+      type: String,
+      default: '',
+    },
+  },
+  emits: ['update:value'],
+  setup (props, { emit, attrs }) {
+    return () => h('input', {
+      ...attrs,
+      value: props.value,
+      placeholder: props.placeholder,
+      onInput: (event: Event) => emit(
+        'update:value',
+        (event.target as HTMLInputElement).value
+      ),
+    })
+  },
+})
+```
+
+## Provider 注册
+
+```ts
+import { createProvider } from '@omnicajs/vue-remote/host'
+
+import VButton from './VButton'
+import VInput from './VInput'
+
+export const provider = createProvider({
+  VButton,
+  VInput,
+})
+```

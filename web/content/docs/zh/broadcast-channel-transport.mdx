@@ -1,0 +1,82 @@
+---
+title: BroadcastChannel 传输
+description: 面向观察者式运行时拓扑的实验性浏览器内 BroadcastChannel 传输方案。
+template: doc
+---
+
+## 实验状态
+
+这种模式在 `@omnicajs/vue-remote` 中仍属实验性能力。
+它可以用于浏览器本地场景，但当前不提供完整支持和长期保证。
+
+## 适用场景
+
+- 多标签页或多窗口诊断；
+- 本地观察者或调试客户端；
+- 不要求强 peer 所有权的轻量浏览器内编排。
+
+## 核心注意点
+
+`BroadcastChannel` 天生是发布/订阅模型，而不是点对点模型。
+你必须在 adapter 中自行实现会话范围和消息关联机制。
+
+## 最小 adapter 草图
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+type Envelope = {
+  sessionId: string;
+  sender: string;
+  payload: unknown;
+}
+
+export function fromBroadcastChannel(
+  channelName: string,
+  sessionId: string,
+  sender: string
+): MessageEndpoint {
+  const channel = new BroadcastChannel(channelName)
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onMessage = (event: MessageEvent<Envelope>) => {
+    const data = event.data
+    if (!data) return
+    if (data.sessionId !== sessionId) return
+    if (data.sender === sender) return
+    const wrapped = { data: data.payload } as MessageEvent
+    for (const listener of listeners) listener(wrapped)
+  }
+
+  channel.addEventListener('message', onMessage as EventListener)
+
+  return {
+    postMessage(message: any) {
+      channel.postMessage({ sessionId, sender, payload: message } satisfies Envelope)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      channel.removeEventListener('message', onMessage as EventListener)
+      channel.close()
+    },
+  }
+}
+```
+
+## 使用建议
+
+1. 使用明确的 `sessionId` 边界。
+2. 通过发送者身份避免消息自回环。
+3. 不要把 BroadcastChannel 当作安全边界。
+4. 对生产关键扩展会话，优先选择基线传输。
+
+## 相关文档
+
+- [实验概览](/zh/experimental-overview/)
+- [实验能力对比](/zh/experimental-comparison/)
+- [MessagePort 传输](/zh/message-port-transport/)

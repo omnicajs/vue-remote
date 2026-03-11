@@ -1,0 +1,312 @@
+---
+title: 远程组件
+description: 如何使用 defineRemoteComponent 和原生 HTML/SVG/MathML 标签来建模远程侧 UI。
+template: doc
+---
+
+## 什么是远程组件？
+
+远程组件是在隔离的远程运行时中渲染、并通过通道更新同步到宿主的 Vue 组件。
+
+远程组件描述“要渲染什么”，而宿主组件，也就是注册在宿主侧的组件，决定“在真实 DOM 中如何渲染”。
+
+## 宿主与远程的职责划分
+
+- `createProvider()` 只存在于宿主侧。
+- 在远程侧，没有 provider 注册这一步。
+- 远程侧通过以下方式构建树：
+  - 使用 `defineRemoteComponent(...)` 引用宿主暴露的组件；
+  - 使用原生标签 `html`、`svg`、`mathml` 构建本地结构。
+
+## 何时需要序列化
+
+远程 Vue 代码本身并不局限于标量数据。
+在远程组件内部，你可以正常使用 Vue 模式，例如 `ref`、`computed`、本地函数和复杂对象。
+
+序列化规则只在那些会镜像到宿主侧的边界上生效：
+
+1. `defineRemoteComponent(...)`:
+   传给宿主组件的 props、attrs 和发出的 payload。
+2. 原生 `html` / `svg` / `mathml` 节点：
+   attrs、props 和 children 会同步到宿主 DOM。
+   实际上它们很像内建的迷你宿主组件。
+
+在这些边界上，应使用适合 postMessage 的数据：
+
+- 标量：`string`、`number`、`boolean`、`null`。
+- 可序列化值构成的数组。
+- 带可序列化嵌套值的普通对象（POJO）。
+- 以上三类的组合。
+
+如果某个值不可序列化，请在跨越边界前先把它规整为可序列化形式。
+
+## `defineRemoteComponent` 工具
+
+使用 `defineRemoteComponent` 可以按名称定义一个指向宿主组件的类型化桥接。
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const VDialog = defineRemoteComponent('VDialog', {
+  methods: {
+    open: defineRemoteMethod<[id: string], boolean>(),
+    close: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+对象形式可以把 `emits`、具名 `slots` 和宿主 `methods` 放在同一个地方：
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+} from '@omnicajs/vue-remote/remote'
+import { ref } from 'vue'
+
+const VInput = defineRemoteComponent('VInput', {
+  emits: {
+    'update:value': (value: string) => value.length >= 0,
+  },
+  slots: ['prefix', 'suffix'],
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[start: number, end: number], void>(),
+  },
+})
+
+const input = ref<InstanceType<typeof VInput> | null>(null)
+
+await input.value?.focus()
+await input.value?.setSelectionRange(0, 2)
+```
+
+`methods` 支持三种写法：
+
+- `string[]`：用于简单的 `() => Promise<void>` 委托方法。
+- validator 对象：用于带运行时校验的参数元组类型。
+- `defineRemoteMethod<Args, Result>(validator?)`：用于类型化参数和类型化异步返回值。
+
+当 `type` 被建模为 `SchemaType<...>` 时，`methods` 会带有 schema 感知能力：
+
+```ts
+import {
+  defineRemoteComponent,
+  defineRemoteMethod,
+  type SchemaType,
+} from '@omnicajs/vue-remote/remote'
+
+type VInputSchema = SchemaType<
+  'VInput',
+  { modelValue: string },
+  {
+    focus: () => Promise<void>;
+    setSelectionRange: (start: number, end: number) => Promise<void>;
+  }
+>
+
+const VInputType = 'VInput' as VInputSchema
+
+const VInput = defineRemoteComponent(VInputType, {
+  methods: {
+    focus: defineRemoteMethod<[], void>(),
+    setSelectionRange: defineRemoteMethod<[number, number], void>(),
+    // @ts-expect-error method is not declared in schema
+    scrollToTop: defineRemoteMethod<[], void>(),
+  },
+})
+```
+
+在 schema-aware 模式下：
+
+- 方法名会被 schema 限制；
+- validator 参数元组必须与 schema 中的方法匹配；
+- 不兼容的 `defineRemoteMethod<Args, Result>` 签名会在编译期报错。
+
+旧的 positional 形式仍然受支持：
+
+```ts
+const VCard = defineRemoteComponent('VCard', [], ['title'])
+```
+
+迁移建议：
+
+- 完全 legacy 的用法可以继续保持 positional 形式；
+- 当你需要类型化的 `ref` 方法时，迁移到对象形式；
+- 只有当你需要在编译期约束允许的方法名和签名时，再引入 `SchemaType`。
+
+## 示例：带宿主组件的远程应用
+
+```ts
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+export async function mountRemote(channel: Parameters<typeof createRemoteRoot>[0]) {
+  const root = createRemoteRoot(channel, {
+    components: ['VButton', 'VInput'],
+  })
+
+  await root.mount()
+
+  const app = createRemoteRenderer(root).createApp(defineComponent({
+    setup () {
+      const text = ref('')
+
+      return () => h('section', { class: 'remote-form' }, [
+        h('h2', 'Remote form'),
+        h(VInput, {
+          value: text.value,
+          placeholder: 'Type here',
+          'onUpdate:value': (value: string) => text.value = value,
+        }),
+        h(VButton, { onClick: () => text.value = '' }, 'Clear'),
+      ])
+    },
+  }))
+
+  app.mount(root)
+}
+```
+
+## 示例：同一棵树中的 SVG、MathML 与宿主组件
+
+```ts
+import { defineComponent, h } from 'vue'
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VCard = defineRemoteComponent('VCard', [], ['title'])
+
+export default defineComponent({
+  setup () {
+    return () => h('article', { class: 'metrics' }, [
+      h('svg', { viewBox: '0 0 120 24', width: '100%', height: '24' }, [
+        h('path', { d: 'M0 18 L20 12 L40 14 L60 6 L80 10 L100 4 L120 8', stroke: 'currentColor', fill: 'none' }),
+      ]),
+      h('math', { display: 'block' }, [
+        h('mrow', [h('mi', 'x'), h('mo', '='), h('mn', '42')]),
+      ]),
+      h(VCard, {}, {
+        title: () => 'Summary',
+        default: () => 'Rendered by host, composed by remote.',
+      }),
+    ])
+  },
+})
+```
+
+## Vue SFC 示例
+
+### 带宿主组件的 SFC
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const text = ref('')
+</script>
+
+<template>
+  <section class="remote-form">
+    <h2>Remote form</h2>
+    <VInput
+      :value="text"
+      placeholder="Type here"
+      @update:value="text = $event"
+    />
+    <VButton @click="text = ''">Clear</VButton>
+  </section>
+</template>
+```
+
+### 带原生 HTML/SVG/MathML 与宿主组件的 SFC
+
+```vue
+<script setup lang="ts">
+import { defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+
+const VCard = defineRemoteComponent('VCard', [], ['title'])
+</script>
+
+<template>
+  <article class="metrics">
+    <svg viewBox="0 0 120 24" width="100%" height="24">
+      <path d="M0 18 L20 12 L40 14 L60 6 L80 10 L100 4 L120 8" stroke="currentColor" fill="none" />
+    </svg>
+
+    <math display="block">
+      <mrow>
+        <mi>x</mi>
+        <mo>=</mo>
+        <mn>42</mn>
+      </mrow>
+    </math>
+
+    <VCard>
+      <template #title>Summary</template>
+      Rendered by host, composed by remote.
+    </VCard>
+  </article>
+</template>
+```
+
+## 远程侧 `ref` 的注意事项
+
+在远程模板中的原生 `html`、`svg`、`mathml` 元素上，ref 并不会指向浏览器中的真实 DOM 节点。
+它们指向的是远程树节点，也就是像 `RemoteComponent` 这类代理对象和相关节点类型。
+
+```vue
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+
+const el = ref<unknown>(null)
+
+onMounted(() => {
+  // Not HTMLElement/SVGElement/MathMLElement.
+  // This is a remote tree node proxy.
+  console.log(el.value)
+})
+</script>
+
+<template>
+  <div ref="el" />
+</template>
+```
+
+因此，很多熟悉的 DOM API 在远程 ref 上都不可用，例如
+`getBoundingClientRect`、`classList`、直接的 `querySelector` 等。
+
+## 远程运行时中的 DOM 类库
+
+大多数依赖真实 DOM 访问的库在远程侧都无法工作，原因也是一样的：
+远程运行时操作的是代理树节点，而不是真实浏览器元素。
+
+如果你确实需要这样的库：
+
+- 把它集成在宿主侧，也就是宿主组件内部；
+- 通过 props 或 events 暴露一个窄而可序列化的 API；
+- 让远程侧继续专注于声明式状态与意图表达。

@@ -1,0 +1,156 @@
+---
+title: 介绍
+description: "@omnicajs/vue-remote 解决什么问题、它在扩展生态中的位置，以及它有意不包含哪些内容。"
+template: doc
+---
+
+## 什么是 Vue Remote？
+
+`@omnicajs/vue-remote` 是面向 Vue 3 扩展生态的渲染同步库。
+
+它允许宿主产品渲染由隔离的远程运行时描述的 UI。
+远程侧声明组件树，而宿主侧控制哪些组件真正被允许，以及它们如何被渲染。
+
+## 为什么要使用 Vue Remote？
+
+当你希望把一个应用变成扩展平台时，可以使用这个库：
+
+- 你的产品掌控宿主运行时和 UI 边界；
+- 第三方团队独立开发扩展；
+- 扩展 UI 需要在隔离环境中运行，例如 iframe 或 worker 运行时；
+- 同时渲染结果仍要接入宿主控制的 UI 合约。
+
+## 基础示例
+
+最简单的情况下，宿主与远程只交换一个渲染通道：
+
+```ts
+// host
+const provider = createProvider({ VButton, VInput })
+const receiver = createReceiver()
+// render <HostedTree provider={provider} receiver={receiver} />
+// then call remote.run(receiver.receive, hostBridge)
+```
+
+```ts
+// remote
+const root = createRemoteRoot(channel, { components: ['VButton', 'VInput'] })
+await root.mount()
+createRemoteRenderer(root).createApp(RemoteApp).mount(root)
+```
+
+在此基础上，远程组件通过 props 和事件表达意图，而宿主继续掌控允许的渲染能力。
+
+## Vue Remote 的价值是什么？
+
+这种模型让宿主产品拥有平台控制力，同时不要求扩展作者深入宿主内部实现：
+
+- 宿主团队通过 provider 组件合约定义能力边界。
+- 扩展作者专注于产品功能和 UI 意图。
+- 运行时隔离降低意外耦合，让升级更安全。
+- 多个远程扩展可以共存，并共享同一套宿主 UX 合约。
+
+## 更贴近真实场景的例子
+
+在生产环境中，一个扩展通常既需要渲染同步，也需要业务访问能力：
+
+1. 渲染通道：
+   远程侧通过 `@omnicajs/vue-remote` 渲染宿主批准的组件。
+2. 业务桥接：
+   远程侧通过单独的合约 `hostBridge` 调用产品 API。
+3. 能力策略：
+   宿主决定每个扩展可以渲染什么、调用什么。
+
+这种分离是有意设计的：即便业务合约演进，渲染生命周期也能保持稳定。
+
+## 核心思路
+
+这里有两个协作的运行时：
+
+1. 宿主运行时：
+   通过 `createProvider(...)` 注册允许使用的组件，
+   用 `createReceiver()` 接收远程树更新，
+   渲染 `HostedTree`。
+2. 远程运行时：
+   通过 `createRemoteRoot(...)` 创建同步根节点，
+   使用 `createRemoteRenderer(...)`，
+   并通过 `defineRemoteComponent(...)` 引用宿主暴露的组件。
+
+更新通过通道传输流动，通常是 `@remote-ui/rpc`。
+
+## 这个库覆盖什么
+
+范围内：
+
+- 宿主与远程之间的 UI 树同步渲染；
+- 由宿主控制的组件 allowlist；
+- 跨运行时边界的 props、events、slots 合约；
+- 原生远程标签 `html`、`svg`、`mathml` 映射到宿主渲染树中。
+
+范围外：
+
+- 产品业务 API 协议；
+- 认证、权限、计费、市场、扩展发现；
+- 扩展打包、发布、生命周期策略；
+- 产品特定的治理与信任管理。
+
+这些能力应由外围的平台工具承担。
+
+## 在真实生态中意味着什么
+
+一个生产级扩展生态通常包含三个独立层次：
+
+1. 渲染同步层：`@omnicajs/vue-remote`。
+2. 产品桥接层：业务方法与数据合约。
+3. 平台层：权限、发现、商业化、治理。
+
+保持这些层次分离可以降低耦合，并支持独立版本演进。
+
+## 与直接嵌入方案相比
+
+相较于直接把第三方 UI 代码嵌入宿主运行时：
+
+- Vue Remote 提升了宿主对允许组件表面的控制力。
+- 它强调显式合约，而非隐式访问宿主内部。
+- 对于远程侧不拥有真实 DOM 的隔离运行时，它更合适。
+
+代价是你必须认真设计边界合约和序列化规则。
+
+## 心智模型
+
+把远程侧理解为一个“声明式 UI 意图生产者”，而不是直接拥有 DOM 的一方。
+
+- 远程代码负责组合 UI 并发出意图。
+- 宿主代码负责施加能力限制、校验边界并执行真实渲染。
+- 在数据跨越通道时，跨运行时 payload 必须保持可序列化。
+
+这种分离让扩展生态更安全，也更容易长期演进。
+
+## 什么情况下不适合
+
+在以下情况下，`@omnicajs/vue-remote` 可能并不必要：
+
+- 你完全掌控宿主和远程两侧，并且不需要运行时隔离；
+- 你不需要宿主控制组件边界；
+- 一个简单的本地组件库就能解决集成问题。
+
+如果你现在就需要一个完整的插件平台运行时，它单独使用也可能不够。
+这种情况下，可以把它作为渲染核心，再围绕它补充平台服务。
+
+## 典型使用流程
+
+1. 宿主产品启动扩展运行时外壳和渲染 receiver。
+2. 远程扩展暴露 `run/release` API。
+3. 宿主提供渲染通道，以及可选的业务桥接合约。
+4. 远程侧通过同步通道更新完成挂载和渲染。
+5. 会话以 `release()` 结束。
+
+传输无关的接线方式见 [概览](/zh/overview/)，iframe 专用细节见 [Iframe 集成](/zh/integration/)。
+
+## 接下来读什么
+
+- 初次接触这个模型：看 [快速开始](/zh/getting-started/)。
+- 设计宿主合约：看 [宿主组件](/zh/host-components/)。
+- 构建远程扩展 UI：看 [远程组件](/zh/remote-components/)。
+- 规划运行时架构：看 [概览](/zh/overview/)。
+- 规划 iframe 集成：看 [Iframe 集成](/zh/integration/)。
