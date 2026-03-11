@@ -1,0 +1,48 @@
+---
+title: Runtime de SES y ShadowRealm
+description: Modelo experimental de runtime orientado a capacidades con aislamiento al estilo SES o ShadowRealm.
+template: doc
+---
+
+## Estado experimental
+
+La integración con SES/ShadowRealm es experimental.
+`@omnicajs/vue-remote` puede adaptarse a este modelo, pero el soporte total no está garantizado y depende de las capacidades del runtime host.
+
+## Por qué considerarlo
+
+- sandboxing orientado a capacidades en un solo proceso;
+- fronteras de autoridad más estrictas que en una integración simple en memoria;
+- posible buen encaje para runtimes de extensiones con alto control.
+
+## Realidad práctica
+
+1. La disponibilidad del runtime varía según la plataforma y el tooling.
+2. Los paquetes de terceros pueden requerir adaptación.
+3. Sigues necesitando un puente robusto para mensajes de canal y ciclo de vida.
+
+## Patrón conceptual de integración
+
+```ts
+// Pseudocode: adapter shape depends on SES/ShadowRealm implementation.
+
+const realm = createRealm()
+
+const bridge = createRealmBridge(realm) // implements MessageEndpoint-like behavior
+const endpoint = createEndpoint<RemoteApi>(bridge)
+
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## Recomendaciones
+
+1. Trátalo como una capacidad de I+D o de piloto controlado.
+2. Mantén allowlists estrictas de capacidades para las APIs expuestas al realm.
+3. Conserva la semántica estándar de `run/release` y limpieza.
+4. Mantén un transporte fallback para el despliegue en producción.
+
+## Documentación relacionada
+
+- [Resumen experimental](/es/experimental-overview/)
+- [Comparación experimental](/es/experimental-comparison/)
+- [Transporte en memoria](/es/memory-transport/)

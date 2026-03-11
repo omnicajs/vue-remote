@@ -49,7 +49,11 @@ const localeOptions = config.locales
       code,
       value: localizedPathname(code),
       label: locale!.label,
-      flag: (locale!.lang || code).startsWith('ru') ? 'ru' : 'gb',
+      flag: (locale!.lang || code).startsWith('ru')
+        ? 'ru'
+        : (locale!.lang || code).startsWith('es')
+          ? 'es'
+          : 'gb',
       selected: code === currentLocale,
     }))
   : []
@@ -278,6 +282,10 @@ const selectedOption = localeOptions.find((option) => option.selected) ?? locale
 
     .flag-ru {
       background: linear-gradient(to bottom, #fff 0 33.333%, #0039a6 33.333% 66.666%, #d52b1e 66.666% 100%);
+    }
+
+    .flag-es {
+      background: linear-gradient(to bottom, #aa151b 0 25%, #f1bf00 25% 75%, #aa151b 75% 100%);
     }
   }
 </style>

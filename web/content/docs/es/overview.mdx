@@ -1,0 +1,81 @@
+---
+title: Resumen
+description: Arquitectura agnóstica al transporte y organización del runtime para @omnicajs/vue-remote.
+template: doc
+---
+
+¿Necesitas elegir un modo rápidamente? Salta a [Comparación de transportes](/es/transport-comparison/).
+
+## Modelo de ecosistema
+
+El objetivo es un ecosistema de extensiones:
+
+- cualquier producto puede exponer una superficie de extensibilidad;
+- equipos de terceros pueden distribuir extensiones remotas de forma independiente;
+- `@omnicajs/vue-remote` sincroniza árboles de UI entre runtimes host y remotos.
+
+## Alcance de esta biblioteca
+
+`@omnicajs/vue-remote` cubre únicamente la sincronización del render:
+
+- Host: `createProvider`, `createReceiver`, `HostedTree`.
+- Remoto: `createRemoteRoot`, `createRemoteRenderer`, `defineRemoteComponent`.
+- Actualizaciones sobre un contrato de canal, cuya implementación de transporte es intercambiable.
+
+Fuera del alcance por diseño:
+
+- contratos de datos de negocio y APIs del producto;
+- discovery de extensiones, auth, billing y governance;
+- políticas de marketplace y flujos de compliance.
+
+## Topología recomendada
+
+El producto host y las extensiones remotas deberían entregarse por separado.
+
+```text
+host-product/
+  src/
+    extensions/
+      host-components/
+      runtime/
+      hostBridge.ts
+
+remote-extension/
+  src/
+    entry.ts
+    App.vue
+    bridge/
+```
+
+## Capas de organización del runtime
+
+1. UI provider layer:
+   componentes host expuestos por `createProvider(...)`.
+2. Runtime transport layer:
+   iframe, worker, window, MessagePort, IPC de escritorio, socket, etc.
+3. Business bridge layer:
+   métodos y datos específicos del producto.
+4. Security layer:
+   comprobaciones de capacidades y aplicación de políticas de ciclo de vida.
+
+## Contrato de arranque
+
+Independientemente del transporte, mantén estable este handshake:
+
+1. El host inicializa el shell del runtime y el receiver.
+2. El remoto expone `run/release`.
+3. El host llama a `run(channel, hostBridge)`.
+4. El remoto monta y renderiza mediante actualizaciones del canal.
+5. La sesión termina con `release()`.
+
+## Elegir un transporte
+
+- Aislamiento por defecto en navegador: [Integración con iframe](/es/integration/).
+- Runtime en worker: [Runtime de Web Worker](/es/web-workers/).
+- Runtime en popup: [Transporte Window](/es/window-transport/).
+- Cableado explícito por canal: [Transporte MessagePort](/es/message-port-transport/).
+- Puente de procesos de escritorio: [Transporte IPC de escritorio](/es/desktop-ipc-transport/).
+- Puente de red/sesión: [Transporte Socket](/es/socket-transport/).
+- Runtime único para dev/test: [Transporte en memoria](/es/memory-transport/).
+
+Para entornos no baseline u orientados a investigación, consulta [Capacidades experimentales](/es/experimental-overview/).

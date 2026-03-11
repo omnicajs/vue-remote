@@ -33,6 +33,10 @@ export default defineConfig({
           label: 'English',
           lang: 'en',
         },
+        es: {
+          label: 'Español',
+          lang: 'es',
+        },
         ru: {
           label: 'Русский',
           lang: 'ru',
@@ -72,12 +76,14 @@ export default defineConfig({
         {
           label: 'Introduction',
           translations: {
+            es: 'Introducción',
             ru: 'Введение',
           },
           items: [
             {
               label: 'Introduction',
               translations: {
+                es: 'Introducción',
                 ru: 'Обзор',
               },
               link: '/introduction/',
@@ -85,6 +91,7 @@ export default defineConfig({
             {
               label: 'Getting Started',
               translations: {
+                es: 'Primeros pasos',
                 ru: 'Быстрый старт',
               },
               link: '/getting-started/',
@@ -92,6 +99,7 @@ export default defineConfig({
             {
               label: 'Versions',
               translations: {
+                es: 'Versiones',
                 ru: 'Версии',
               },
               link: '/versions/',
@@ -101,12 +109,14 @@ export default defineConfig({
         {
           label: 'Core Concepts',
           translations: {
+            es: 'Conceptos clave',
             ru: 'Ключевые концепции',
           },
           items: [
             {
               label: 'Host Components',
               translations: {
+                es: 'Componentes del host',
                 ru: 'Компоненты хоста',
               },
               link: '/host-components/',
@@ -114,6 +124,7 @@ export default defineConfig({
             {
               label: 'Remote Components',
               translations: {
+                es: 'Componentes remotos',
                 ru: 'Компоненты remote',
               },
               link: '/remote-components/',
@@ -121,6 +132,7 @@ export default defineConfig({
             {
               label: 'Known Limitations',
               translations: {
+                es: 'Limitaciones conocidas',
                 ru: 'Известные ограничения',
               },
               link: '/limitations/',
@@ -130,12 +142,14 @@ export default defineConfig({
         {
           label: 'Runtime And Transports',
           translations: {
+            es: 'Runtime y transportes',
             ru: 'Рантайм и транспорты',
           },
           items: [
             {
               label: 'Overview',
               translations: {
+                es: 'Resumen',
                 ru: 'Обзор',
               },
               link: '/overview/',
@@ -143,6 +157,7 @@ export default defineConfig({
             {
               label: 'Iframe Integration',
               translations: {
+                es: 'Integración con iframe',
                 ru: 'Интеграция через iframe',
               },
               link: '/integration/',
@@ -150,6 +165,7 @@ export default defineConfig({
             {
               label: 'Web Worker Runtime',
               translations: {
+                es: 'Runtime de Web Worker',
                 ru: 'Web Worker Runtime',
               },
               link: '/web-workers/',
@@ -157,6 +173,7 @@ export default defineConfig({
             {
               label: 'Window Transport',
               translations: {
+                es: 'Transporte Window',
                 ru: 'Window Transport',
               },
               link: '/window-transport/',
@@ -164,6 +181,7 @@ export default defineConfig({
             {
               label: 'MessagePort Transport',
               translations: {
+                es: 'Transporte MessagePort',
                 ru: 'MessagePort Transport',
               },
               link: '/message-port-transport/',
@@ -171,6 +189,7 @@ export default defineConfig({
             {
               label: 'Desktop IPC Transport',
               translations: {
+                es: 'Transporte IPC de escritorio',
                 ru: 'Desktop IPC Transport',
               },
               link: '/desktop-ipc-transport/',
@@ -178,6 +197,7 @@ export default defineConfig({
             {
               label: 'Socket Transport',
               translations: {
+                es: 'Transporte Socket',
                 ru: 'Socket Transport',
               },
               link: '/socket-transport/',
@@ -185,6 +205,7 @@ export default defineConfig({
             {
               label: 'In-Memory Transport',
               translations: {
+                es: 'Transporte en memoria',
                 ru: 'In-Memory Transport',
               },
               link: '/memory-transport/',
@@ -192,6 +213,7 @@ export default defineConfig({
             {
               label: 'Transport Comparison',
               translations: {
+                es: 'Comparación de transportes',
                 ru: 'Сравнение транспортов',
               },
               link: '/transport-comparison/',
@@ -201,12 +223,14 @@ export default defineConfig({
         {
           label: 'Experimental Capabilities',
           translations: {
+            es: 'Capacidades experimentales',
             ru: 'Экспериментальные возможности',
           },
           items: [
             {
               label: 'Overview',
               translations: {
+                es: 'Resumen',
                 ru: 'Обзор',
               },
               link: '/experimental-overview/',
@@ -214,6 +238,7 @@ export default defineConfig({
             {
               label: 'BroadcastChannel Transport',
               translations: {
+                es: 'Transporte BroadcastChannel',
                 ru: 'BroadcastChannel Transport',
               },
               link: '/broadcast-channel-transport/',
@@ -221,6 +246,7 @@ export default defineConfig({
             {
               label: 'SES And ShadowRealm Runtime',
               translations: {
+                es: 'Runtime de SES y ShadowRealm',
                 ru: 'SES и ShadowRealm Runtime',
               },
               link: '/ses-shadowrealm-runtime/',
@@ -228,6 +254,7 @@ export default defineConfig({
             {
               label: 'WASM Sandbox Runtime',
               translations: {
+                es: 'Runtime de sandbox WASM',
                 ru: 'WASM Sandbox Runtime',
               },
               link: '/wasm-sandbox-runtime/',
@@ -235,6 +262,7 @@ export default defineConfig({
             {
               label: 'Comparison',
               translations: {
+                es: 'Comparación',
                 ru: 'Сравнение',
               },
               link: '/experimental-comparison/',

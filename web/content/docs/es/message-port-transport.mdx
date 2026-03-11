@@ -1,0 +1,78 @@
+---
+title: Transporte MessagePort
+description: Usa MessageChannel/MessagePort como primitiva de transporte para handshakes del runtime remoto.
+template: doc
+---
+
+## Por qué importa este modo
+
+`MessagePort` es una primitiva de transporte de bajo nivel que funciona bien para topologías de runtime personalizadas.
+Es especialmente útil cuando quieres cableado explícito por canal sin quedarte atado a un único modelo de contenedor.
+
+Casos de uso típicos:
+
+- handshakes personalizados entre el shell host y el runtime remoto;
+- capas puente para orquestación de popup/iframe/worker/sesión;
+- herramientas de desarrollo y diagnóstico que necesitan un canal bidireccional explícito.
+
+## Idea principal
+
+`@remote-ui/rpc` ya proporciona `fromMessagePort(...)`.
+Una vez que ambos lados tienen puertos conectados, la integración sigue el mismo flujo `run/release`:
+
+```ts
+import { createEndpoint, fromMessagePort } from '@remote-ui/rpc'
+
+const endpoint = createEndpoint<RemoteApi>(fromMessagePort(port))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## Ejemplo mínimo en el mismo runtime
+
+```ts
+import { MessageChannel } from 'node:worker_threads'
+import { createEndpoint, fromMessagePort } from '@remote-ui/rpc'
+
+type Api = { ping(message: string): string }
+
+const { port1, port2 } = new MessageChannel()
+
+const host = createEndpoint<Api>(fromMessagePort(port1))
+const remote = createEndpoint(fromMessagePort(port2))
+
+remote.expose({
+  ping(message: string) {
+    return `pong: ${message}`
+  },
+})
+
+const result = await host.call.ping('hello')
+console.info(result) // pong: hello
+```
+
+En entornos de navegador, usa la API nativa `MessageChannel` con el mismo patrón.
+
+## Patrón de handshake en navegador
+
+1. El host crea un `MessageChannel`.
+2. El host transfiere `port2` al contenedor remoto, como `iframe`, `popup` o bootstrap de worker, mediante `postMessage`.
+3. El host conserva `port1` e inicializa `createEndpoint(fromMessagePort(port1))`.
+4. El remoto recibe el puerto transferido e inicializa su endpoint.
+5. Ambos lados ejecutan el flujo estándar `run/release`.
+
+## Notas de diseño
+
+1. Isolation is context-dependent:
+   `MessagePort` por sí mismo no crea fronteras de sandbox.
+2. Transport semantics are strong:
+   ofrece una frontera asíncrona explícita y restricciones de structured clone.
+3. Lifecycle must be explicit:
+   cierra los puertos y libera las referencias retenidas durante el teardown.
+
+## Documentación relacionada
+
+- [Resumen](/es/overview/)
+- [Integración con iframe](/es/integration/)
+- [Comparación de transportes](/es/transport-comparison/)
+- [Runtime de Web Worker](/es/web-workers/)
+- [Transporte Window](/es/window-transport/)

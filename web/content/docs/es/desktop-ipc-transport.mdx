@@ -1,0 +1,117 @@
+---
+title: Transporte IPC de escritorio
+description: Ejecuta runtimes host y remotos a través de procesos de Electron/Tauri usando un puente IPC.
+template: doc
+---
+
+## Cuándo usar este modo
+
+El transporte IPC de escritorio está pensado para arquitecturas tipo Electron/Tauri en las que los runtimes host y remotos viven en procesos o webviews distintos.
+
+Encaja normalmente en:
+
+- plataformas de extensiones de escritorio;
+- runtimes de plugins aislados del proceso principal de UI;
+- orquestación del shell nativo con políticas IPC explícitas.
+
+## Modelo principal
+
+`@omnicajs/vue-remote` sigue necesitando el mismo contrato de canal.
+El IPC es solo el mecanismo de entrega.
+
+```text
+Host Renderer (Desktop UI)
+  -> createReceiver()
+  -> createEndpoint(fromDesktopIpc(...))
+  -> call.run(receiver.receive, hostBridge)
+
+Desktop Main Process / IPC Layer
+  -> routes messages between host and remote peers
+  -> applies policy, auth/capability checks, and lifecycle rules
+
+Remote Runtime (isolated renderer/webview/process)
+  -> createEndpoint(fromDesktopIpc(...))
+  -> expose run/release
+```
+
+## Patrón mínimo para el wrapper del endpoint
+
+Construye un adapter de `MessageEndpoint` sobre tu puente IPC de escritorio:
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+type DesktopBridge = {
+  send(channel: string, payload: unknown): void;
+  on(channel: string, listener: (payload: unknown) => void): void;
+  off(channel: string, listener: (payload: unknown) => void): void;
+  close?(): void;
+}
+
+export function fromDesktopIpc(
+  bridge: DesktopBridge,
+  channel = 'vue-remote:rpc'
+): MessageEndpoint {
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onPayload = (payload: unknown) => {
+    const event = { data: payload } as MessageEvent
+    for (const listener of listeners) {
+      listener(event)
+    }
+  }
+
+  bridge.on(channel, onPayload)
+
+  return {
+    postMessage(message: any) {
+      bridge.send(channel, message)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      bridge.off(channel, onPayload)
+      bridge.close?.()
+    },
+  }
+}
+```
+
+Después usa el flujo estándar del endpoint:
+
+```ts
+const endpoint = createEndpoint<RemoteApi>(fromDesktopIpc(window.desktopBridge))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## Notas sobre Electron y Tauri
+
+Electron:
+
+- expón una API IPC estrecha desde preload (`contextBridge`);
+- mantén `contextIsolation: true`;
+- evita pasar objetos sin restricciones desde el proceso principal.
+
+Tauri:
+
+- usa canales de comando/evento como un puente acotado;
+- mantén allowlists explícitas en las capacidades;
+- evita pipes de eventos con comodines amplios para plugins no confiables.
+
+## Notas para producción
+
+1. Trata los canales IPC como fronteras privilegiadas.
+2. Versiona el protocolo y aplica comprobaciones de compatibilidad.
+3. Añade routing basado en capacidades por sesión de extensión.
+4. Asegúrate de que el teardown cierre los canales y libere las referencias retenidas.
+
+## Documentación relacionada
+
+- [Resumen](/es/overview/)
+- [Integración con iframe](/es/integration/)
+- [Comparación de transportes](/es/transport-comparison/)
+- [Transporte Socket](/es/socket-transport/)

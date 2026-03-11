@@ -1,5 +1,9 @@
 ---
-const locale = Astro.props.locale === 'ru' ? 'ru' : 'en'
+const locale = Astro.props.locale === 'ru'
+  ? 'ru'
+  : Astro.props.locale === 'es'
+    ? 'es'
+    : 'en'
 const rootBase = (import.meta.env.PUBLIC_DOCS_ROOT_BASE || '/').replace(/\/?$/, '/')
 const fallbackLatest = (import.meta.env.PUBLIC_DOCS_DEFAULT_LATEST_VERSION || '').trim()
 const currentVersion = (import.meta.env.PUBLIC_DOCS_CURRENT_VERSION || '').trim()
@@ -11,6 +15,11 @@ const labels = locale === 'ru'
       unknownVersion: 'unknown',
       currentLabel: 'текущая',
     }
+  : locale === 'es'
+    ? {
+        unknownVersion: 'desconocida',
+        currentLabel: 'actual',
+      }
   : {
       unknownVersion: 'unknown',
       currentLabel: 'current',
@@ -156,9 +165,10 @@ const labels = locale === 'ru'
     const isSupportedDocsVersion = (value) => compareVersions(value, minimumDocsVersion) <= 0
 
     const root = normalizeBase(rootBase)
-    const latestDocsPath = locale === 'ru' ? `${root}ru/` : root
-    const versionsPagePath = locale === 'ru' ? `${root}ru/versions/` : `${root}versions/`
-    const versionsPrefixPath = locale === 'ru' ? `${root}ru/versions/` : `${root}versions/`
+    const localePrefix = locale === 'en' ? '' : `${locale}/`
+    const latestDocsPath = `${root}${localePrefix}`
+    const versionsPagePath = `${root}${localePrefix}versions/`
+    const versionsPrefixPath = `${root}${localePrefix}versions/`
     const versionsJsonPath = `${root}versions.json`
 
     const setLatestVersion = (version) => {

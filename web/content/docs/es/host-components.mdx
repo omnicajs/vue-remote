@@ -1,0 +1,114 @@
+---
+title: Componentes del host
+description: Qué son los componentes host y qué contratos de datos son seguros sobre RPC/postMessage.
+template: doc
+---
+
+## ¿Qué es un componente host?
+
+Un componente host es un componente Vue normal que vive en la aplicación host y se registra en
+`createProvider({ ... })`.
+
+Las aplicaciones remotas solo pueden renderizar componentes que el host expone explícitamente por nombre.
+Este es el principal límite de control de `@omnicajs/vue-remote`.
+
+## Por qué importa
+
+- El host controla la superficie de UI permitida.
+- El código remoto no puede montar componentes locales arbitrarios.
+- Los contratos de UI compartidos se vuelven explícitos: nombres, props, eventos y slots.
+
+## Requisitos del contrato de datos
+
+Todas las props enviadas a componentes host y todos los payloads de eventos emitidos de vuelta al remoto deben poder serializarse de forma segura
+sobre RPC/`postMessage`.
+
+Usa:
+
+- Escalares: `string`, `number`, `boolean`, `null`.
+- Arrays de valores serializables.
+- Objetos planos (POJO) con valores anidados serializables.
+- Combinaciones de los tres anteriores.
+
+Evita en props y payloads de eventos:
+
+- Funciones.
+- Instancias de clase.
+- Nodos DOM.
+- Symbols.
+- Cualquier objeto de runtime personalizado no serializable.
+
+## Ejemplo: botón host
+
+```ts
+import { defineComponent, h } from 'vue'
+
+export default defineComponent({
+  name: 'VButton',
+  props: {
+    disabled: {
+      type: Boolean,
+      default: false,
+    },
+    variant: {
+      type: String as () => 'primary' | 'secondary',
+      default: 'primary',
+    },
+  },
+  emits: ['click'],
+  setup (props, { emit, slots, attrs }) {
+    return () => h('button', {
+      ...attrs,
+      disabled: props.disabled,
+      class: ['btn', `btn-${props.variant}`],
+      onClick: () => emit('click'),
+    }, slots.default?.())
+  },
+})
+```
+
+## Ejemplo: input host
+
+```ts
+import { defineComponent, h } from 'vue'
+
+export default defineComponent({
+  name: 'VInput',
+  props: {
+    value: {
+      type: String,
+      default: '',
+    },
+    placeholder: {
+      type: String,
+      default: '',
+    },
+  },
+  emits: ['update:value'],
+  setup (props, { emit, attrs }) {
+    return () => h('input', {
+      ...attrs,
+      value: props.value,
+      placeholder: props.placeholder,
+      onInput: (event: Event) => emit(
+        'update:value',
+        (event.target as HTMLInputElement).value
+      ),
+    })
+  },
+})
+```
+
+## Registro del provider
+
+```ts
+import { createProvider } from '@omnicajs/vue-remote/host'
+
+import VButton from './VButton'
+import VInput from './VInput'
+
+export const provider = createProvider({
+  VButton,
+  VInput,
+})
+```
