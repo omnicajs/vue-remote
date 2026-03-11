@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.18](https://github.com/omnicajs/vue-remote/compare/v0.2.17...v0.2.18) (2026-03-11)
+
+
+### Features
+
+* **vue:** Remote SFC attribute markers were added ([a6e108b](https://github.com/omnicajs/vue-remote/commit/a6e108b751eaf1a99a6be42a8eeb53ed1ebdc232))
+
 ### [0.2.17](https://github.com/omnicajs/vue-remote/compare/v0.2.16...v0.2.17) (2026-03-10)
 
 
