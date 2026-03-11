@@ -20,13 +20,13 @@ runs:
   steps:
     - name: Setup Node.js
       if: ${{ inputs.registry-url == '' }}
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Setup Node.js with registry
       if: ${{ inputs.registry-url != '' }}
-      uses: actions/setup-node@v5
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
         registry-url: ${{ inputs.registry-url }}

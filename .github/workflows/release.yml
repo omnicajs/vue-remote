@@ -38,13 +38,13 @@ concurrency:
 
 jobs:
   release:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       release_tag: ${{ steps.release_meta.outputs.tag }}
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -121,7 +121,7 @@ jobs:
   pages:
     needs: release
     continue-on-error: true
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
       pages: write
@@ -134,7 +134,7 @@ jobs:
 
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: refs/tags/${{ needs.release.outputs.release_tag }}
           fetch-depth: 0
@@ -148,7 +148,7 @@ jobs:
       - name: Checkout docs store branch
         id: docs_store_checkout
         continue-on-error: true
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.DOCS_STORE_BRANCH }}
           path: .pages-store
