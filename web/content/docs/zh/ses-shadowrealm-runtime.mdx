@@ -1,0 +1,48 @@
+---
+title: SES 与 ShadowRealm 运行时
+description: 使用 SES 或 ShadowRealm 风格隔离的实验性、能力导向运行时模型。
+template: doc
+---
+
+## 实验状态
+
+SES/ShadowRealm 集成目前仍是实验性的。
+`@omnicajs/vue-remote` 可以适配到这种模型，但完整支持无法保证，并且依赖宿主运行时能力。
+
+## 为什么考虑它
+
+- 在单一进程中的能力导向 sandbox；
+- 比纯内存集成拥有更严格的权限边界；
+- 适合高控制力扩展运行时的潜在方案。
+
+## 现实约束
+
+1. 运行时可用性取决于平台和工具链。
+2. 第三方包可能需要额外适配。
+3. 你仍然需要一个健壮的桥来承载通道消息和生命周期管理。
+
+## 概念性集成模式
+
+```ts
+// Pseudocode: adapter shape depends on SES/ShadowRealm implementation.
+
+const realm = createRealm()
+
+const bridge = createRealmBridge(realm) // implements MessageEndpoint-like behavior
+const endpoint = createEndpoint<RemoteApi>(bridge)
+
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## 使用建议
+
+1. 把它视为研发能力或受控试点方案。
+2. 对 realm 暴露的 API 保持严格的能力 allowlist。
+3. 保持标准的 `run/release` 与清理语义。
+4. 为生产落地保留 fallback 传输。
+
+## 相关文档
+
+- [实验概览](/zh/experimental-overview/)
+- [实验能力对比](/zh/experimental-comparison/)
+- [内存传输](/zh/memory-transport/)

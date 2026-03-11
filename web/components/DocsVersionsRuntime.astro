@@ -3,6 +3,8 @@ const locale = Astro.props.locale === 'ru'
   ? 'ru'
   : Astro.props.locale === 'es'
     ? 'es'
+    : Astro.props.locale === 'zh'
+      ? 'zh'
     : 'en'
 const rootBase = (import.meta.env.PUBLIC_DOCS_ROOT_BASE || '/').replace(/\/?$/, '/')
 const fallbackLatest = (import.meta.env.PUBLIC_DOCS_DEFAULT_LATEST_VERSION || '').trim()
@@ -20,6 +22,11 @@ const labels = locale === 'ru'
         unknownVersion: 'desconocida',
         currentLabel: 'actual',
       }
+    : locale === 'zh'
+      ? {
+          unknownVersion: '未知',
+          currentLabel: '当前',
+        }
   : {
       unknownVersion: 'unknown',
       currentLabel: 'current',

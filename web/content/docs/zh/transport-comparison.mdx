@@ -1,0 +1,47 @@
+---
+title: 传输方式对比
+description: 对比 vue-remote 中的 iframe、window、MessagePort、Web Worker、桌面 IPC、socket 与内存传输模式。
+template: doc
+---
+
+## 目的
+
+本页帮助你为自己的扩展模型选择合适的运行时传输方式。
+所有选项都使用相同的渲染通道语义，但在隔离性、运维成本和生产适配度上各不相同。
+
+## 对比矩阵
+
+| 模式 | 隔离性 | 传输真实性 | 集成复杂度 | 最适合 | 生产建议 |
+| --- | --- | --- | --- | --- | --- |
+| `iframe` | 🟢（浏览器上下文边界） | 🟢（`postMessage` 生命周期与 origin 模型真实存在） | 🟡 | 需要严格边界的不可信扩展 | 适合作为浏览器宿主扩展的默认方案 |
+| `Window (popup)` | 🟡（独立窗口上下文，效果取决于 origin 检查和生命周期处理） | 🟢（显式跨窗口 `postMessage` 边界） | 🟡 | 需要独立可见工作区的工具类扩展 | 当 popup UX 可接受且有严格 origin / 生命周期控制时推荐 |
+| `MessagePort` | 🟡（取决于端口连接的容器上下文） | 🟢（带有 structured clone 语义的显式异步通道） | 🟡 | 自定义运行时握手与编排桥接 | 需要显式通道控制时推荐作为传输原语 |
+| `Web Worker` | 🟢（独立 worker 上下文，远程侧无 DOM 访问） | 🟢（异步边界与专属 worker 生命周期） | 🟡 | 计算密集或不依赖 DOM 的远程运行时 | 当不需要 iframe 文档时推荐 |
+| `Desktop IPC` | 🟡（取决于桌面进程隔离与 preload / capability 策略） | 🟢（明确的进程间异步边界） | 🔴 | 带有隔离运行时的 Electron/Tauri 插件平台 | 对 IPC 策略做强化后适合桌面外壳 |
+| `Socket` | 🟡（取决于运行时部署方式与宿主策略） | 🟢（网络级延迟、重连与顺序都是显式的） | 🔴 | 跨进程、跨机器的扩展运行时与实时远程会话 | 适合具备强认证与协议治理能力的高级平台 |
+| `In-memory` | 🔴（单一运行时） | 🔴（没有真实传输边界） | 🟢 | 开发脚手架、集成测试、快速诊断 | 不推荐作为生产隔离方案 |
+
+说明：
+- `集成复杂度`：`🟢` 低，`🟡` 中，`🔴` 高。
+- `隔离性` 与 `传输真实性`：`🟢` 强，`🟡` 视上下文而定，`🔴` 弱。
+- 这些评级只是针对典型扩展平台场景的相对比较，并非绝对保证。
+
+## 快速建议
+
+1. 如果你想要保守且稳定的浏览器隔离，先从 `iframe` 开始。
+2. 当你需要在不同容器之间进行显式自定义通道接线时，使用 `MessagePort`。
+3. 当远程代码不需要文档环境、且你希望更轻量的隔离时，使用 `Web Worker`。
+4. Electron/Tauri 等进程分离扩展运行时可使用 `Desktop IPC`。
+5. 当运行时拓扑跨越进程或机器时，使用 `Socket`。
+6. `In-memory` 只适合用于开发和测试加速。
+
+## 相关文档
+
+- [概览](/zh/overview/)
+- [Iframe 集成](/zh/integration/)
+- [Window 传输](/zh/window-transport/)
+- [MessagePort 传输](/zh/message-port-transport/)
+- [Web Worker 运行时](/zh/web-workers/)
+- [桌面 IPC 传输](/zh/desktop-ipc-transport/)
+- [Socket 传输](/zh/socket-transport/)
+- [内存传输](/zh/memory-transport/)

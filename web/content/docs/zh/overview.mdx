@@ -1,0 +1,81 @@
+---
+title: 概览
+description: 面向 @omnicajs/vue-remote 的传输无关架构与运行时组织方式。
+template: doc
+---
+
+如果你想先快速选型，可以直接查看 [传输方式对比](/zh/transport-comparison/)。
+
+## 生态模型
+
+目标是一个扩展生态：
+
+- 任意产品都可以暴露扩展能力边界；
+- 第三方团队可以独立交付远程扩展；
+- `@omnicajs/vue-remote` 在宿主与远程运行时之间同步 UI 树。
+
+## 这个库的边界
+
+`@omnicajs/vue-remote` 只负责渲染同步：
+
+- 宿主侧：`createProvider`、`createReceiver`、`HostedTree`。
+- 远程侧：`createRemoteRoot`、`createRemoteRenderer`、`defineRemoteComponent`。
+- 更新通过通道合约传递，而传输实现本身是可替换的。
+
+按设计不在范围内的内容：
+
+- 业务数据合约与产品 API；
+- 扩展发现、认证、计费、治理；
+- 市场策略与合规流程。
+
+## 推荐拓扑
+
+宿主产品与远程扩展应作为独立交付物存在。
+
+```text
+host-product/
+  src/
+    extensions/
+      host-components/
+      runtime/
+      hostBridge.ts
+
+remote-extension/
+  src/
+    entry.ts
+    App.vue
+    bridge/
+```
+
+## 运行时分层
+
+1. UI provider layer:
+   通过 `createProvider(...)` 暴露的宿主组件。
+2. Runtime transport layer:
+   iframe、worker、window、MessagePort、桌面 IPC、socket 等。
+3. Business bridge layer:
+   产品特定的方法与数据。
+4. Security layer:
+   能力校验与生命周期策略执行。
+
+## 启动合约
+
+无论使用何种传输方式，都应保持以下握手稳定：
+
+1. 宿主初始化运行时外壳与 receiver。
+2. 远程侧暴露 `run/release`。
+3. 宿主调用 `run(channel, hostBridge)`。
+4. 远程侧通过通道更新完成挂载与渲染。
+5. 会话以 `release()` 结束。
+
+## 如何选择传输方式
+
+- 浏览器中的默认隔离方案：[Iframe 集成](/zh/integration/)。
+- Worker 运行时：[Web Worker 运行时](/zh/web-workers/)。
+- Popup 运行时：[Window 传输](/zh/window-transport/)。
+- 显式通道接线：[MessagePort 传输](/zh/message-port-transport/)。
+- 桌面进程桥接：[桌面 IPC 传输](/zh/desktop-ipc-transport/)。
+- 网络/会话桥接：[Socket 传输](/zh/socket-transport/)。
+- 开发与测试中的单运行时方案：[内存传输](/zh/memory-transport/)。
+
+如果你关注的是非基线或偏研究型环境，请查看 [实验能力](/zh/experimental-overview/)。

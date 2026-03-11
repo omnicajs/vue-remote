@@ -1,0 +1,50 @@
+---
+title: WASM 沙箱运行时
+description: 一种实验性运行时模型，其中远程逻辑运行在由 WebAssembly 承载的沙箱中。
+template: doc
+---
+
+## 实验状态
+
+WASM 沙箱运行时对 `@omnicajs/vue-remote` 来说仍属于实验能力。
+可以通过自定义 adapter 在这种环境中使用该库，但目前不保证完整支持。
+
+## 为什么考虑它
+
+- 更严格的计算与运行时隔离目标；
+- 跨宿主环境的可移植性；
+- 对扩展逻辑进行受控执行的模型。
+
+## 集成模型
+
+`@omnicajs/vue-remote` 仍然要求通道语义保持一致。
+WASM guest 与宿主桥必须通过兼容的 endpoint 协议交换消息。
+
+```ts
+// Pseudocode
+
+const sandbox = createWasmSandbox()
+const bridge = createWasmMessageBridge(sandbox) // MessageEndpoint-like adapter
+
+const endpoint = createEndpoint<RemoteApi>(bridge)
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## 实际限制
+
+1. 桥接复杂度很高，涉及 guest-host 编组、所有权和生命周期。
+2. 调试与可观测性需要专门工具支持。
+3. 性能表现高度依赖桥接设计。
+4. 生产落地通常需要分阶段验证和回退路径。
+
+## 使用建议
+
+- 把这种模式用于高级实验和平台研发。
+- 围绕 `run/release` 与更新流程保留协议兼容性测试。
+- 未经显式验证前，不要假设它与基线传输等价。
+
+## 相关文档
+
+- [实验概览](/zh/experimental-overview/)
+- [实验能力对比](/zh/experimental-comparison/)
+- [Socket 传输](/zh/socket-transport/)

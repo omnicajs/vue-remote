@@ -1,0 +1,117 @@
+---
+title: 桌面 IPC 传输
+description: 使用 IPC 桥在 Electron/Tauri 进程之间运行宿主与远程运行时。
+template: doc
+---
+
+## 什么时候使用这种模式
+
+桌面 IPC 传输适用于 Electron 或 Tauri 风格的架构，在这些架构中宿主与远程运行时位于不同的进程或 webview 中。
+
+典型适用场景：
+
+- 桌面扩展平台；
+- 与主 UI 进程隔离的插件运行时；
+- 具有明确 IPC 策略的原生外壳编排。
+
+## 核心模型
+
+`@omnicajs/vue-remote` 仍然依赖相同的通道合约。
+IPC 只是消息传递机制。
+
+```text
+Host Renderer (Desktop UI)
+  -> createReceiver()
+  -> createEndpoint(fromDesktopIpc(...))
+  -> call.run(receiver.receive, hostBridge)
+
+Desktop Main Process / IPC Layer
+  -> routes messages between host and remote peers
+  -> applies policy, auth/capability checks, and lifecycle rules
+
+Remote Runtime (isolated renderer/webview/process)
+  -> createEndpoint(fromDesktopIpc(...))
+  -> expose run/release
+```
+
+## 最小 endpoint 包装模式
+
+可以在桌面 IPC 桥上构建一个 `MessageEndpoint` 适配器：
+
+```ts
+import type { MessageEndpoint } from '@remote-ui/rpc'
+
+type DesktopBridge = {
+  send(channel: string, payload: unknown): void;
+  on(channel: string, listener: (payload: unknown) => void): void;
+  off(channel: string, listener: (payload: unknown) => void): void;
+  close?(): void;
+}
+
+export function fromDesktopIpc(
+  bridge: DesktopBridge,
+  channel = 'vue-remote:rpc'
+): MessageEndpoint {
+  const listeners = new Set<(event: MessageEvent) => void>()
+
+  const onPayload = (payload: unknown) => {
+    const event = { data: payload } as MessageEvent
+    for (const listener of listeners) {
+      listener(event)
+    }
+  }
+
+  bridge.on(channel, onPayload)
+
+  return {
+    postMessage(message: any) {
+      bridge.send(channel, message)
+    },
+    addEventListener(event, listener) {
+      if (event === 'message') listeners.add(listener)
+    },
+    removeEventListener(event, listener) {
+      if (event === 'message') listeners.delete(listener)
+    },
+    terminate() {
+      bridge.off(channel, onPayload)
+      bridge.close?.()
+    },
+  }
+}
+```
+
+然后使用标准 endpoint 流程：
+
+```ts
+const endpoint = createEndpoint<RemoteApi>(fromDesktopIpc(window.desktopBridge))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## Electron 与 Tauri 说明
+
+Electron:
+
+- 通过 preload（`contextBridge`）暴露狭窄的 IPC API；
+- 保持 `contextIsolation: true`；
+- 避免从主进程传递无约束对象。
+
+Tauri:
+
+- 使用命令或事件通道作为受限桥接；
+- 在 capabilities 中显式维护 allowlist；
+- 对不可信插件避免使用宽泛通配的事件管道。
+
+## 生产注意事项
+
+1. 把 IPC 通道视为特权边界。
+2. 对协议进行版本化，并执行兼容性检查。
+3. 为每个扩展会话加入基于能力的路由。
+4. 确保 teardown 时关闭通道并释放 retained 引用。
+
+## 相关文档
+
+- [概览](/zh/overview/)
+- [Iframe 集成](/zh/integration/)
+- [传输方式对比](/zh/transport-comparison/)
+- [Socket 传输](/zh/socket-transport/)

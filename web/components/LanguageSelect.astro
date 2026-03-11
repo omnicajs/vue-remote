@@ -53,6 +53,8 @@ const localeOptions = config.locales
         ? 'ru'
         : (locale!.lang || code).startsWith('es')
           ? 'es'
+          : (locale!.lang || code).startsWith('zh')
+            ? 'cn'
           : 'gb',
       selected: code === currentLocale,
     }))
@@ -286,6 +288,12 @@ const selectedOption = localeOptions.find((option) => option.selected) ?? locale
 
     .flag-es {
       background: linear-gradient(to bottom, #aa151b 0 25%, #f1bf00 25% 75%, #aa151b 75% 100%);
+    }
+
+    .flag-cn {
+      background:
+        radial-gradient(circle at 28% 28%, #ffde00 0 12%, transparent 13%),
+        #de2910;
     }
   }
 </style>

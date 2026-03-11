@@ -1,0 +1,45 @@
+---
+title: vue-remote
+description: 面向 Vue 3 应用的可控远程渲染方案。
+template: splash
+next: false
+hero:
+  title: <span class="landing-kicker">Vue Remote</span><br/><span class="hero-title-line">用于隔离沙箱的</span><br/><span class="hero-title-line">Vue 代理渲染器</span>
+  tagline: '宿主控制可用组件，而远程应用通过同步的通道更新完成渲染。<br/><span class="hero-latest-chip">最新版本：<span data-docs-latest-version>未知</span></span>'
+  image:
+    html: '<div class="hero-logo-shell" aria-hidden="true"><svg class="hero-logo-mark" viewBox="52 68.1 56 46.9" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(0 80 87.6)"><g class="hero-logo-waves"><path class="hero-wave hero-wave-1" d="M71.97 78.68 A12 12 0 0 0 71.97 96.52"/><path class="hero-wave hero-wave-2" d="M67.96 74.22 A18 18 0 0 0 67.96 100.98"/><path class="hero-wave hero-wave-3" d="M63.94 69.77 A24 24 0 0 0 63.94 105.43"/><path class="hero-wave hero-wave-1" d="M88.03 78.68 A12 12 0 0 1 88.03 96.52"/><path class="hero-wave hero-wave-2" d="M92.04 74.22 A18 18 0 0 1 92.04 100.98"/><path class="hero-wave hero-wave-3" d="M96.06 69.77 A24 24 0 0 1 96.06 105.43"/></g></g><g class="hero-logo-v"><polygon class="hero-v-outer" points="61,73.1 80,111.1 99,73.1 90,73.1 80,93.1 70,73.1"/><polygon class="hero-v-inner" points="72,73.1 80,89.1 88,73.1 84.8,73.1 80,82.5 75.2,73.1"/></g></svg></div>'
+  actions:
+    - text: 介绍
+      link: /zh/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: 概览
+      link: /zh/overview/
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/omnicajs/vue-remote
+      icon: github
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import DocsVersionsRuntime from '../../../components/DocsVersionsRuntime.astro';
+
+<div class="landing-feature-grid">
+  <div class="landing-links" data-docs-versions-link hidden>
+    <a data-docs-versions-anchor href="/zh/versions/">历史版本</a>
+  </div>
+  <CardGrid>
+    <Card title="由宿主控制的组件" icon="puzzle">
+      宿主通过 <code>createProvider()</code> 显式提供允许使用的 Vue 组件映射。
+    </Card>
+    <Card title="双向 props 与事件" icon="random">
+      Props 和发出的事件通过 receiver 与 remote root 通道在宿主和远程之间传递。
+    </Card>
+    <Card title="基于通道的传输" icon="comment-alt">
+      运行时同步建立在 <code>@remote-ui/rpc</code> 通道和兼容 postMessage 的传输之上。
+    </Card>
+  </CardGrid>
+</div>
+
+<DocsVersionsRuntime locale="zh" />

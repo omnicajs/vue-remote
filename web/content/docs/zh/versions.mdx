@@ -1,0 +1,21 @@
+---
+title: 版本
+description: 已发布旧版本文档快照。
+---
+
+import DocsVersionsRuntime from '../../../components/DocsVersionsRuntime.astro';
+
+# 版本
+
+当前文档：<a data-docs-latest-link href="/zh/">打开 latest</a>（<span data-docs-latest-version>未知</span>）。
+
+你可以在此页面打开早于 `latest` 的文档版本快照。
+
+<div class="docs-versions-page" data-docs-versions-page>
+  <p>此仓库中的 latest 版本：<strong data-docs-versions-latest>未知</strong>。</p>
+  <p data-docs-versions-loading>正在加载版本列表...</p>
+  <p data-docs-versions-empty hidden>尚未发布更早的版本。</p>
+  <ul data-docs-versions-list hidden></ul>
+</div>
+
+<DocsVersionsRuntime locale="zh" />

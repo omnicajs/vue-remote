@@ -1,0 +1,110 @@
+---
+title: 快速开始
+description: 使用 @omnicajs/vue-remote 为扩展生态初始化宿主与远程运行时。
+template: doc
+---
+
+## 本指南包含什么
+
+本指南帮助你初始化以下两者之间的渲染同步层：
+
+- 拥有允许 UI 组件控制权的宿主产品；
+- 独立运行的远程扩展运行时。
+
+`@omnicajs/vue-remote` 负责同步渲染。
+业务 API、认证、发现和市场逻辑仍应放在相邻的工具层中。
+
+## 安装
+
+```bash
+yarn add @omnicajs/vue-remote @remote-ui/rpc
+```
+
+## IDE 工具支持
+
+为了让 `*.remote.vue` 中的原生模板 ref 被推导为远程元素代理类型，请加入 Vue tooling 插件：
+
+```json
+{
+  "vueCompilerOptions": {
+    "plugins": [
+      "@omnicajs/vue-remote/tooling"
+    ]
+  }
+}
+```
+
+效果如下：
+
+- `*.remote.vue` 中的 `<div ref="panel" />` 会被推导为 `@omnicajs/vue-remote/remote` 中的远程代理，而不是 `HTMLDivElement`。
+- `useTemplateRef(...)`、`ref(null)` 和 `shallowRef(null)` 在原生 ref 上遵循同样的远程边界模型。
+- 宿主组件的 ref 仍保持组件实例类型。
+
+IDE 建议：
+
+- VS Code：使用 `Vue - Official` 扩展。
+- PhpStorm / WebStorm：使用 `Vue Language Server (Volar)`，并启用 service-powered type engine 以获得最准确的类型推导。
+- 其他 IDE：如果底层使用 `@vue/language-server` 或其他兼容 Volar 的 Vue 语言客户端，也应支持 `vueCompilerOptions.plugins`。
+
+如果你是在这个仓库内开发，而不是消费已发布的包，请在 `vueCompilerOptions.plugins` 中使用 `./tooling.cjs`。
+
+## 1. 初始化宿主运行时
+
+在宿主侧：
+
+1. 用 `createProvider(...)` 注册宿主组件。
+2. 用 `createReceiver()` 创建渲染通道 receiver。
+3. 渲染 `HostedTree`，并传入 `provider + receiver`。
+4. 启动远程运行时（iframe 或 worker），并把 `receiver.receive` 传给 `run(...)`。
+
+参见：[宿主组件](/zh/host-components/) 和 [概览](/zh/overview/)。
+
+## 2. 初始化远程运行时
+
+在远程侧：
+
+1. 用 `createRemoteRoot(channel, options)` 创建远程根节点。
+2. 用 `createRemoteRenderer(root).createApp(...)` 创建应用。
+3. 用 `defineRemoteComponent(...)` 定义宿主暴露的组件。
+4. 在 `run(...)` 中挂载根节点和应用，在 `release()` 中清理。
+
+参见：[远程组件](/zh/remote-components/) 和 [概览](/zh/overview/)。
+
+## 3. 连接宿主与远程
+
+使用基于通道的传输方式，通常是 `@remote-ui/rpc`，并保持稳定的握手流程：
+
+1. 宿主加载远程运行时 URL。
+2. 远程侧暴露 `run/release`。
+3. 宿主调用 `run(channel, hostBridge)`。
+4. 远程侧通过通道挂载 UI。
+5. 会话以 `release()` 结束。
+
+如果你更倾向于专用 worker 运行时而不是 iframe 传输，请看 [Web Worker 运行时](/zh/web-workers/)。
+iframe 专用配置见 [Iframe 集成](/zh/integration/)。
+若需在自定义容器之间进行显式通道握手，请看 [MessagePort 传输](/zh/message-port-transport/)。
+Electron/Tauri 等进程隔离场景见 [桌面 IPC 传输](/zh/desktop-ipc-transport/)。
+跨进程或跨机器会话见 [Socket 传输](/zh/socket-transport/)。
+本地测试与开发脚手架可使用 [内存传输](/zh/memory-transport/) 在同一运行时中运行宿主和远程（仅限 dev/test）。
+如果想横向比较，请看 [传输方式对比](/zh/transport-comparison/)。
+
+## 4. 验证边界
+
+继续扩展前，请确认：
+
+- 宿主掌控暴露组件的 allowlist；
+- 跨运行时传递的 props 和事件是可序列化的；
+- 远程运行时不依赖浏览器的直接 DOM API。
+
+## 下一步
+
+- 构建安全的宿主合约：[宿主组件](/zh/host-components/)。
+- 建模远程 UI 与边界：[远程组件](/zh/remote-components/)。
+- 查看传输无关的运行时模型：[概览](/zh/overview/)。
+- 查看 iframe 专用接线模型：[Iframe 集成](/zh/integration/)。
+- 横向比较不同运行时模式：[传输方式对比](/zh/transport-comparison/)。
+- 查看 worker 专用拓扑与生命周期：[Web Worker 运行时](/zh/web-workers/)。
+- 查看显式通道接线模式：[MessagePort 传输](/zh/message-port-transport/)。
+- 查看桌面进程间桥接模式：[桌面 IPC 传输](/zh/desktop-ipc-transport/)。
+- 查看网络/会话桥接模型：[Socket 传输](/zh/socket-transport/)。
+- 查看 dev/test 单运行时方案：[内存传输](/zh/memory-transport/)。

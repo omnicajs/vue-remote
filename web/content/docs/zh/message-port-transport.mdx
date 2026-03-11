@@ -1,0 +1,78 @@
+---
+title: MessagePort 传输
+description: 将 MessageChannel/MessagePort 作为远程运行时握手的传输原语。
+template: doc
+---
+
+## 为什么这种模式很重要
+
+`MessagePort` 是一种底层传输原语，非常适合自定义运行时拓扑。
+当你希望显式控制通道接线，而又不想被绑定到单一容器模型时，它尤其有用。
+
+典型用例：
+
+- 宿主外壳与远程运行时之间的自定义握手；
+- 为 popup、iframe、worker 或 session 编排提供桥接层；
+- 需要显式双向通道的开发与诊断工具。
+
+## 核心思路
+
+`@remote-ui/rpc` 已经提供了 `fromMessagePort(...)`。
+一旦双方持有相连的端口，集成流程就与常规的 `run/release` 相同：
+
+```ts
+import { createEndpoint, fromMessagePort } from '@remote-ui/rpc'
+
+const endpoint = createEndpoint<RemoteApi>(fromMessagePort(port))
+await endpoint.call.run(receiver.receive, hostBridge)
+```
+
+## 最小同运行时示例
+
+```ts
+import { MessageChannel } from 'node:worker_threads'
+import { createEndpoint, fromMessagePort } from '@remote-ui/rpc'
+
+type Api = { ping(message: string): string }
+
+const { port1, port2 } = new MessageChannel()
+
+const host = createEndpoint<Api>(fromMessagePort(port1))
+const remote = createEndpoint(fromMessagePort(port2))
+
+remote.expose({
+  ping(message: string) {
+    return `pong: ${message}`
+  },
+})
+
+const result = await host.call.ping('hello')
+console.info(result) // pong: hello
+```
+
+在浏览器环境中，直接用原生 `MessageChannel` API 采用同样的模式即可。
+
+## 浏览器中的握手模式
+
+1. 宿主创建一个 `MessageChannel`。
+2. 宿主通过 `postMessage` 把 `port2` 传给远程容器，例如 `iframe`、`popup` 或 worker bootstrap。
+3. 宿主持有 `port1`，并用 `createEndpoint(fromMessagePort(port1))` 初始化 endpoint。
+4. 远程接收被传递的端口并初始化自己的 endpoint。
+5. 双方执行标准的 `run/release` 流程。
+
+## 设计说明
+
+1. 隔离性取决于上下文：
+   `MessagePort` 本身不会创建 sandbox 边界。
+2. Transport semantics are strong:
+   它具备明确的异步边界和 structured clone 限制。
+3. Lifecycle must be explicit:
+   teardown 时必须显式关闭端口并释放 retained 引用。
+
+## 相关文档
+
+- [概览](/zh/overview/)
+- [Iframe 集成](/zh/integration/)
+- [传输方式对比](/zh/transport-comparison/)
+- [Web Worker 运行时](/zh/web-workers/)
+- [Window 传输](/zh/window-transport/)
