@@ -22,7 +22,7 @@ yarn add @omnicajs/vue-remote @remote-ui/rpc
 
 ## IDE tooling
 
-To get remote-native template refs typed as remote element proxies in `*.remote.vue`, add the Vue tooling plugin:
+To get remote-native template refs typed as remote element proxies in remote SFCs, add the Vue tooling plugin:
 
 ```json
 {
@@ -36,7 +36,7 @@ To get remote-native template refs typed as remote element proxies in `*.remote.
 
 What to expect:
 
-- `<div ref="panel" />` inside `*.remote.vue` is inferred as a remote proxy from `@omnicajs/vue-remote/remote`, not as `HTMLDivElement`.
+- `<div ref="panel" />` inside `*.remote.vue` or an SFC marked with `<script setup remote>` is inferred as a remote proxy from `@omnicajs/vue-remote/remote`, not as `HTMLDivElement`.
 - `useTemplateRef(...)`, `ref(null)`, and `shallowRef(null)` follow the same remote boundary model for native refs.
 - Host component refs keep their component-instance typing.
 

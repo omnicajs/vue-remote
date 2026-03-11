@@ -4,10 +4,13 @@
 const fs = require('node:fs')
 const path = require('node:path')
 
+const distToolingPath = path.join(__dirname, 'dist/tooling.cjs')
 const sourceToolingPath = path.join(__dirname, 'src/vue/tooling/index.ts')
-const tooling = fs.existsSync(sourceToolingPath)
-  ? require(sourceToolingPath)
-  : require('./dist/tooling.cjs')
+const tooling = fs.existsSync(distToolingPath)
+  ? require(distToolingPath)
+  : fs.existsSync(sourceToolingPath)
+    ? require(sourceToolingPath)
+    : require('./dist/tooling.cjs')
 const plugin = tooling.default ?? tooling.vueRemoteToolingPlugin
 
 module.exports = plugin

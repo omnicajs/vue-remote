@@ -38,15 +38,20 @@ const createScriptAst = (code: string) => {
   return ts.createSourceFile('fixture.ts', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS)
 }
 
+const createRemoteScriptSetup = (code: string, isRemote = false) => {
+  return {
+    ast: createScriptAst(code),
+    attrs: isRemote ? { remote: true } : {},
+    name: 'fixture.ts',
+  }
+}
+
 describe('vueRemoteToolingPlugin', () => {
   test('skips non-remote files and non-script embedded code', () => {
     const plugin = createPlugin()
     const code = 'const panel = ref(null)\n'
     const sfc = {
-      scriptSetup: {
-        ast: createScriptAst(code),
-        name: 'fixture.ts',
-      },
+      scriptSetup: createRemoteScriptSetup(code),
       template: {
         ast: parseTemplate('<div ref="panel" />'),
       },
@@ -75,6 +80,22 @@ describe('vueRemoteToolingPlugin', () => {
     expect(toString(embedded.content)).toBe(HELPER_IMPORT)
   })
 
+  test('treats remote script setup attribute as an alternative marker', () => {
+    const plugin = createPlugin()
+    const code = 'const panel = ref(null)\n'
+    const embedded = createEmbeddedCode(code)
+
+    plugin.resolveEmbeddedCode?.('fixture.vue', {
+      scriptSetup: createRemoteScriptSetup(code, true),
+      template: {
+        ast: parseTemplate('<div ref="panel" />'),
+      },
+    } as never, embedded as never)
+
+    expect(toString(embedded.content)).toContain(HELPER_IMPORT)
+    expect(toString(embedded.content)).toContain('const panel = (ref(null) as import(\'vue\').Ref<import(\'@omnicajs/vue-remote/tooling\').RemoteIntrinsicElements[\'div\'] | null>)')
+  })
+
   test('leaves script unchanged when script setup ast is unavailable', () => {
     const plugin = createPlugin()
     const code = 'const panel = ref(null)\n'
@@ -83,6 +104,7 @@ describe('vueRemoteToolingPlugin', () => {
     plugin.resolveEmbeddedCode?.('fixture.remote.vue', {
       scriptSetup: {
         ast: undefined,
+        attrs: {},
         name: 'fixture.ts',
       },
       template: {
@@ -99,10 +121,7 @@ describe('vueRemoteToolingPlugin', () => {
     const embedded = createEmbeddedCode(code)
 
     plugin.resolveEmbeddedCode?.('fixture.remote.vue', {
-      scriptSetup: {
-        ast: createScriptAst(code),
-        name: 'fixture.ts',
-      },
+      scriptSetup: createRemoteScriptSetup(code),
       template: {
         ast: undefined,
       },
@@ -117,10 +136,7 @@ describe('vueRemoteToolingPlugin', () => {
     const embedded = createEmbeddedCode(code)
 
     plugin.resolveEmbeddedCode?.('fixture.remote.vue', {
-      scriptSetup: {
-        ast: createScriptAst(code),
-        name: 'fixture.ts',
-      },
+      scriptSetup: createRemoteScriptSetup(code),
       template: {
         ast: parseTemplate('<VDialog ref="dialog" /><div :ref="dynamic" />'),
       },
@@ -135,10 +151,7 @@ describe('vueRemoteToolingPlugin', () => {
     const embedded = createEmbeddedCode(code)
 
     plugin.resolveEmbeddedCode?.('fixture.remote.vue', {
-      scriptSetup: {
-        ast: createScriptAst(code),
-        name: 'fixture.ts',
-      },
+      scriptSetup: createRemoteScriptSetup(code),
       template: {
         ast: {
           type: 0,
@@ -176,10 +189,7 @@ describe('vueRemoteToolingPlugin', () => {
     const embedded = createEmbeddedCode(code)
 
     plugin.resolveEmbeddedCode?.('fixture.remote.vue', {
-      scriptSetup: {
-        ast: createScriptAst(code),
-        name: 'fixture.ts',
-      },
+      scriptSetup: createRemoteScriptSetup(code),
       template: {
         ast: parseTemplate([
           '<div ref="panel" />',
@@ -202,5 +212,22 @@ describe('vueRemoteToolingPlugin', () => {
     expect(transformed).not.toContain('stray = (ref')
     expect(transformed).not.toContain('hidden = (ref')
     expect(transformed).not.toContain('dialog')
+  })
+
+  test('treats remote script attribute as an alternative marker', () => {
+    const plugin = createPlugin()
+    const embedded = createEmbeddedCode('')
+
+    plugin.resolveEmbeddedCode?.('fixture.vue', {
+      script: {
+        attrs: { remote: true },
+      },
+      scriptSetup: null,
+      template: {
+        ast: parseTemplate('<div ref="panel" />'),
+      },
+    } as never, embedded as never)
+
+    expect(toString(embedded.content)).toBe(HELPER_IMPORT)
   })
 })

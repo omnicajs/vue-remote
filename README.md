@@ -53,7 +53,7 @@ See more about remote rendering:
 
 ### Remote template ref tooling
 
-For `*.remote.vue` files you can enable remote-native template ref inference in Vue tooling.
+For remote SFCs you can enable remote-native template ref inference in Vue tooling.
 
 If you are consuming the published package from another project, use the package subpath instead:
 
@@ -67,7 +67,7 @@ If you are consuming the published package from another project, use the package
 }
 ```
 
-With the plugin enabled, refs like `<div ref="panel" />` inside `*.remote.vue` are inferred as remote element proxies from `@omnicajs/vue-remote/remote`, not as real DOM elements.
+With the plugin enabled, refs like `<div ref="panel" />` inside `*.remote.vue` or `<script setup remote>` SFCs are inferred as remote element proxies from `@omnicajs/vue-remote/remote`, not as real DOM elements.
 
 ### IDE notes
 
