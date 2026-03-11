@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run actionlint
         run: make actionlint
@@ -30,7 +30,7 @@ jobs:
 
     steps:
       - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js and dependencies
         uses: ./.github/actions/setup-node-deps
@@ -46,7 +46,7 @@ jobs:
 
     steps:
       - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js and dependencies
         uses: ./.github/actions/setup-node-deps
@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Using branch ${{ github.ref }} for repository ${{ github.repository }}.
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js and dependencies
         uses: ./.github/actions/setup-node-deps

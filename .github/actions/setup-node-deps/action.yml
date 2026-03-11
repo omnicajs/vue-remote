@@ -20,19 +20,19 @@ runs:
   steps:
     - name: Setup Node.js
       if: ${{ inputs.registry-url == '' }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: ${{ inputs.node-version }}
 
     - name: Setup Node.js with registry
       if: ${{ inputs.registry-url != '' }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: ${{ inputs.node-version }}
         registry-url: ${{ inputs.registry-url }}
 
     - name: Cache dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: .yarn
         key: ${{ runner.OS }}-node-${{ inputs.node-version }}-${{ inputs.cache-key-suffix }}-yarn-${{ hashFiles('**/yarn.lock') }}

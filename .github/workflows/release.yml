@@ -44,7 +44,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -134,7 +134,7 @@ jobs:
 
     steps:
       - name: Checkout release tag
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: refs/tags/${{ needs.release.outputs.release_tag }}
           fetch-depth: 0
@@ -148,7 +148,7 @@ jobs:
       - name: Checkout docs store branch
         id: docs_store_checkout
         continue-on-error: true
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ env.DOCS_STORE_BRANCH }}
           path: .pages-store
