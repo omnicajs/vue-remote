@@ -1,0 +1,166 @@
+---
+title: Integración con iframe
+description: Integra entornos host y remotos mediante iframe y transporte con postMessage.
+template: doc
+---
+
+Si buscas una visión general independiente del transporte, empieza por [Resumen](/es-mx/overview/).
+
+## Cuándo conviene usar iframe
+
+El transporte con iframe es la opción base en navegador para ejecutar extensiones remotas aisladas:
+
+- host y remoto corren en contextos de navegador distintos;
+- la comunicación usa `postMessage` por medio de `@remote-ui/rpc`;
+- la aplicación host mantiene el control del render a través de `provider` y `receiver`.
+
+## Ejemplo del lado host
+
+```ts
+import type { Channel } from '@omnicajs/vue-remote/host'
+import type { Endpoint } from '@remote-ui/rpc'
+
+import { createApp, defineComponent, h, onBeforeUnmount, onMounted, ref } from 'vue'
+import { HostedTree, createProvider, createReceiver } from '@omnicajs/vue-remote/host'
+import { createEndpoint, fromIframe } from '@remote-ui/rpc'
+
+import VButton from './components/VButton.vue'
+import VInput from './components/VInput.vue'
+
+type HostBridge = {
+  track(event: { type: string; payload: Record<string, unknown> }): void;
+}
+
+type RemoteApi = {
+  run(channel: Channel, bridge: HostBridge): Promise<void>;
+  release(): void;
+}
+
+const provider = createProvider({ VButton, VInput })
+
+export function mountIframeRemote(remoteUrl: string, bridge: HostBridge) {
+  return createApp(defineComponent({
+    setup() {
+      const iframe = ref<HTMLIFrameElement | null>(null)
+      const receiver = createReceiver()
+      let endpoint: Endpoint<RemoteApi> | null = null
+
+      onMounted(() => {
+        endpoint = createEndpoint<RemoteApi>(fromIframe(iframe.value as HTMLIFrameElement, {
+          terminate: false,
+        }))
+      })
+
+      onBeforeUnmount(() => endpoint?.call.release())
+
+      return () => [
+        h(HostedTree, { provider, receiver }),
+        h('iframe', {
+          ref: iframe,
+          src: remoteUrl,
+          style: { display: 'none' },
+          onLoad: () => endpoint?.call.run(receiver.receive, bridge),
+        }),
+      ]
+    },
+  }))
+}
+```
+
+## Ejemplo del lado remoto
+
+```ts
+import { createEndpoint, fromInsideIframe, release, retain } from '@remote-ui/rpc'
+import { createRemoteRenderer, createRemoteRoot, defineRemoteComponent } from '@omnicajs/vue-remote/remote'
+import { defineComponent, h, ref } from 'vue'
+
+type HostBridge = {
+  track(event: { type: string; payload: Record<string, unknown> }): void;
+}
+
+const VButton = defineRemoteComponent('VButton')
+const VInput = defineRemoteComponent('VInput', [
+  'update:value',
+] as unknown as {
+  'update:value': (value: string) => true;
+})
+
+const endpoint = createEndpoint(fromInsideIframe())
+let onRelease = () => {}
+
+endpoint.expose({
+  async run(channel, bridge: HostBridge) {
+    retain(channel)
+    retain(bridge)
+
+    const root = createRemoteRoot(channel, {
+      components: ['VButton', 'VInput'],
+    })
+    await root.mount()
+
+    const app = createRemoteRenderer(root).createApp(defineComponent({
+      setup() {
+        const text = ref('')
+        return () => [
+          h(VInput, {
+            value: text.value,
+            'onUpdate:value': (value: string) => text.value = value,
+          }),
+          h(VButton, {
+            onClick: () => bridge.track({
+              type: 'remote.clear',
+              payload: { value: text.value },
+            }),
+          }, 'Clear'),
+        ]
+      },
+    }))
+
+    app.mount(root)
+
+    onRelease = () => {
+      release(channel)
+      release(bridge)
+      app.unmount()
+    }
+  },
+
+  release() {
+    onRelease()
+  },
+})
+```
+
+## Secuencia de arranque con iframe
+
+1. El host renderiza `HostedTree` y crea `receiver`.
+2. El host carga la URL remota en un iframe oculto.
+3. El iframe remoto expone `run/release`.
+4. Cuando se dispara `load`, el host llama a `run(receiver.receive, hostBridge)`.
+5. El remoto monta la interfaz y sincroniza las actualizaciones del árbol por el canal.
+6. El host llama a `release()` al cerrar la sesión.
+
+## Recomendaciones de seguridad para iframe
+
+1. Restringe los orígenes:
+   usa orígenes permitidos explícitos en lugar de comodines demasiado abiertos.
+2. Valida las URLs remotas:
+   usa una allowlist para las fuentes del entorno de extensiones.
+3. Ajusta correctamente los atributos del iframe:
+   configura `sandbox` de acuerdo con tu modelo de confianza.
+4. Alinea la política de CSP y de frame:
+   asegúrate de que `frame-src` y `child-src` solo permitan los orígenes aprobados.
+
+## Errores comunes
+
+- Llamar a `run(...)` antes de que termine de cargar el iframe.
+- Olvidar registrar los componentes host en el provider.
+- Pasar payloads no serializables a través de la frontera.
+- Olvidar `release()` y dejar referencias retenidas.
+
+## Documentación relacionada
+
+- [Resumen](/es-mx/overview/)
+- [Comparación de transportes](/es-mx/transport-comparison/)
+- [Runtime de Web Worker](/es-mx/web-workers/)
+- [Transporte Window](/es-mx/window-transport/)

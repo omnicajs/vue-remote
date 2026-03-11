@@ -1,0 +1,82 @@
+---
+title: Resumen
+description: Arquitectura independiente del transporte y organización del entorno de ejecución para @omnicajs/vue-remote.
+template: doc
+---
+
+¿Necesitas elegir un modo rápido? Empieza por [Comparación de transportes](/es-mx/transport-comparison/).
+
+## Modelo de ecosistema
+
+La idea de fondo es un ecosistema de extensiones en el que:
+
+- cualquier producto puede publicar una superficie de extensibilidad;
+- equipos de terceros pueden distribuir extensiones remotas de manera independiente;
+- `@omnicajs/vue-remote` sincroniza árboles de UI entre el entorno host y los entornos remotos.
+
+## Alcance de esta biblioteca
+
+`@omnicajs/vue-remote` cubre únicamente la sincronización del render:
+
+- Host: `createProvider`, `createReceiver`, `HostedTree`.
+- Remoto: `createRemoteRoot`, `createRemoteRenderer`, `defineRemoteComponent`.
+- Las actualizaciones viajan sobre un contrato de canal cuya implementación de transporte puede cambiarse.
+
+Queda fuera del alcance, de forma intencional:
+
+- contratos de datos del negocio y APIs del producto;
+- descubrimiento de extensiones, autenticación, facturación y gobierno;
+- políticas de marketplace y flujos de cumplimiento;
+- la operación completa de una plataforma de extensiones.
+
+## Topología recomendada
+
+Lo ideal es entregar el producto host y las extensiones remotas por separado.
+
+```text
+host-product/
+  src/
+    extensions/
+      host-components/
+      runtime/
+      hostBridge.ts
+
+remote-extension/
+  src/
+    entry.ts
+    App.vue
+    bridge/
+```
+
+## Capas del entorno
+
+1. Capa de provider de UI:
+   componentes host publicados mediante `createProvider(...)`.
+2. Capa de transporte del entorno:
+   iframe, worker, window, MessagePort, IPC de escritorio, socket, etc.
+3. Capa de integración con el producto:
+   métodos y datos propios del negocio.
+4. Capa de seguridad:
+   validación de capacidades y aplicación de políticas de ciclo de vida.
+
+## Contrato de arranque
+
+Sin importar el transporte, conviene mantener estable este flujo:
+
+1. El host inicializa el contenedor del entorno y el receiver.
+2. El remoto expone `run/release`.
+3. El host llama a `run(channel, hostBridge)`.
+4. El remoto monta y actualiza la UI por medio del canal.
+5. La sesión termina con `release()`.
+
+## Cómo elegir un transporte
+
+- Aislamiento estándar en navegador: [Integración con iframe](/es-mx/integration/).
+- Entorno en worker: [Runtime de Web Worker](/es-mx/web-workers/).
+- Entorno en popup: [Transporte Window](/es-mx/window-transport/).
+- Conexión explícita por canal: [Transporte MessagePort](/es-mx/message-port-transport/).
+- Puente entre procesos de escritorio: [Transporte IPC de escritorio](/es-mx/desktop-ipc-transport/).
+- Puente de red o de sesión: [Transporte Socket](/es-mx/socket-transport/).
+- Un solo entorno para desarrollo y pruebas: [Transporte en memoria](/es-mx/memory-transport/).
+
+Si estás explorando escenarios fuera de la base recomendada o más orientados a investigación, revisa [Capacidades experimentales](/es-mx/experimental-overview/).

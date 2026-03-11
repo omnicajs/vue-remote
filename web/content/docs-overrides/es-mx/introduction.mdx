@@ -1,0 +1,156 @@
+---
+title: Introducción
+description: Qué resuelve @omnicajs/vue-remote, dónde encaja en un ecosistema de extensiones y qué deja fuera intencionalmente.
+template: doc
+---
+
+## ¿Qué es Vue Remote?
+
+`@omnicajs/vue-remote` es una biblioteca de sincronización de render pensada para ecosistemas de extensiones basados en Vue 3.
+
+Permite que una aplicación host renderice una interfaz descrita por un entorno remoto aislado.
+El lado remoto define árboles de componentes, mientras que el lado host decide qué componentes están permitidos y cómo se renderizan realmente.
+
+## ¿Cuándo conviene usar Vue Remote?
+
+Esta biblioteca cobra sentido cuando quieres convertir tu producto en una plataforma de extensiones:
+
+- tu producto controla el entorno host y los límites de la interfaz;
+- equipos de terceros desarrollan extensiones de forma independiente;
+- la interfaz de las extensiones debe ejecutarse aislada, por ejemplo dentro de un iframe o un worker;
+- el render debe seguir pasando por contratos de UI controlados por la aplicación host.
+
+## Ejemplo básico
+
+En el caso más simple, host y remoto comparten un canal de render:
+
+```ts
+// host
+const provider = createProvider({ VButton, VInput })
+const receiver = createReceiver()
+// render <HostedTree provider={provider} receiver={receiver} />
+// then call remote.run(receiver.receive, hostBridge)
+```
+
+```ts
+// remote
+const root = createRemoteRoot(channel, { components: ['VButton', 'VInput'] })
+await root.mount()
+createRemoteRenderer(root).createApp(RemoteApp).mount(root)
+```
+
+A partir de ahí, los componentes remotos expresan intención mediante props y eventos, mientras el host conserva el control sobre las capacidades de render disponibles.
+
+## ¿Por qué Vue Remote?
+
+Este modelo le da al producto host control sobre la plataforma sin obligar a quienes crean extensiones a depender de detalles internos del producto:
+
+- los equipos del host definen los límites de capacidad mediante contratos de componentes;
+- quienes desarrollan extensiones se concentran en la funcionalidad y en la intención de UI;
+- el aislamiento del entorno reduce el acoplamiento accidental y hace más seguras las actualizaciones;
+- varias extensiones pueden convivir compartiendo un mismo contrato de experiencia definido por el host.
+
+## Un ejemplo más realista
+
+En un producto en producción, una extensión suele necesitar dos cosas a la vez: sincronizar render y acceder a capacidades del negocio.
+
+1. Canal de render:
+   el remoto renderiza componentes aprobados por el host mediante `@omnicajs/vue-remote`.
+2. Puente de negocio:
+   el remoto consume APIs del producto mediante un contrato separado (`hostBridge`).
+3. Política de capacidades:
+   el host decide qué puede renderizar y qué puede invocar cada extensión.
+
+Esta separación es intencional: el ciclo de vida del render puede mantenerse estable aunque evolucionen los contratos de negocio.
+
+## La idea central
+
+Aquí colaboran dos entornos:
+
+1. Entorno host:
+   registra los componentes permitidos con `createProvider(...)`,
+   recibe actualizaciones del árbol remoto con `createReceiver()`,
+   y renderiza `HostedTree`.
+2. Entorno remoto:
+   crea una raíz sincronizada con `createRemoteRoot(...)`,
+   usa `createRemoteRenderer(...)`,
+   y referencia los componentes publicados por el host mediante `defineRemoteComponent(...)`.
+
+Las actualizaciones viajan por un transporte basado en canales, normalmente `@remote-ui/rpc`.
+
+## Qué cubre esta biblioteca
+
+Dentro del alcance:
+
+- sincronización del árbol de UI entre host y remoto;
+- allowlist de componentes controlada por el host;
+- contratos de props, eventos y slots a través del límite entre entornos;
+- etiquetas remotas nativas (`html`, `svg`, `mathml`) reflejadas en el árbol de render del host.
+
+Fuera del alcance:
+
+- protocolos de APIs de negocio del producto;
+- autenticación, permisos, facturación, marketplace y descubrimiento de extensiones;
+- empaquetado, publicación y políticas de ciclo de vida de extensiones;
+- gobierno y modelos de confianza propios del producto.
+
+Estas piezas deben vivir en la capa de plataforma que rodea a la biblioteca.
+
+## Qué significa esto en ecosistemas reales
+
+Un ecosistema de extensiones en producción normalmente se separa en tres capas:
+
+1. Capa de sincronización de render (`@omnicajs/vue-remote`).
+2. Capa de integración con el producto (métodos de negocio y contratos de datos).
+3. Capa de plataforma (permisos, descubrimiento, monetización y gobierno).
+
+Mantener estas capas separadas reduce el acoplamiento y hace más fácil versionarlas de forma independiente.
+
+## Comparación con un embed directo
+
+Frente a incrustar código de UI de terceros directamente dentro del entorno host:
+
+- Vue Remote mejora el control del host sobre la superficie de componentes permitida;
+- favorece contratos explícitos en lugar de acceso implícito a detalles internos del producto;
+- funciona mejor en entornos aislados donde el remoto no tiene acceso al DOM real.
+
+La contrapartida es que tienes que diseñar con cuidado los contratos de frontera y las reglas de serialización.
+
+## Modelo mental
+
+Piensa en el lado remoto como un generador declarativo de intención de UI, no como el dueño directo del DOM.
+
+- El código remoto compone la interfaz y comunica intención.
+- El código host aplica capacidades, valida límites y hace el render real.
+- Los datos que cruzan el canal deben seguir siendo serializables.
+
+Esta separación hace que los ecosistemas de extensiones sean más seguros y más fáciles de evolucionar con el tiempo.
+
+## Cuándo no encaja tan bien
+
+`@omnicajs/vue-remote` puede ser innecesario si:
+
+- controlas ambos lados y no necesitas aislamiento del entorno;
+- no necesitas límites de componentes controlados por el host;
+- una biblioteca local de componentes ya resuelve tu integración.
+
+También puede quedarse corto si hoy necesitas una plataforma completa de plugins.
+En ese caso, conviene dejar esta biblioteca como núcleo de render y construir alrededor la capa de plataforma.
+
+## Flujo de uso típico
+
+1. La aplicación host inicia el contenedor del entorno de extensiones y el receiver de render.
+2. La extensión remota expone la API `run/release`.
+3. El host entrega el canal de render y, si hace falta, un puente de negocio.
+4. El remoto monta la interfaz y la actualiza por medio del canal.
+5. La sesión termina con `release()`.
+
+Consulta el modelo independiente del transporte en [Resumen](/es-mx/overview/) y los detalles específicos de iframe en [Integración con iframe](/es-mx/integration/).
+
+## Qué leer a continuación
+
+- Si apenas vas entrando al modelo: [Primeros pasos](/es-mx/getting-started/).
+- Si diseñas contratos del host: [Componentes del host](/es-mx/host-components/).
+- Si construyes UI remota para extensiones: [Componentes remotos](/es-mx/remote-components/).
+- Si estás definiendo la arquitectura del entorno: [Resumen](/es-mx/overview/).
+- Si estás planeando integración por iframe: [Integración con iframe](/es-mx/integration/).

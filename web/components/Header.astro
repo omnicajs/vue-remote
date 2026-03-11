@@ -9,12 +9,13 @@ import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
 
 const shouldRenderSearch =
   config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
-const currentLocale = Astro.currentLocale ?? 'root';
+const currentLocale = Astro.locals.starlightRoute.locale ?? 'root';
 const localePrefix = currentLocale === 'root' ? '' : `/${currentLocale}`;
 const guideHref = `${localePrefix}/introduction/`;
+const isSpanishLocale = currentLocale === 'es' || currentLocale === 'es-mx';
 const topNavLabel = currentLocale === 'ru'
   ? 'Основная навигация'
-  : currentLocale === 'es'
+  : isSpanishLocale
     ? 'Navegación principal'
     : currentLocale === 'ja'
       ? 'メインナビゲーション'
@@ -23,7 +24,7 @@ const topNavLabel = currentLocale === 'ru'
     : 'Primary';
 const guideLabel = currentLocale === 'ru'
   ? 'Руководство'
-  : currentLocale === 'es'
+  : isSpanishLocale
     ? 'Guía'
     : currentLocale === 'ja'
       ? 'ガイド'
