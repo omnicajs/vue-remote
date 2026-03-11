@@ -13,6 +13,7 @@ import {
 } from '@/dom/common/channel'
 
 import { ROOT_ID } from '@/dom/common/tree'
+import { createNoopChannel } from './__fixtures__/channel'
 
 describe('createRemoteRoot', () => {
   describe('append', () => {
@@ -58,7 +59,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('throws error when calling with invalid arguments', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
 
       expect(() => {
         // @ts-expect-error Testing unsupported argument
@@ -67,17 +68,17 @@ describe('createRemoteRoot', () => {
     })
 
     test('throws error when calling with a component created by another root', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
 
       expect(() => {
-        root.append(createRemoteRoot(() => {}).createComponent('VCard'))
+        root.append(createRemoteRoot(createNoopChannel()).createComponent('VCard'))
       }).toThrow('Cannot append a node that was not created by this remote root')
     })
   })
 
   describe('insertBefore', () => {
     test('inserts child before specified one', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const card = root.createComponent('VCard')
 
       root.append(card)
@@ -92,7 +93,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('changes order of components if called on already appended children', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const card = root.createComponent('VCard')
 
       root.append(card)
@@ -113,7 +114,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('throws error when calling with invalid arguments', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const card = root.createComponent('Card')
 
       root.append(card)
@@ -125,7 +126,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('handles self-reference and non-child anchors', () => {
-      const root = createRemoteRoot(() => {}, { strict: false })
+      const root = createRemoteRoot(createNoopChannel(), { strict: false })
       const first = root.createComponent('VFirst')
       const second = root.createComponent('VSecond')
       const foreign = root.createComponent('VForeign')
@@ -152,7 +153,7 @@ describe('createRemoteRoot', () => {
 
   describe('replace', () => {
     test('replaces child with another one', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const card = root.createComponent('VCard')
 
       root.append(card)
@@ -169,7 +170,7 @@ describe('createRemoteRoot', () => {
     })
 
     test('throws error when calling with invalid arguments', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const card = root.createComponent('VCard')
 
       root.append(card)
@@ -181,13 +182,13 @@ describe('createRemoteRoot', () => {
     })
 
     test('throws error when calling with a component created by another root', () => {
-      const root = createRemoteRoot(() => {})
+      const root = createRemoteRoot(createNoopChannel())
       const card = root.createComponent('VCard')
 
       root.append(card)
 
       expect(() => {
-        root.replace(createRemoteRoot(() => {}).createComponent('VImage'))
+        root.replace(createRemoteRoot(createNoopChannel()).createComponent('VImage'))
       }).toThrow('Cannot append a node that was not created by this remote root')
     })
   })

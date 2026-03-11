@@ -6,10 +6,11 @@ import {
 
 import { KIND_TEXT } from '@/dom/common/tree'
 import { createTreeContext } from '@/dom/remote/context'
+import { createNoopChannel } from './__fixtures__/channel'
 
 describe('createTreeContext', () => {
   test('ignores duplicate collect and rejects invoke for foreign nodes', () => {
-    const context = createTreeContext(() => {})
+    const context = createTreeContext(createNoopChannel())
     const fakeNode = {
       id: 'n1',
       kind: KIND_TEXT,

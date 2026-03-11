@@ -1,3 +1,8 @@
+import type {
+  Code,
+  VueLanguagePluginReturn,
+} from '@vue/language-core'
+
 import {
   describe,
   expect,
@@ -15,16 +20,18 @@ const HELPER_IMPORT = 'type __VLS_Elements = import(\'@omnicajs/vue-remote/tooli
 const createEmbeddedCode = (code: string, id = 'script_ts', source = 'fixture.ts') => {
   return {
     id,
-    content: [[code, source, 0]] as string[],
+    content: [[code, source, 0, {}]] as Code[],
   }
 }
 
-const createPlugin = () => {
-  return vueRemoteToolingPlugin({
+const createPlugin = (): VueLanguagePluginReturn => {
+  const plugin = vueRemoteToolingPlugin({
     modules: {
       typescript: ts,
     },
   } as never)
+
+  return Array.isArray(plugin) ? plugin[0] : plugin
 }
 
 const createScriptAst = (code: string) => {
