@@ -22,7 +22,7 @@ yarn add @omnicajs/vue-remote @remote-ui/rpc
 
 ## IDE tooling
 
-Чтобы native template refs в `*.remote.vue` типизировались как remote element proxies, добавьте Vue tooling plugin:
+Чтобы native template refs в remote SFC типизировались как remote element proxies, добавьте Vue tooling plugin:
 
 ```json
 {
@@ -36,7 +36,7 @@ yarn add @omnicajs/vue-remote @remote-ui/rpc
 
 Что это дает:
 
-- `<div ref="panel" />` внутри `*.remote.vue` выводится как remote proxy из `@omnicajs/vue-remote/remote`, а не как `HTMLDivElement`.
+- `<div ref="panel" />` внутри `*.remote.vue` или SFC с `<script setup remote>` выводится как remote proxy из `@omnicajs/vue-remote/remote`, а не как `HTMLDivElement`.
 - `useTemplateRef(...)`, `ref(null)` и `shallowRef(null)` следуют той же remote boundary-модели для native refs.
 - refs на host-компоненты сохраняют типизацию component instance.
 

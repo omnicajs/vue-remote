@@ -62,7 +62,7 @@ yarn docs:build
 
 ## Local Vue tooling bridge
 
-For `*.remote.vue` files you can point Vue tooling to the local bridge file while working inside this repository:
+For remote SFCs you can point Vue tooling to the local bridge file while working inside this repository:
 
 ```json
 {
@@ -74,4 +74,4 @@ For `*.remote.vue` files you can point Vue tooling to the local bridge file whil
 }
 ```
 
-Remote-native ref inference stays scoped to `*.remote.vue`. If you change the local tooling implementation, rebuild with `yarn build` so the IDE reloads the updated `dist/tooling.*` files.
+Remote-native ref inference stays scoped to `*.remote.vue` files and SFCs marked with `remote` on `script` / `script setup`. If you change the local tooling implementation, rebuild with `yarn build` so the IDE reloads the updated `dist/tooling.*` files.

@@ -14,6 +14,7 @@ import { replaceSourceRange } from 'muggle-string'
 
 const REMOTE_SFC_PATTERN = /\.remote\.vue$/i
 const SCRIPT_EMBEDDED_CODE_PATTERN = /^script_(?:c|m)?(?:j|t)sx?$/
+const REMOTE_SFC_ATTRIBUTE = 'remote'
 
 export type RemoteIntrinsicElements = {
   [Tag in RemoteElementTagName]: RemoteElementProxy<Tag>;
@@ -178,7 +179,21 @@ const injectNullTemplateRefCasts = (
   }
 }
 
-const isRemoteSfc = (fileName: string) => REMOTE_SFC_PATTERN.test(fileName)
+const hasRemoteAttribute = (value: { attrs?: Record<string, string | true> } | null | undefined) => {
+  return value?.attrs?.[REMOTE_SFC_ATTRIBUTE] === true
+}
+
+const isRemoteSfc = (
+  fileName: string,
+  sfc: {
+    script?: { attrs?: Record<string, string | true> } | null;
+    scriptSetup?: { attrs?: Record<string, string | true> } | null;
+  }
+) => {
+  return REMOTE_SFC_PATTERN.test(fileName)
+    || hasRemoteAttribute(sfc.script)
+    || hasRemoteAttribute(sfc.scriptSetup)
+}
 
 const isScriptEmbeddedCode = (embeddedFile: VueEmbeddedCode) => {
   return SCRIPT_EMBEDDED_CODE_PATTERN.test(embeddedFile.id)
@@ -189,7 +204,7 @@ export const vueRemoteToolingPlugin: VueLanguagePlugin = (context) => ({
   name: '@omnicajs/vue-remote/tooling',
   order: 100,
   resolveEmbeddedCode (fileName, sfc, embeddedFile) {
-    if (!isRemoteSfc(fileName) || !isScriptEmbeddedCode(embeddedFile)) {
+    if (!isRemoteSfc(fileName, sfc) || !isScriptEmbeddedCode(embeddedFile)) {
       return
     }
 
