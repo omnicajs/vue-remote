@@ -126,7 +126,15 @@ export const toSlots = (children: HostedChild[], render: (hosted: HostedChild) =
 const isJavaScriptSchema = (value: string) => {
   const normalized = value.trim().toLowerCase()
 
-  return normalized.startsWith('javascript:') || decodeURIComponent(normalized).startsWith('javascript:')
+  if (normalized.startsWith('javascript:')) {
+    return true
+  }
+
+  try {
+    return decodeURIComponent(normalized).startsWith('javascript:')
+  } catch {
+    return false
+  }
 }
 
 const createEventHandler = (

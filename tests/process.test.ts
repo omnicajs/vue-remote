@@ -45,6 +45,21 @@ describe('process', () => {
     })
   })
 
+  test('does not throw on non-URI strings with percent signs', () => {
+    const properties = ref({
+      width: '28.5%',
+      progress: '100%',
+      other: 'http://example.com/100%25',
+    })
+
+    expect(() => process(properties)).not.toThrow()
+    expect(process(properties)).toEqual({
+      width: '28.5%',
+      progress: '100%',
+      other: 'http://example.com/100%25',
+    })
+  })
+
   test('wraps event handlers and serializes Event arguments', () => {
     const onClick = vi.fn()
     const properties = ref({
