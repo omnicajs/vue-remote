@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.20](https://github.com/omnicajs/vue-remote/compare/v0.2.19...v0.2.20) (2026-03-13)
+
+
+### Fixes
+
+* **host:** Async invoke results were awaited ([51c8b20](https://github.com/omnicajs/vue-remote/commit/51c8b20dc6aca3d7c0d55052070a0e61065314c0))
+
 ### [0.2.19](https://github.com/omnicajs/vue-remote/compare/v0.2.18...v0.2.19) (2026-03-13)
 
 
