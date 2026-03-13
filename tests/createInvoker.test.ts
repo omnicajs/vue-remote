@@ -27,4 +27,29 @@ describe('createInvoker', () => {
     off()
     off()
   })
+
+  test('unwraps async handler results before resolving transport callbacks', async () => {
+    const invoker = createInvoker()
+    const resolve = vi.fn()
+    const reject = vi.fn()
+
+    invoker.register('1', (method) => {
+      if (method === 'ping') {
+        return Promise.resolve('pong')
+      }
+
+      return Promise.reject(new Error('broken async'))
+    })
+
+    invoker.invoke('1', 'ping', [], resolve, reject)
+    await Promise.resolve()
+
+    expect(resolve).toHaveBeenCalledWith('pong')
+    expect(reject).not.toHaveBeenCalled()
+
+    invoker.invoke('1', 'boom', [], resolve, reject)
+    await Promise.resolve()
+
+    expect(reject).toHaveBeenLastCalledWith('broken async')
+  })
 })

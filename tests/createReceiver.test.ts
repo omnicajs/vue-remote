@@ -260,6 +260,29 @@ describe('createReceiver', () => {
     }
   })
 
+  test('awaits async invoke handlers before replying to remote nodes', async () => {
+    const receiver = createReceiver()
+
+    const root = createRemoteRoot(receiver.receive)
+    const dialog = root.createComponent('VDialog')
+
+    root.append(dialog)
+
+    await root.mount()
+    await receiver.flush()
+
+    receiver.tree.invokable({ id: dialog.id }, async (method, payload) => {
+      if (method === 'open') {
+        return payload[0]
+      }
+
+      throw new Error('Unsupported async method')
+    })
+
+    await expect(dialog.invoke('open', 'dialog-1')).resolves.toBe('dialog-1')
+    await expect(dialog.invoke('close')).rejects.toBe('Unsupported async method')
+  })
+
   test('keeps channel processing for malformed inserts with a missing old child', () => {
     const receiver = createReceiver()
 
