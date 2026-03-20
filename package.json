@@ -75,6 +75,7 @@
     "docs:build": "yarn docs:prepare && astro build && node ./scripts/docs-relativize-links.mjs",
     "docs:dev": "yarn docs:prepare && astro dev",
     "docs:preview": "yarn docs:prepare && astro preview",
+    "docs:typecheck": "yarn docs:prepare && astro check --tsconfig ./tsconfig.web.json --minimumSeverity error",
     "lint": "eslint .",
     "release": "standard-version",
     "release:minor": "standard-version --release-as minor",
@@ -87,7 +88,7 @@
     "test:e2e": "vitest run --config vitest.playwright.ts",
     "test:e2e:coverage": "vitest run --config vitest.playwright.ts --coverage",
     "test:all:coverage": "yarn coverage:clean && yarn test:coverage && yarn test:e2e:coverage && yarn coverage:merge",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit && yarn docs:typecheck"
   },
   "dependencies": {
     "@remote-ui/rpc": "^1.4.5"
@@ -96,6 +97,7 @@
     "vue": "^3.4"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.8",
     "@astrojs/starlight": "^0.37.6",
     "@commitlint/cli": "^20.4.2",
     "@commitlint/config-conventional": "^20.4.2",

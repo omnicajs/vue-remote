@@ -167,7 +167,6 @@ export const RemoteSortableItem = defineComponent({
     },
     payload: {
       type: null as unknown as PropType<unknown>,
-      default: undefined,
     },
     type: {
       type: String,

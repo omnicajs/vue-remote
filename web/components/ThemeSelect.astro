@@ -48,26 +48,30 @@ const options = [
 
 <script>
   const storageKey = 'starlight-theme'
-  const parseTheme = (theme) => (theme === 'auto' || theme === 'dark' || theme === 'light' ? theme : 'auto')
+  type ThemeMode = 'auto' | 'dark' | 'light'
+
+  const parseTheme = (theme: string | null | undefined): ThemeMode => (
+    theme === 'auto' || theme === 'dark' || theme === 'light' ? theme : 'auto'
+  )
   const readTheme = () =>
     parseTheme(typeof localStorage !== 'undefined' ? localStorage.getItem(storageKey) : 'auto')
   const getPreferredTheme = () => (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-  const storeTheme = (theme) => {
+  const storeTheme = (theme: ThemeMode) => {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(storageKey, theme === 'light' || theme === 'dark' ? theme : '')
     }
   }
-  const resolveTheme = (theme) => (theme === 'auto' ? getPreferredTheme() : theme)
+  const resolveTheme = (theme: ThemeMode) => (theme === 'auto' ? getPreferredTheme() : theme)
 
-  const updateDomTheme = (theme) => {
+  const updateDomTheme = (theme: ThemeMode) => {
     document.documentElement.dataset.theme = resolveTheme(theme)
   }
 
-  const emitThemeChange = (theme) => {
+  const emitThemeChange = (theme: ThemeMode) => {
     window.dispatchEvent(new CustomEvent('vr-theme-select-change', { detail: { theme } }))
   }
 
-  const initThemeSelect = (root) => {
+  const initThemeSelect = (root: Element) => {
     if (!(root instanceof HTMLElement) || root.dataset.vrInit === 'true') return
     root.dataset.vrInit = 'true'
 
@@ -88,7 +92,7 @@ const options = [
       trigger.setAttribute('aria-expanded', 'true')
     }
 
-    const sync = (theme) => {
+    const sync = (theme: ThemeMode) => {
       root.dataset.themeValue = theme
       options.forEach((option) => {
         if (!(option instanceof HTMLButtonElement)) return
@@ -98,7 +102,7 @@ const options = [
       })
     }
 
-    const applyTheme = (theme) => {
+    const applyTheme = (theme: string | null | undefined) => {
       const parsed = parseTheme(theme)
       updateDomTheme(parsed)
       storeTheme(parsed)
@@ -106,7 +110,7 @@ const options = [
       emitThemeChange(parsed)
     }
 
-    const onDocumentClick = (event) => {
+    const onDocumentClick = (event: MouseEvent) => {
       const target = event.target
       if (!(target instanceof Node) || !root.contains(target)) close()
     }
@@ -116,7 +120,7 @@ const options = [
       else open()
     })
 
-    trigger.addEventListener('keydown', (event) => {
+    trigger.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'Escape') close()
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()
@@ -133,11 +137,15 @@ const options = [
       })
     })
 
-    root.addEventListener('keydown', (event) => {
+    root.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'Escape') close()
     })
 
-    window.addEventListener('vr-theme-select-change', (event) => {
+    window.addEventListener('vr-theme-select-change', (event: Event) => {
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+
       const detail = event.detail
       if (detail && typeof detail.theme === 'string') sync(parseTheme(detail.theme))
     })

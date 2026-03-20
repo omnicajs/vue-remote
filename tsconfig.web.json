@@ -1,0 +1,20 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "astro.config.ts",
+    "web/**/*.astro",
+    "web/**/*.ts",
+    "web/**/*.tsx",
+    "web/**/*.mts",
+    "web/**/*.cts",
+    "web/**/*.js",
+    "web/**/*.mjs",
+    "web/**/*.cjs",
+    "web/**/*.mdx",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "tests/**/*",
+    "src/**/*"
+  ]
+}

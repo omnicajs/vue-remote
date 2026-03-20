@@ -105,7 +105,7 @@ const selectedOption = localeOptions.find((option) => option.selected) ?? locale
 }
 
 <script>
-  const initLanguageSelect = (root) => {
+  const initLanguageSelect = (root: Element) => {
     if (!(root instanceof HTMLElement) || root.dataset.vrInit === 'true') return
     root.dataset.vrInit = 'true'
 
@@ -126,7 +126,7 @@ const selectedOption = localeOptions.find((option) => option.selected) ?? locale
       trigger.setAttribute('aria-expanded', 'true')
     }
 
-    const onDocumentClick = (event) => {
+    const onDocumentClick = (event: MouseEvent) => {
       const target = event.target
       if (!(target instanceof Node) || !root.contains(target)) close()
     }
@@ -136,7 +136,7 @@ const selectedOption = localeOptions.find((option) => option.selected) ?? locale
       else open()
     })
 
-    trigger.addEventListener('keydown', (event) => {
+    trigger.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'Escape') close()
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault()
@@ -159,7 +159,7 @@ const selectedOption = localeOptions.find((option) => option.selected) ?? locale
       })
     })
 
-    root.addEventListener('keydown', (event) => {
+    root.addEventListener('keydown', (event: KeyboardEvent) => {
       if (event.key === 'Escape') close()
     })
 

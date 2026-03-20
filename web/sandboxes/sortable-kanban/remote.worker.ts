@@ -162,10 +162,6 @@ const BoardApp = defineComponent({
         itemId: card.id,
         onDragcancel: () => setDragCancel(card),
         onDragstart: () => setDragStart(card),
-        payload: {
-          laneId,
-          title: card.title,
-        },
         type: 'task',
       }, {
         default: () => [
