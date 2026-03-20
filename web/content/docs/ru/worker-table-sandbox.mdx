@@ -1,0 +1,48 @@
+---
+title: Сортируемая таблица в Worker
+description: Живая песочница, где sortable-таблица работает в выделенном Web Worker, а docs-страница держит реальное host DOM-дерево.
+template: doc
+---
+
+import WorkerTableSandbox from '../../../components/WorkerTableSandbox.astro'
+
+## Как устроен пример
+
+Эта страница показывает worker-based таблицу без моков. Docs-страница держит host DOM и pointer hit-testing, а remote Vue-приложение и порядок строк работают внутри выделенного `Web Worker`.
+
+Пример состоит из трех частей:
+
+- host runtime, который монтирует `HostedTree` в область preview;
+- remote Worker, который рендерит строки таблицы и обрабатывает `RemoteSortableEvent`;
+- live snapshot под таблицей, который показывает текущее remote-state после каждого drop.
+
+## Как взаимодействовать
+
+- Захватывайте строки только за кнопку `Drag` в первом столбце.
+- Перемещайте строку выше или ниже другой строки, чтобы менять порядок.
+- Используйте `Сбросить таблицу`, чтобы вернуть исходную очередь.
+
+<WorkerTableSandbox
+  codeCssLabel="CSS песочницы"
+  codeHostLabel="Код host runtime"
+  codeWorkerLabel="Код remote Worker"
+  draggingLabel="Тащим"
+  instructions="Перетаскивайте строки за handle, меняйте порядок внутри одной таблицы и при необходимости сбрасывайте пример в исходное состояние."
+  previewTitle="Sortable-таблица в выделенном Worker"
+  resetLabel="Сбросить таблицу"
+  runtimeNote="Эта таблица подключена через тот же host/worker transport, который используется публичными runtime API библиотеки."
+  snapshotLabel="Текущий snapshot remote-state"
+  status={{
+    booting: 'Запускаю выделенный Worker runtime...',
+    failed: 'Worker-песочница завершилась с ошибкой',
+    ready: 'Песочница работает в выделенном Worker runtime',
+    snapshotUnavailable: 'Snapshot remote-state недоступен.',
+    unsupported: 'Этот браузер не поддерживает module workers.',
+  }}
+/>
+
+## Связанные страницы
+
+- [Перетаскивание и сортировка](/ru/sortable-dnd/)
+- [Web Worker Runtime](/ru/web-workers/)
+- [Канбан-доска в Worker](/ru/worker-kanban-sandbox/)

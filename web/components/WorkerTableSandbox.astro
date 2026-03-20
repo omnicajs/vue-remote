@@ -1,0 +1,80 @@
+---
+import {
+  Code,
+  TabItem,
+  Tabs,
+} from '@astrojs/starlight/components'
+import bootScript from '../sandboxes/sortable-table/boot.ts?url'
+import hostSource from '../sandboxes/sortable-table/host.ts?raw'
+import workerSource from '../sandboxes/sortable-table/remote.worker.ts?raw'
+import sandboxCssSource from './WorkerTableSandbox.css?raw'
+import './WorkerTableSandbox.css'
+
+interface Props {
+  codeCssLabel: string;
+  codeHostLabel: string;
+  codeWorkerLabel: string;
+  draggingLabel: string;
+  instructions: string;
+  previewTitle: string;
+  resetLabel: string;
+  runtimeNote: string;
+  snapshotLabel: string;
+  status: {
+    booting: string;
+    failed: string;
+    ready: string;
+    snapshotUnavailable: string;
+    unsupported: string;
+  };
+}
+
+const props = Astro.props
+---
+
+<section
+  class="worker-table-sandbox"
+  data-worker-table-sandbox
+  style={`--worker-dragging-label: ${JSON.stringify(props.draggingLabel)};`}
+>
+  <script
+    type="application/json"
+    data-sandbox-config
+    set:html={JSON.stringify({
+      labels: {
+        ...props.status,
+        resetLabel: props.resetLabel,
+        snapshotLabel: props.snapshotLabel,
+      },
+    })}
+  />
+
+  <div class="worker-table-sandbox__layout">
+    <div class="worker-table-sandbox__surface">
+      <div class="worker-table-sandbox__heading">
+        <h2>{props.previewTitle}</h2>
+        <p>{props.instructions}</p>
+      </div>
+
+      <div class="worker-table-sandbox__runtime-host" data-sandbox-root>{props.status.booting}</div>
+
+      <p class="worker-table-sandbox__note">{props.runtimeNote}</p>
+    </div>
+
+    <div class="worker-table-sandbox__code">
+      <Tabs syncKey="worker-table-sandbox-code">
+        <TabItem label={props.codeHostLabel}>
+          <Code code={hostSource} lang="ts" />
+        </TabItem>
+        <TabItem label={props.codeWorkerLabel}>
+          <Code code={workerSource} lang="ts" />
+        </TabItem>
+        <TabItem label={props.codeCssLabel}>
+          <Code code={sandboxCssSource} lang="css" />
+        </TabItem>
+      </Tabs>
+    </div>
+  </div>
+</section>
+
+<script type="module" src={bootScript}></script>

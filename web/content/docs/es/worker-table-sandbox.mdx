@@ -1,0 +1,48 @@
+---
+title: Tabla sortable en Worker
+description: Un sandbox en vivo donde una tabla sortable se ejecuta en un Web Worker dedicado mientras la página de docs aloja el árbol DOM real del host.
+template: doc
+---
+
+import WorkerTableSandbox from '../../../components/WorkerTableSandbox.astro'
+
+## Cómo está construido este ejemplo
+
+Esta página muestra una tabla sortable basada en Worker sin mocks. La página de docs conserva el DOM host y el pointer hit-testing, mientras la app Vue remota y el orden de las filas se ejecutan dentro de un `Web Worker` dedicado.
+
+El ejemplo tiene tres partes:
+
+- un host runtime que monta `HostedTree` dentro del área de preview;
+- una app remota en Worker que renderiza filas de tabla y procesa `RemoteSortableEvent`;
+- un snapshot en vivo bajo la tabla que muestra el orden remoto actual después de cada drop.
+
+## Cómo interactuar
+
+- Toma las filas solo desde el handle `Drag` de la primera columna.
+- Mueve una fila por encima o por debajo de otra para cambiar el orden.
+- Usa `Reiniciar tabla` para volver a la cola inicial.
+
+<WorkerTableSandbox
+  codeCssLabel="CSS del sandbox"
+  codeHostLabel="Código del runtime host"
+  codeWorkerLabel="Código remoto del Worker"
+  draggingLabel="Arrastrando"
+  instructions="Arrastra filas desde su handle, reordena la cola dentro de la misma tabla y reinicia el ejemplo cuando quieras volver al estado inicial."
+  previewTitle="Tabla sortable en un Worker dedicado"
+  resetLabel="Reiniciar tabla"
+  runtimeNote="Esta tabla está conectada mediante el mismo modelo de transporte host/worker que usan los runtime API públicos de la librería."
+  snapshotLabel="Snapshot remoto en vivo"
+  status={{
+    booting: 'Iniciando runtime dedicado en Worker...',
+    failed: 'El sandbox del Worker falló',
+    ready: 'Ejecutándose en un runtime dedicado de Worker',
+    snapshotUnavailable: 'El snapshot remoto no está disponible.',
+    unsupported: 'Este navegador no soporta module workers.',
+  }}
+/>
+
+## Páginas relacionadas
+
+- [Arrastrar y soltar ordenable](/es/sortable-dnd/)
+- [Runtime de Web Worker](/es/web-workers/)
+- [Tablero kanban en Worker](/es/worker-kanban-sandbox/)

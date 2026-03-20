@@ -383,6 +383,16 @@ export default defineConfig({
               }),
               link: '/worker-kanban-sandbox/',
             },
+            {
+              label: 'Worker Sortable Table',
+              translations: withMexicanSpanish({
+                es: 'Tabla sortable en Worker',
+                ja: 'Worker 並べ替えテーブル',
+                'zh-CN': 'Worker 可排序表格',
+                ru: 'Сортируемая таблица в Worker',
+              }),
+              link: '/worker-table-sandbox/',
+            },
           ],
         },
       ],

@@ -1,0 +1,48 @@
+---
+title: Worker 並べ替えテーブル
+description: sortable なテーブルを専用 Web Worker で動かし、docs ページ側が実 DOM の host tree を保持するライブサンドボックス。
+template: doc
+---
+
+import WorkerTableSandbox from '../../../components/WorkerTableSandbox.astro'
+
+## この例の構成
+
+このページはモックではなく、Worker ベースの sortable table をそのまま見せています。docs ページが host DOM と pointer hit-testing を担当し、remote Vue app と行の並び順は専用 `Web Worker` の中で動きます。
+
+この例は次の 3 つの要素で構成されています。
+
+- preview 領域に `HostedTree` をマウントする host runtime
+- テーブル行を描画し、`RemoteSortableEvent` を処理する remote Worker app
+- drop のたびに現在の remote order を表示する、テーブル下の live snapshot
+
+## 使い方
+
+- 行は先頭列の `Drag` ハンドルからだけつかみます。
+- 別の行の上または下へ移動して順序を変更します。
+- 初期状態に戻したいときは `テーブルをリセット` を使ってください。
+
+<WorkerTableSandbox
+  codeCssLabel="Sandbox CSS"
+  codeHostLabel="Host runtime のコード"
+  codeWorkerLabel="Worker remote のコード"
+  draggingLabel="ドラッグ中"
+  instructions="行を handle からドラッグして同じテーブル内で順序を入れ替え、必要に応じて例を初期状態に戻してください。"
+  previewTitle="専用 Worker で動く sortable テーブル"
+  resetLabel="テーブルをリセット"
+  runtimeNote="このテーブルは、ライブラリの公開 runtime API が使うのと同じ host/worker transport モデルで接続されています。"
+  snapshotLabel="ライブ remote snapshot"
+  status={{
+    booting: '専用 Worker runtime を起動しています...',
+    failed: 'Worker サンドボックスの起動に失敗しました',
+    ready: '専用 Worker runtime で実行中です',
+    snapshotUnavailable: 'Remote snapshot を取得できません。',
+    unsupported: 'このブラウザは module workers をサポートしていません。',
+  }}
+/>
+
+## 関連ページ
+
+- [並べ替えドラッグ＆ドロップ](/ja/sortable-dnd/)
+- [Web Worker ランタイム](/ja/web-workers/)
+- [Worker カンバンボード](/ja/worker-kanban-sandbox/)

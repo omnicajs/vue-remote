@@ -1,0 +1,48 @@
+---
+title: Worker 可排序表格
+description: 一个实时沙盒：sortable 表格运行在专用 Web Worker 中，而 docs 页面承载真实的 host DOM tree。
+template: doc
+---
+
+import WorkerTableSandbox from '../../../components/WorkerTableSandbox.astro'
+
+## 这个示例由哪些部分组成
+
+这个页面展示的是完整的 Worker sortable table 场景，而不是模拟预览。docs 页面负责 host DOM 和指针命中测试，remote Vue app 与行顺序状态则运行在专用 `Web Worker` 中。
+
+这个示例包含三部分：
+
+- 把 `HostedTree` 挂到预览区域中的 host runtime；
+- 渲染表格行并处理 `RemoteSortableEvent` 的 remote Worker 应用；
+- 位于表格下方的实时 snapshot，用来显示每次 drop 之后的当前 remote order。
+
+## 如何交互
+
+- 只能通过第一列里的 `Drag` handle 抓取行。
+- 把一行移动到另一行的上方或下方来改变顺序。
+- 需要回到初始状态时，使用 `重置表格`。
+
+<WorkerTableSandbox
+  codeCssLabel="Sandbox CSS"
+  codeHostLabel="Host runtime 代码"
+  codeWorkerLabel="Worker remote 代码"
+  draggingLabel="拖拽中"
+  instructions="通过 handle 拖拽行，在同一张表内重排行顺序，并在需要时把示例重置回初始状态。"
+  previewTitle="运行在专用 Worker 中的 sortable 表格"
+  resetLabel="重置表格"
+  runtimeNote="这个表格接入的正是库对外公开 runtime API 所使用的同一套 host/worker transport 模型。"
+  snapshotLabel="实时 remote 快照"
+  status={{
+    booting: '正在启动专用 Worker runtime...',
+    failed: 'Worker 沙盒启动失败',
+    ready: '正在专用 Worker runtime 中运行',
+    snapshotUnavailable: '无法获取 remote 快照。',
+    unsupported: '当前浏览器不支持 module workers。',
+  }}
+/>
+
+## 相关页面
+
+- [可排序拖放](/zh/sortable-dnd/)
+- [Web Worker 运行时](/zh/web-workers/)
+- [Worker 看板](/zh/worker-kanban-sandbox/)

@@ -1,0 +1,48 @@
+---
+title: Worker Sortable Table
+description: A live sandbox that runs a sortable table in a dedicated Web Worker while the docs page hosts the real DOM tree.
+template: doc
+---
+
+import WorkerTableSandbox from '../../components/WorkerTableSandbox.astro'
+
+## How this example is built
+
+This page shows a worker-based sortable table without mocks. The docs page owns the host DOM and pointer hit-testing, while the remote Vue app and row order state run inside a dedicated `Web Worker`.
+
+The example has three parts:
+
+- a host runtime that mounts `HostedTree` into the preview area;
+- a remote worker app that renders table rows and handles `RemoteSortableEvent`;
+- a live snapshot below the table that shows the current remote order after each drop.
+
+## How to use it
+
+- Grab rows only by the `Drag` handle in the first column.
+- Move a row above or below another row to change the order.
+- Use `Reset table` to restore the initial queue.
+
+<WorkerTableSandbox
+  codeCssLabel="Sandbox CSS"
+  codeHostLabel="Host runtime code"
+  codeWorkerLabel="Worker remote code"
+  draggingLabel="Dragging"
+  instructions="Drag rows by their handle, reorder the queue inside the same table, and reset the example whenever you want to start over."
+  previewTitle="Sortable table running in a dedicated Worker"
+  resetLabel="Reset table"
+  runtimeNote="This table is wired through the same host/worker transport model used by the library's public runtime APIs."
+  snapshotLabel="Live remote snapshot"
+  status={{
+    booting: 'Booting dedicated Worker runtime...',
+    failed: 'Worker sandbox failed',
+    ready: 'Running in a dedicated Worker runtime',
+    snapshotUnavailable: 'Remote snapshot is unavailable.',
+    unsupported: 'This browser does not support module workers.',
+  }}
+/>
+
+## Related pages
+
+- [Sortable Drag and Drop](/sortable-dnd/)
+- [Web Worker Runtime](/web-workers/)
+- [Worker Kanban Sandbox](/worker-kanban-sandbox/)
