@@ -1,0 +1,48 @@
+---
+title: Канбан-доска в Worker
+description: Живая песочница, где sortable kanban board работает в выделенном Web Worker, а docs-страница держит реальное host DOM-дерево.
+template: doc
+---
+
+import WorkerKanbanSandbox from '../../../components/WorkerKanbanSandbox.astro'
+
+## Как устроен пример
+
+Эта страница показывает полный worker-based сценарий без моков. Docs-страница держит host DOM и pointer hit-testing, а remote Vue-приложение с состоянием канбан-доски работает внутри выделенного `Web Worker`.
+
+Пример состоит из трех частей:
+
+- host runtime, который монтирует `HostedTree` в область preview;
+- remote Worker, который рендерит колонки, карточки и обрабатывает `RemoteSortableEvent`;
+- live snapshot под доской, который показывает текущее remote-state после каждого drop.
+
+## Как взаимодействовать
+
+- Захватывайте карточки только за кнопку `Drag`.
+- Наводите карточку между элементами в колонке для reorder или в другую колонку для переноса.
+- Используйте `Сбросить доску`, чтобы вернуть исходное состояние примера.
+
+<WorkerKanbanSandbox
+  codeCssLabel="CSS песочницы"
+  codeHostLabel="Код host runtime"
+  codeWorkerLabel="Код remote Worker"
+  draggingLabel="Тащим"
+  instructions="Перетаскивайте карточки за handle, меняйте их порядок внутри колонки, переносите между колонками и при необходимости сбрасывайте пример в исходное состояние."
+  previewTitle="Sortable kanban board в выделенном Worker"
+  resetLabel="Сбросить доску"
+  runtimeNote="Эта доска подключена через тот же host/worker transport, который используется публичными runtime API библиотеки."
+  snapshotLabel="Текущий snapshot remote-state"
+  status={{
+    booting: 'Запускаю выделенный Worker runtime...',
+    failed: 'Worker-песочница завершилась с ошибкой',
+    ready: 'Песочница работает в выделенном Worker runtime',
+    snapshotUnavailable: 'Snapshot remote-state недоступен.',
+    unsupported: 'Этот браузер не поддерживает module workers.',
+  }}
+/>
+
+## Связанные страницы
+
+- [Перетаскивание и сортировка](/ru/sortable-dnd/)
+- [Web Worker Runtime](/ru/web-workers/)
+- [Компоненты remote](/ru/remote-components/)

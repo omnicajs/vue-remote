@@ -1,10 +1,13 @@
 import { defineConfig } from 'astro/config'
 import starlight from '@astrojs/starlight'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const repository = process.env.GITHUB_REPOSITORY ?? 'omnicajs/vue-remote'
 const [owner, repo] = repository.split('/')
 const isGitHubActions = process.env.GITHUB_ACTIONS === 'true'
 const docsBase = process.env.DOCS_BASE
+const rootDir = fileURLToPath(new URL('.', import.meta.url))
 const withMexicanSpanish = (translations: Record<string, string>) => (
   'es' in translations && !('es-MX' in translations)
     ? { ...translations, 'es-MX': translations.es }
@@ -19,6 +22,13 @@ export default defineConfig({
   outDir: './dist-web',
   cacheDir: './var/cache/astro',
   vite: {
+    resolve: {
+      alias: {
+        '@': path.resolve(rootDir, './src'),
+        '@omnicajs/vue-remote/host': path.resolve(rootDir, './src/vue/host/index.ts'),
+        '@omnicajs/vue-remote/remote': path.resolve(rootDir, './src/vue/remote/index.ts'),
+      },
+    },
     server: {
       allowedHosts: [
         'astro',
@@ -169,6 +179,16 @@ export default defineConfig({
                 ru: 'Компоненты remote',
               }),
               link: '/remote-components/',
+            },
+            {
+              label: 'Sortable Drag and Drop',
+              translations: withMexicanSpanish({
+                es: 'Arrastrar y soltar ordenable',
+                ja: '並べ替えドラッグ＆ドロップ',
+                'zh-CN': '可排序拖放',
+                ru: 'Перетаскивание и сортировка',
+              }),
+              link: '/sortable-dnd/',
             },
             {
               label: 'Known Limitations',
@@ -341,6 +361,27 @@ export default defineConfig({
                 ru: 'Сравнение',
               }),
               link: '/experimental-comparison/',
+            },
+          ],
+        },
+        {
+          label: 'Sandboxes',
+          translations: withMexicanSpanish({
+            es: 'Sandboxes interactivos',
+            ja: 'サンドボックス',
+            'zh-CN': '交互式沙盒',
+            ru: 'Песочницы',
+          }),
+          items: [
+            {
+              label: 'Worker Kanban Board',
+              translations: withMexicanSpanish({
+                es: 'Tablero kanban en Worker',
+                ja: 'Worker カンバンボード',
+                'zh-CN': 'Worker 看板',
+                ru: 'Канбан-доска в Worker',
+              }),
+              link: '/worker-kanban-sandbox/',
             },
           ],
         },

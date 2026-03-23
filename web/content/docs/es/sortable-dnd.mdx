@@ -1,0 +1,178 @@
+---
+title: DnD sortable
+description: Cómo funciona el drag-and-drop sortable a través del límite remoto y cómo conectar las nuevas primitivas DnD del lado remoto.
+template: doc
+---
+
+## Qué añade esta funcionalidad
+
+`@omnicajs/vue-remote/remote` ahora exporta tres bloques para drag-and-drop sortable:
+
+- `RemoteSortableContainer`
+- `RemoteSortableItem`
+- `RemoteDragHandle`
+
+Permiten que el código remoto describa listas y tableros ordenables, mientras que el adaptador Vue del host se encarga del hit-testing, del seguimiento del puntero, de la cancelación por teclado y de las actualizaciones del estado del DOM del lado host.
+
+No necesitas registrar componentes host adicionales para esta funcionalidad. El runtime Vue del host ya entiende los bindings internos de DnD que emiten estos wrappers remotos.
+
+## Superficie del API remoto
+
+```ts
+import {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+  type RemoteSortableEvent,
+} from '@omnicajs/vue-remote/remote'
+```
+
+Props principales:
+
+- `RemoteSortableContainer`
+  - `containerId`: clave lógica del contenedor.
+  - `orientation`: `'vertical' | 'horizontal'`.
+  - `accepts?`: valores `type` aceptados para los items.
+  - `disabled?`: desactiva el drop en el contenedor.
+  - `onDragenter`, `onDragleave`, `onDragmove`, `onDrop`.
+- `RemoteSortableItem`
+  - `itemId`: clave estable del item.
+  - `containerId`: clave del contenedor actual.
+  - `index`: índice actual en el orden visual.
+  - `type`: tipo del item usado por `accepts`.
+  - `payload?`: payload serializable opcional devuelto en los eventos.
+  - `disabled?`: desactiva el drag para este item.
+  - `onDragstart`, `onDragend`, `onDragcancel`.
+- `RemoteDragHandle`
+  - `for?`: `itemId` explícito que se debe arrastrar.
+  - `disabled?`: desactiva el inicio del puntero en el handle.
+
+Los tres componentes también aceptan `as`, así que la raíz renderizada puede ser una etiqueta nativa o la raíz de un componente host.
+
+## Responsabilidades de host y remote
+
+- El código remoto declara contenedores, items, handles y la lógica de reorder.
+- El runtime del host resuelve los elementos DOM reales detrás de esos nodos.
+- El host mantiene la sesión del puntero y calcula `before`, `after` o `inside`.
+- La aceptación depende de `item.type` y de `accepts` en el contenedor destino.
+- `Escape` cancela un drag activo y emite `onDragcancel`.
+
+Esta separación mantiene la lógica de reorder en el estado remoto, mientras que el trabajo de bajo nivel con el DOM queda en el lado host de confianza.
+
+## Ciclo de vida de eventos
+
+1. `pointerdown` sobre `RemoteDragHandle` inicia una sesión pendiente.
+2. Después de cruzar el umbral de arrastre, se dispara `onDragstart` en el item origen.
+3. Mientras se mueve, el contenedor destino recibe `onDragenter`, `onDragmove` y `onDragleave`.
+4. En `pointerup` sobre un destino aceptado, el contenedor recibe `onDrop`.
+5. El item origen siempre cierra con `onDragend`, o con `onDragcancel` después de `Escape` / `pointercancel`.
+
+`RemoteSortableEvent` contiene el estado normalizado del drag:
+
+- `accepted`
+- `itemId`, `type`, `payload`
+- `sourceContainerId`, `targetContainerId`
+- `targetItemId`, `targetIndex`
+- `placement`
+- `pointer`
+- `sessionId`
+
+## Modelo de placement
+
+- `before` y `after` se usan al pasar por el borde de un item existente.
+- `inside` se usa al soltar dentro del propio contenedor, incluidos los contenedores vacíos.
+- `targetIndex` ya viene normalizado para el orden del contenedor destino.
+- `for` en `RemoteDragHandle` es opcional si el handle se renderiza dentro del subtree del item arrastrado.
+
+## Ejemplo: backlog sortable en un SFC remoto
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+  type RemoteSortableEvent,
+} from '@omnicajs/vue-remote/remote'
+
+type Task = {
+  id: string;
+  title: string;
+}
+
+const tasks = ref<Task[]>([
+  { id: 'task-1', title: 'Design DnD contract' },
+  { id: 'task-2', title: 'Cover host runtime' },
+  { id: 'task-3', title: 'Ship docs' },
+])
+
+const moveTask = (event: RemoteSortableEvent) => {
+  if (!event.accepted || event.targetIndex == null) {
+    return
+  }
+
+  const fromIndex = tasks.value.findIndex(task => task.id === event.itemId)
+
+  if (fromIndex < 0) {
+    return
+  }
+
+  const [task] = tasks.value.splice(fromIndex, 1)
+  const nextIndex = Math.min(event.targetIndex, tasks.value.length)
+
+  tasks.value.splice(nextIndex, 0, task)
+}
+</script>
+
+<template>
+  <RemoteSortableContainer
+    as="ul"
+    class="task-list"
+    container-id="backlog"
+    :accepts="['task']"
+    orientation="vertical"
+    :on-drop="moveTask"
+  >
+    <RemoteSortableItem
+      v-for="(task, index) in tasks"
+      :key="task.id"
+      as="li"
+      class="task-row"
+      container-id="backlog"
+      :index="index"
+      :item-id="task.id"
+      :payload="{ title: task.title }"
+      type="task"
+    >
+      <RemoteDragHandle
+        as="button"
+        class="task-handle"
+        :for="task.id"
+      >
+        Drag
+      </RemoteDragHandle>
+
+      <span>{{ task.title }}</span>
+    </RemoteSortableItem>
+  </RemoteSortableContainer>
+</template>
+```
+
+Para un tablero tipo kanban, usa varios `RemoteSortableContainer` y actualiza los arrays de origen y destino dentro de `onDrop`.
+
+## Estado del DOM host para estilos
+
+Durante el drag, el runtime del host añade atributos de estado al DOM real:
+
+- Marcadores estáticos: `data-dnd-sortable-container`, `data-dnd-sortable-item`, `data-dnd-handle`
+- Marcadores de sesión activa: `data-dnd-source`, `data-dnd-dragging`, `data-dnd-target`, `data-dnd-drag-over`
+- Marcadores de placement y aceptación: `data-dnd-placement`, `data-dnd-drop-allowed`, `data-dnd-drop-forbidden`
+
+Eso permite estilizar el estado del drag desde CSS del host sin filtrar las props internas del transporte al DOM.
+
+## Ver también
+
+- [Componentes remotos](/es/remote-components/)
+- [Componentes del host](/es/host-components/)
+- [Runtime de Web Worker](/es/web-workers/)

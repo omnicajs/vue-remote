@@ -1,0 +1,48 @@
+---
+title: Worker カンバンボード
+description: sortable なカンバンボードを専用 Web Worker で動かし、docs ページ側が実 DOM の host tree を保持するライブサンドボックス。
+template: doc
+---
+
+import WorkerKanbanSandbox from '../../../components/WorkerKanbanSandbox.astro'
+
+## この例の構成
+
+このページはモックではなく、完全な Worker ベースの構成をそのまま見せています。docs ページが host DOM と pointer hit-testing を担当し、remote Vue app とカンバンの状態は専用 `Web Worker` の中で動きます。
+
+この例は次の 3 つの要素で構成されています。
+
+- preview 領域に `HostedTree` をマウントする host runtime
+- レーンとカードを描画し、`RemoteSortableEvent` を処理する remote Worker app
+- drop のたびに現在の remote state を表示する、ボード下の live snapshot
+
+## 使い方
+
+- カードは `Drag` ハンドルからだけつかみます。
+- 同じ列のカード間に移動すると並べ替え、別の列へ移動するとカードを移送できます。
+- 初期状態に戻したいときは `ボードをリセット` を使ってください。
+
+<WorkerKanbanSandbox
+  codeCssLabel="Sandbox CSS"
+  codeHostLabel="Host runtime のコード"
+  codeWorkerLabel="Worker remote のコード"
+  draggingLabel="ドラッグ中"
+  instructions="カードを handle からドラッグして列内で並べ替えたり、列間で移動したり、必要に応じて例を初期状態に戻してください。"
+  previewTitle="専用 Worker で動く sortable カンバンボード"
+  resetLabel="ボードをリセット"
+  runtimeNote="このボードは、ライブラリの公開 runtime API が使うのと同じ host/worker transport モデルで接続されています。"
+  snapshotLabel="ライブ remote snapshot"
+  status={{
+    booting: '専用 Worker runtime を起動しています...',
+    failed: 'Worker サンドボックスの起動に失敗しました',
+    ready: '専用 Worker runtime で実行中です',
+    snapshotUnavailable: 'Remote snapshot を取得できません。',
+    unsupported: 'このブラウザは module workers をサポートしていません。',
+  }}
+/>
+
+## 関連ページ
+
+- [並べ替えドラッグ＆ドロップ](/ja/sortable-dnd/)
+- [Web Worker ランタイム](/ja/web-workers/)
+- [リモートコンポーネント](/ja/remote-components/)

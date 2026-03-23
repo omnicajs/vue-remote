@@ -1,0 +1,48 @@
+---
+title: Worker 看板
+description: 一个实时沙盒：sortable 看板运行在专用 Web Worker 中，而 docs 页面承载真实的 host DOM tree。
+template: doc
+---
+
+import WorkerKanbanSandbox from '../../../components/WorkerKanbanSandbox.astro'
+
+## 这个示例由哪些部分组成
+
+这个页面展示的是完整的 Worker 场景，而不是模拟预览。docs 页面负责 host DOM 和指针命中测试，remote Vue app 与看板状态则运行在专用 `Web Worker` 中。
+
+这个示例包含三部分：
+
+- 把 `HostedTree` 挂到预览区域中的 host runtime；
+- 渲染列与卡片、并处理 `RemoteSortableEvent` 的 remote Worker 应用；
+- 位于看板下方的实时 snapshot，用来显示每次 drop 之后的当前 remote state。
+
+## 如何交互
+
+- 只能通过 `Drag` handle 抓取卡片。
+- 在同一列的卡片之间移动可以重排，移到另一列可以完成跨列转移。
+- 需要回到初始状态时，使用 `重置看板`。
+
+<WorkerKanbanSandbox
+  codeCssLabel="Sandbox CSS"
+  codeHostLabel="Host runtime 代码"
+  codeWorkerLabel="Worker remote 代码"
+  draggingLabel="拖拽中"
+  instructions="通过 handle 拖拽卡片，在列内重排、跨列移动，并在需要时把示例重置回初始状态。"
+  previewTitle="运行在专用 Worker 中的 sortable 看板"
+  resetLabel="重置看板"
+  runtimeNote="这个看板接入的正是库对外公开 runtime API 所使用的同一套 host/worker transport 模型。"
+  snapshotLabel="实时 remote 快照"
+  status={{
+    booting: '正在启动专用 Worker runtime...',
+    failed: 'Worker 沙盒启动失败',
+    ready: '正在专用 Worker runtime 中运行',
+    snapshotUnavailable: '无法获取 remote 快照。',
+    unsupported: '当前浏览器不支持 module workers。',
+  }}
+/>
+
+## 相关页面
+
+- [可排序拖放](/zh/sortable-dnd/)
+- [Web Worker 运行时](/zh/web-workers/)
+- [远程组件](/zh/remote-components/)

@@ -1,0 +1,521 @@
+.worker-kanban-sandbox {
+  --worker-sandbox-border: color-mix(in srgb, var(--sl-color-hairline-light) 78%, transparent);
+  --worker-sandbox-surface: color-mix(in srgb, var(--sl-color-bg) 90%, var(--sl-color-accent-low));
+  margin-block: 2rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.worker-kanban-sandbox__layout {
+  display: grid;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.worker-kanban-sandbox__surface {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.worker-kanban-sandbox__heading {
+  display: grid;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.worker-kanban-sandbox__heading h2 {
+  margin: 0;
+  font-size: clamp(1.3rem, 1.15rem + 0.5vw, 1.7rem);
+}
+
+.worker-kanban-sandbox__heading p,
+.worker-kanban-sandbox__note {
+  margin: 0;
+  color: var(--sl-color-gray-2);
+}
+
+.sandbox-board__badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sl-color-accent-high) 16%, transparent);
+  color: var(--sl-color-text-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.worker-kanban-sandbox__toolbar {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.worker-kanban-sandbox__status {
+  color: var(--sl-color-gray-2);
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+.worker-kanban-sandbox__reset {
+  border: 1px solid var(--worker-sandbox-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sl-color-white) 7%, transparent);
+  color: var(--sl-color-text);
+  padding: 0.55rem 0.95rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms ease, border-color 140ms ease;
+}
+
+.worker-kanban-sandbox__reset:hover,
+.worker-kanban-sandbox__reset:focus-visible {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--sl-color-accent-high) 50%, var(--worker-sandbox-border));
+}
+
+.worker-kanban-sandbox__reset:disabled {
+  opacity: 0.55;
+  cursor: progress;
+  transform: none;
+}
+
+.worker-kanban-sandbox__runtime-host {
+  min-height: 28rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.worker-kanban-sandbox__runtime {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.worker-kanban-sandbox__preview {
+  min-height: 28rem;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.worker-kanban-sandbox__note {
+  margin-top: 0.85rem;
+  width: min(100%, var(--sl-content-width));
+  max-width: var(--sl-content-width);
+  justify-self: start;
+}
+
+.worker-kanban-sandbox__snapshot {
+  margin-top: 1rem;
+  width: min(100%, var(--sl-content-width));
+  max-width: var(--sl-content-width);
+  min-width: 0;
+  justify-self: start;
+}
+
+.worker-kanban-sandbox__snapshot-title {
+  margin-bottom: 0.45rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--sl-color-gray-2);
+}
+
+.worker-kanban-sandbox__snapshot-code,
+.worker-kanban-sandbox__code .expressive-code {
+  margin: 0;
+}
+
+.worker-kanban-sandbox__code {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, var(--sl-content-width));
+  max-width: var(--sl-content-width);
+  min-width: 0;
+  justify-self: start;
+}
+
+.worker-kanban-sandbox__snapshot-code {
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--sl-color-black) 12%, var(--sl-color-bg));
+  color: var(--sl-color-white);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.worker-kanban-sandbox__code .tablist-wrapper {
+  margin-bottom: 1rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.worker-kanban-sandbox__code starlight-tabs,
+.worker-kanban-sandbox__code [role='tablist'],
+.worker-kanban-sandbox__code [role='tabpanel'] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.worker-kanban-sandbox__code starlight-tabs {
+  display: grid;
+  min-width: 0;
+}
+
+.worker-kanban-sandbox__code [role='tabpanel'] {
+  margin-top: 0;
+}
+
+.worker-kanban-sandbox__code .expressive-code,
+.worker-kanban-sandbox__code .expressive-code pre {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.worker-kanban-sandbox .sandbox-board {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--worker-sandbox-border);
+  border-radius: 1.25rem;
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--sl-color-accent) 12%, transparent), transparent 36%),
+    linear-gradient(180deg, color-mix(in srgb, var(--worker-sandbox-surface) 96%, transparent), var(--sl-color-bg));
+  box-shadow: 0 1rem 2rem -1.5rem color-mix(in srgb, var(--sl-color-black) 25%, transparent);
+}
+
+.worker-kanban-sandbox .sandbox-board__toolbar {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.worker-kanban-sandbox .sandbox-board__caption {
+  margin: 0;
+  color: var(--sl-color-gray-2);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.worker-kanban-sandbox .sandbox-board__lanes {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0;
+  grid-auto-rows: 1fr;
+  align-items: stretch;
+}
+
+.worker-kanban-sandbox .sandbox-lane {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-rows: auto 1fr;
+  height: 100%;
+  margin: 0;
+  min-height: 16rem;
+  padding: 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--sl-color-hairline-light) 82%, transparent);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sl-color-white) 6%, transparent), transparent),
+    color-mix(in srgb, var(--sl-color-bg) 92%, var(--sl-color-accent-low));
+}
+
+.worker-kanban-sandbox .sandbox-lane__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.worker-kanban-sandbox .sandbox-lane__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.worker-kanban-sandbox .sandbox-lane__count {
+  min-width: 2rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sl-color-accent-high) 12%, transparent);
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--sl-color-text-accent);
+}
+
+.worker-kanban-sandbox .sandbox-lane__cards {
+  display: grid;
+  gap: 0.7rem;
+  align-content: start;
+  margin: 0;
+  min-height: 100%;
+}
+
+.worker-kanban-sandbox .sandbox-lane__cards--empty {
+  position: relative;
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+}
+
+.worker-kanban-sandbox .sandbox-lane__cards--empty > * {
+  grid-area: 1 / 1;
+}
+
+.worker-kanban-sandbox .sandbox-lane__empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 100%;
+  align-self: stretch;
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  border: 1px dashed color-mix(in srgb, var(--sl-color-accent-high) 22%, var(--worker-sandbox-border));
+  border-radius: 0.9rem;
+  color: var(--sl-color-gray-2);
+  font-weight: 600;
+  transition:
+    border-width 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.worker-kanban-sandbox .sandbox-lane__cards--empty[data-dnd-drag-over='true'][data-dnd-drop-allowed='true'] .sandbox-lane__empty {
+  border-width: 2px;
+  border-color: color-mix(in srgb, var(--sl-color-accent-high) 52%, var(--worker-sandbox-border));
+  background: color-mix(in srgb, var(--sl-color-accent-low) 22%, transparent);
+  color: var(--sl-color-text-accent);
+}
+
+.worker-kanban-sandbox .sandbox-lane__cards--empty [data-dnd-placeholder='true'] {
+  position: absolute;
+  inset: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.worker-kanban-sandbox .sandbox-card {
+  position: relative;
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0.85rem;
+  box-sizing: border-box;
+  border-radius: 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--sl-color-hairline-light) 70%, transparent);
+  background: color-mix(in srgb, var(--sl-color-bg) 88%, var(--sl-color-white));
+  box-shadow: 0 1rem 1.8rem -1.7rem color-mix(in srgb, var(--sl-color-black) 35%, transparent);
+  transition:
+    transform 160ms ease,
+    opacity 160ms ease,
+    box-shadow 160ms ease,
+    border-color 160ms ease;
+}
+
+.worker-kanban-sandbox .sandbox-card--mint {
+  border-color: color-mix(in srgb, #41b883 42%, var(--worker-sandbox-border));
+}
+
+.worker-kanban-sandbox .sandbox-card--amber {
+  border-color: color-mix(in srgb, #f59e0b 42%, var(--worker-sandbox-border));
+}
+
+.worker-kanban-sandbox .sandbox-card--blue {
+  border-color: color-mix(in srgb, #38bdf8 42%, var(--worker-sandbox-border));
+}
+
+.worker-kanban-sandbox .sandbox-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.worker-kanban-sandbox .sandbox-card__handle {
+  border: 1px solid color-mix(in srgb, var(--sl-color-accent-high) 18%, var(--worker-sandbox-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sl-color-accent-high) 8%, transparent);
+  color: var(--sl-color-text);
+  padding: 0.32rem 0.72rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: grab;
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.worker-kanban-sandbox .sandbox-card__eyebrow {
+  color: var(--sl-color-gray-2);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.worker-kanban-sandbox .sandbox-card__title {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.worker-kanban-sandbox [data-dnd-dragging='true'] {
+  visibility: hidden;
+  opacity: 0;
+  box-shadow: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.worker-kanban-sandbox [data-dnd-drop-forbidden='true'] {
+  opacity: 0.55;
+  filter: grayscale(0.25);
+}
+
+[data-dnd-overlay='true'] {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: var(--dnd-overlay-width);
+  pointer-events: none;
+  transform: translate3d(-9999px, -9999px, 0);
+}
+
+[data-dnd-overlay='true'] .sandbox-card {
+  position: relative;
+  display: grid;
+  gap: 0.65rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.85rem;
+  box-sizing: border-box;
+  border-radius: 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--sl-color-hairline-light) 70%, transparent);
+  opacity: 1;
+  transform: none;
+  border-color: color-mix(in srgb, var(--sl-color-accent-high) 48%, var(--worker-sandbox-border));
+  background: color-mix(in srgb, var(--sl-color-bg) 95%, var(--sl-color-white));
+  box-shadow:
+    0 1.5rem 2.5rem -1rem color-mix(in srgb, var(--sl-color-black) 42%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--sl-color-accent-high) 18%, transparent);
+}
+
+[data-dnd-overlay='true'] .sandbox-card--mint {
+  border-color: color-mix(in srgb, #41b883 42%, var(--worker-sandbox-border));
+}
+
+[data-dnd-overlay='true'] .sandbox-card--amber {
+  border-color: color-mix(in srgb, #f59e0b 42%, var(--worker-sandbox-border));
+}
+
+[data-dnd-overlay='true'] .sandbox-card--blue {
+  border-color: color-mix(in srgb, #38bdf8 42%, var(--worker-sandbox-border));
+}
+
+[data-dnd-overlay='true'] .sandbox-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+[data-dnd-overlay='true'] .sandbox-card::after {
+  content: var(--worker-dragging-label);
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sl-color-accent-high) 20%, var(--sl-color-bg));
+  border: 1px solid color-mix(in srgb, var(--sl-color-accent-high) 42%, var(--worker-sandbox-border));
+  color: var(--sl-color-text-accent);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 0.6rem 1.2rem -0.9rem color-mix(in srgb, var(--sl-color-accent-high) 60%, transparent);
+}
+
+[data-dnd-overlay='true'] .sandbox-card__handle {
+  border: 1px solid color-mix(in srgb, var(--sl-color-accent-high) 18%, var(--worker-sandbox-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--sl-color-accent-high) 8%, transparent);
+  color: var(--sl-color-text);
+  padding: 0.32rem 0.72rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: grabbing;
+}
+
+[data-dnd-overlay='true'] .sandbox-card__eyebrow {
+  color: var(--sl-color-gray-2);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+[data-dnd-overlay='true'] .sandbox-card__title {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.worker-kanban-sandbox [data-dnd-placeholder='true'] {
+  width: 100%;
+  min-width: 0;
+  justify-self: stretch;
+  align-self: stretch;
+  margin: 0;
+  box-sizing: border-box;
+  border: 1px dashed color-mix(in srgb, var(--sl-color-accent-high) 48%, var(--worker-sandbox-border));
+  border-radius: 0.95rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--sl-color-accent-low) 25%, transparent), transparent),
+    color-mix(in srgb, var(--sl-color-accent-high) 8%, var(--sl-color-bg));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sl-color-accent-high) 12%, transparent);
+}
+
+.worker-kanban-sandbox [data-dnd-placeholder='true'] > * {
+  visibility: hidden;
+}
+
+@media (min-width: 52rem) {
+  .worker-kanban-sandbox .sandbox-board__lanes {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

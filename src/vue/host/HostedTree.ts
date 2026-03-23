@@ -27,6 +27,7 @@ import { isText } from './tree'
 
 import render from './render'
 import useReceived from './useReceived'
+import { createHostDndRuntime } from './dnd'
 
 const connectReceiver = (receiver: Receiver) => {
   ;(receiver as Receiver & {
@@ -60,6 +61,7 @@ export default /*#__PURE__*/ defineComponent({
     connectReceiver(currentReceiver)
 
     const tree = shallowRef(useReceived(props.receiver))
+    const dndRuntime = createHostDndRuntime()
 
     watch(() => props.receiver, (receiver) => {
       tree.value.release()
@@ -81,12 +83,13 @@ export default /*#__PURE__*/ defineComponent({
         REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
         'Remote host commit was aborted because HostedTree was unmounted'
       ))
+      dndRuntime.destroy()
       tree.value.release()
     })
 
     return () => tree.value.children.value
       .filter(child => !isText(child) || child.text.value.length > 0)
-      .map(root => render(root, props.provider))
+      .map(root => render(root, props.provider, dndRuntime))
   },
 }) as DefineComponent<{
     provider: Provider;

@@ -1,0 +1,178 @@
+---
+title: ソート可能な DnD
+description: リモート境界をまたぐ sortable drag-and-drop の仕組みと、新しい DnD プリミティブの使い方。
+template: doc
+---
+
+## この機能で追加されるもの
+
+`@omnicajs/vue-remote/remote` は、sortable drag-and-drop のために次の 3 つを公開します。
+
+- `RemoteSortableContainer`
+- `RemoteSortableItem`
+- `RemoteDragHandle`
+
+これにより、リモート側のコードは並べ替え可能なリストやボードを宣言でき、Vue の host adapter が hit-testing、ポインター追跡、キーボードによるキャンセル、DOM 状態更新を担当します。
+
+この機能のために追加の host component を登録する必要はありません。host の Vue runtime は、これらの remote wrapper が出力する内部 DnD binding をすでに理解しています。
+
+## Remote API
+
+```ts
+import {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+  type RemoteSortableEvent,
+} from '@omnicajs/vue-remote/remote'
+```
+
+主な props:
+
+- `RemoteSortableContainer`
+  - `containerId`: 論理コンテナキー。
+  - `orientation`: `'vertical' | 'horizontal'`。
+  - `accepts?`: 許可する item `type` の一覧。
+  - `disabled?`: コンテナでの drop を無効化。
+  - `onDragenter`, `onDragleave`, `onDragmove`, `onDrop`。
+- `RemoteSortableItem`
+  - `itemId`: 安定した item キー。
+  - `containerId`: 現在のコンテナキー。
+  - `index`: 現在の表示順インデックス。
+  - `type`: `accepts` 判定に使う item 種別。
+  - `payload?`: イベントに含まれる任意のシリアライズ可能 payload。
+  - `disabled?`: この item の drag を無効化。
+  - `onDragstart`, `onDragend`, `onDragcancel`。
+- `RemoteDragHandle`
+  - `for?`: 明示的にドラッグ対象にする `itemId`。
+  - `disabled?`: handle での pointer 開始を無効化。
+
+3 つの component はすべて `as` を受け取るため、描画ルートはネイティブタグでも host component のルートでも構いません。
+
+## Host と remote の役割
+
+- Remote 側は container、item、handle と並べ替えロジックを宣言します。
+- Host runtime は、それらに対応する実 DOM 要素を解決します。
+- Host 側で pointer session を管理し、`before`、`after`、`inside` を計算します。
+- 受け入れ可否は `item.type` と target container の `accepts` で判定されます。
+- `Escape` は進行中の drag をキャンセルし、`onDragcancel` を発火します。
+
+この分離により、reorder の状態管理は remote 側に置いたまま、低レベルな DOM 処理は信頼できる host 側に残せます。
+
+## イベントの流れ
+
+1. `RemoteDragHandle` での `pointerdown` が pending session を開始します。
+2. ドラッグ閾値を超えると、source item の `onDragstart` が発火します。
+3. 移動中、target container は `onDragenter`、`onDragmove`、`onDragleave` を受け取ります。
+4. 許可された target 上で `pointerup` が起こると、container の `onDrop` が呼ばれます。
+5. source item は必ず `onDragend` で終了し、`Escape` や `pointercancel` の場合は `onDragcancel` になります。
+
+`RemoteSortableEvent` には正規化された drag 状態が含まれます。
+
+- `accepted`
+- `itemId`, `type`, `payload`
+- `sourceContainerId`, `targetContainerId`
+- `targetItemId`, `targetIndex`
+- `placement`
+- `pointer`
+- `sessionId`
+
+## Placement モデル
+
+- `before` と `after` は既存 item の端にホバーしたときに使われます。
+- `inside` は、空コンテナを含めてコンテナ自体へ drop するときに使われます。
+- `targetIndex` は target container の並び順に合わせて正規化済みです。
+- `RemoteDragHandle` の `for` は、handle がドラッグ対象 item の subtree 内にある場合は省略できます。
+
+## 例: remote SFC での sortable backlog
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+  type RemoteSortableEvent,
+} from '@omnicajs/vue-remote/remote'
+
+type Task = {
+  id: string;
+  title: string;
+}
+
+const tasks = ref<Task[]>([
+  { id: 'task-1', title: 'Design DnD contract' },
+  { id: 'task-2', title: 'Cover host runtime' },
+  { id: 'task-3', title: 'Ship docs' },
+])
+
+const moveTask = (event: RemoteSortableEvent) => {
+  if (!event.accepted || event.targetIndex == null) {
+    return
+  }
+
+  const fromIndex = tasks.value.findIndex(task => task.id === event.itemId)
+
+  if (fromIndex < 0) {
+    return
+  }
+
+  const [task] = tasks.value.splice(fromIndex, 1)
+  const nextIndex = Math.min(event.targetIndex, tasks.value.length)
+
+  tasks.value.splice(nextIndex, 0, task)
+}
+</script>
+
+<template>
+  <RemoteSortableContainer
+    as="ul"
+    class="task-list"
+    container-id="backlog"
+    :accepts="['task']"
+    orientation="vertical"
+    :on-drop="moveTask"
+  >
+    <RemoteSortableItem
+      v-for="(task, index) in tasks"
+      :key="task.id"
+      as="li"
+      class="task-row"
+      container-id="backlog"
+      :index="index"
+      :item-id="task.id"
+      :payload="{ title: task.title }"
+      type="task"
+    >
+      <RemoteDragHandle
+        as="button"
+        class="task-handle"
+        :for="task.id"
+      >
+        Drag
+      </RemoteDragHandle>
+
+      <span>{{ task.title }}</span>
+    </RemoteSortableItem>
+  </RemoteSortableContainer>
+</template>
+```
+
+カンバンのような構成では、複数の `RemoteSortableContainer` を使い、`onDrop` の中で source と target の配列を更新します。
+
+## スタイリング用の host DOM 状態
+
+ドラッグ中、host runtime は実 DOM に次の状態属性を追加します。
+
+- 静的マーカー: `data-dnd-sortable-container`, `data-dnd-sortable-item`, `data-dnd-handle`
+- アクティブセッション: `data-dnd-source`, `data-dnd-dragging`, `data-dnd-target`, `data-dnd-drag-over`
+- placement と可否: `data-dnd-placement`, `data-dnd-drop-allowed`, `data-dnd-drop-forbidden`
+
+そのため、内部 transport props を DOM に漏らさずに、host CSS から drag 状態をスタイリングできます。
+
+## 関連ページ
+
+- [リモートコンポーネント](/ja/remote-components/)
+- [ホストコンポーネント](/ja/host-components/)
+- [Web Worker ランタイム](/ja/web-workers/)

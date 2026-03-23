@@ -1,0 +1,48 @@
+---
+title: Tablero kanban en Worker
+description: Un sandbox en vivo donde un tablero kanban sortable se ejecuta en un Web Worker dedicado mientras la página de docs aloja el árbol DOM real del host.
+template: doc
+---
+
+import WorkerKanbanSandbox from '../../../components/WorkerKanbanSandbox.astro'
+
+## Cómo está construido este ejemplo
+
+Esta página muestra un flujo completo basado en Worker sin mocks. La página de docs conserva el DOM host y el pointer hit-testing, mientras la aplicación Vue remota y el estado del tablero kanban se ejecutan dentro de un `Web Worker` dedicado.
+
+El ejemplo tiene tres partes:
+
+- un host runtime que monta `HostedTree` dentro del área de preview;
+- una app remota en Worker que renderiza columnas, tarjetas y procesa `RemoteSortableEvent`;
+- un snapshot en vivo bajo el tablero que muestra el estado remoto actual después de cada drop.
+
+## Cómo interactuar
+
+- Toma las tarjetas solo desde el handle `Drag`.
+- Muévelas entre tarjetas de una columna para reordenar o hacia otra columna para transferirlas.
+- Usa `Reiniciar tablero` para volver al estado inicial del demo.
+
+<WorkerKanbanSandbox
+  codeCssLabel="CSS del sandbox"
+  codeHostLabel="Código del runtime host"
+  codeWorkerLabel="Código remoto del Worker"
+  draggingLabel="Arrastrando"
+  instructions="Arrastra las tarjetas desde su handle, reordénalas dentro de una columna, muévelas entre columnas y reinicia el ejemplo cuando quieras volver al estado inicial."
+  previewTitle="Tablero kanban sortable en un Worker dedicado"
+  resetLabel="Reiniciar tablero"
+  runtimeNote="Este tablero está conectado mediante el mismo modelo de transporte host/worker que usan los runtime API públicos de la librería."
+  snapshotLabel="Snapshot remoto en vivo"
+  status={{
+    booting: 'Iniciando runtime dedicado en Worker...',
+    failed: 'El sandbox del Worker falló',
+    ready: 'Ejecutándose en un runtime dedicado de Worker',
+    snapshotUnavailable: 'El snapshot remoto no está disponible.',
+    unsupported: 'Este navegador no soporta module workers.',
+  }}
+/>
+
+## Páginas relacionadas
+
+- [Arrastrar y soltar ordenable](/es/sortable-dnd/)
+- [Runtime de Web Worker](/es/web-workers/)
+- [Componentes remotos](/es/remote-components/)

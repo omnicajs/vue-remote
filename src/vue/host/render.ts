@@ -3,6 +3,7 @@ import type { VNode } from 'vue'
 import type { Ref } from 'vue'
 
 import type { Provider } from '~types/vue/host'
+import type { HostDndRuntime } from '@/vue/host/dnd'
 
 import type { Unknown } from '~types/scaffolding'
 
@@ -31,6 +32,7 @@ import {
 import { applyEventHandlerSteps } from '@/vue/host/modifiers'
 
 import { INTERNAL_V_MODEL_EVENT_PREFIX } from '@/vue/remote/nativeVModel'
+import { INTERNAL_DND_PROP_NAMES } from '@/vue/dnd'
 
 const collectOptionSelection = (children: HostedChild[]) => {
   return children.reduce((selection, child) => {
@@ -182,6 +184,11 @@ export const process = (properties: Ref<Unknown | undefined> | undefined): Unkno
 
   for (const key in properties.value) {
     const v = properties.value[key]
+
+    if (INTERNAL_DND_PROP_NAMES.has(key)) {
+      continue
+    }
+
     if (typeof v === 'string' && isJavaScriptSchema(v)) {
       result[key] = 'javascript:void(0);'
       continue
@@ -211,24 +218,33 @@ export const process = (properties: Ref<Unknown | undefined> | undefined): Unkno
   return result
 }
 
-const render = (node: HostedChild, provider: Provider): VNode | string | null => {
+const render = (
+  node: HostedChild,
+  provider: Provider,
+  dndRuntime?: HostDndRuntime
+): VNode | string | null => {
   if ('type' in node) {
     if (isSlot(node)) {
       console.error('Found an orphan remote slot', node)
       return null
     }
 
-    const props = { ...process(node.properties), ref: node.ref } as Unknown
     const children = node.children.value
+    const processed = { ...process(node.properties), ref: node.ref } as Unknown
+    const props = dndRuntime?.bind(
+      node.id,
+      node.properties,
+      node.type === 'select' ? withSelectSync(processed, children) : processed
+    ) ?? (node.type === 'select' ? withSelectSync(processed, children) : processed)
 
     return isDOMTag(node.type)
       ? h(
         node.type,
-        node.type === 'select' ? withSelectSync(props, children) : props,
-        children.map(child => render(child, provider))
+        props,
+        children.map(child => render(child, provider, dndRuntime))
       )
       : h(provider.get(node.type), { ...props, key: node.id }, toSlots(
-        children, child => render(child, provider)
+        children, child => render(child, provider, dndRuntime)
       ))
   }
 

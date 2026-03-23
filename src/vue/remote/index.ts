@@ -25,12 +25,22 @@ export type {
 } from '@/vue/remote/types'
 
 export type { RemoteLifecycleReason } from '@/common/lifecycle'
+export type {
+  RemoteSortableEvent,
+  SortableOrientation,
+  SortablePlacement,
+} from '@/dnd'
 
 export { default as createRemoteRenderer } from '@/vue/remote/createRemoteRenderer'
 export { default as createRemoteRoot } from '@/vue/remote/createRemoteRoot'
 export { default as defineRemoteComponent } from '@/vue/remote/defineRemoteComponent'
 export { default as defineRemoteMethod } from '@/vue/remote/defineRemoteMethod'
 export { default as nextTick } from '@/vue/remote/nextTick'
+export {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+} from '@/vue/remote/dnd'
 export {
   withKeys,
   withModifiers,

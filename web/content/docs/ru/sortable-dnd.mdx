@@ -1,0 +1,178 @@
+---
+title: Sortable DnD
+description: Как работает sortable drag-and-drop через remote-границу и как подключать новые DnD-примитивы на стороне remote.
+template: doc
+---
+
+## Что добавляет эта возможность
+
+`@omnicajs/vue-remote/remote` теперь экспортирует три блока для sortable drag-and-drop:
+
+- `RemoteSortableContainer`
+- `RemoteSortableItem`
+- `RemoteDragHandle`
+
+Они позволяют remote-коду описывать sortable-списки и доски, а Vue host-adapter берет на себя hit-testing, отслеживание pointer-сессии, отмену с клавиатуры и обновление DOM-состояния на стороне host.
+
+Дополнительные host-компоненты для этого не нужны. Host Vue runtime уже понимает внутренние DnD-bindings, которые эмитят эти remote-обертки.
+
+## Поверхность remote API
+
+```ts
+import {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+  type RemoteSortableEvent,
+} from '@omnicajs/vue-remote/remote'
+```
+
+Основные props:
+
+- `RemoteSortableContainer`
+  - `containerId`: логический ключ контейнера.
+  - `orientation`: `'vertical' | 'horizontal'`.
+  - `accepts?`: допустимые значения `type` для item.
+  - `disabled?`: отключает drop-обработку для контейнера.
+  - `onDragenter`, `onDragleave`, `onDragmove`, `onDrop`.
+- `RemoteSortableItem`
+  - `itemId`: стабильный ключ элемента.
+  - `containerId`: ключ текущего контейнера.
+  - `index`: текущий индекс в визуальном порядке.
+  - `type`: тип элемента, который проверяется через `accepts`.
+  - `payload?`: необязательный сериализуемый payload, возвращаемый в событиях.
+  - `disabled?`: отключает drag для этого элемента.
+  - `onDragstart`, `onDragend`, `onDragcancel`.
+- `RemoteDragHandle`
+  - `for?`: явный `itemId`, который нужно начать таскать.
+  - `disabled?`: отключает старт pointer-сессии на handle.
+
+Все три компонента также принимают `as`, поэтому корневой узел может быть как native-тегом, так и host-компонентом.
+
+## Ответственность host и remote
+
+- Remote-код объявляет контейнеры, элементы, handles и логику reorder.
+- Host runtime находит реальные DOM-элементы, стоящие за этими узлами.
+- Host ведет pointer-сессию и вычисляет `before`, `after` или `inside`.
+- Допуск определяется по `item.type` и `accepts` целевого контейнера.
+- `Escape` отменяет активный drag и вызывает `onDragcancel`.
+
+Такое разделение оставляет reorder-логику в remote-state, а низкоуровневую работу с DOM держит на доверенной стороне host.
+
+## Жизненный цикл событий
+
+1. `pointerdown` на `RemoteDragHandle` запускает pending-сессию.
+2. После прохождения drag-threshold у source-item вызывается `onDragstart`.
+3. Во время перемещения целевой контейнер получает `onDragenter`, `onDragmove` и `onDragleave`.
+4. При `pointerup` над допустимой целью контейнер получает `onDrop`.
+5. Source-item всегда завершает сессию через `onDragend`, либо через `onDragcancel` после `Escape` / `pointercancel`.
+
+`RemoteSortableEvent` содержит нормализованное состояние drag-сессии:
+
+- `accepted`
+- `itemId`, `type`, `payload`
+- `sourceContainerId`, `targetContainerId`
+- `targetItemId`, `targetIndex`
+- `placement`
+- `pointer`
+- `sessionId`
+
+## Модель placement
+
+- `before` и `after` используются при наведении на край существующего item.
+- `inside` используется при drop в сам контейнер, включая пустые контейнеры.
+- `targetIndex` уже нормализован под порядок внутри target-container.
+- `for` у `RemoteDragHandle` можно не указывать, если handle рендерится внутри subtree перетаскиваемого item.
+
+## Пример: sortable backlog в remote SFC
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+  type RemoteSortableEvent,
+} from '@omnicajs/vue-remote/remote'
+
+type Task = {
+  id: string;
+  title: string;
+}
+
+const tasks = ref<Task[]>([
+  { id: 'task-1', title: 'Design DnD contract' },
+  { id: 'task-2', title: 'Cover host runtime' },
+  { id: 'task-3', title: 'Ship docs' },
+])
+
+const moveTask = (event: RemoteSortableEvent) => {
+  if (!event.accepted || event.targetIndex == null) {
+    return
+  }
+
+  const fromIndex = tasks.value.findIndex(task => task.id === event.itemId)
+
+  if (fromIndex < 0) {
+    return
+  }
+
+  const [task] = tasks.value.splice(fromIndex, 1)
+  const nextIndex = Math.min(event.targetIndex, tasks.value.length)
+
+  tasks.value.splice(nextIndex, 0, task)
+}
+</script>
+
+<template>
+  <RemoteSortableContainer
+    as="ul"
+    class="task-list"
+    container-id="backlog"
+    :accepts="['task']"
+    orientation="vertical"
+    :on-drop="moveTask"
+  >
+    <RemoteSortableItem
+      v-for="(task, index) in tasks"
+      :key="task.id"
+      as="li"
+      class="task-row"
+      container-id="backlog"
+      :index="index"
+      :item-id="task.id"
+      :payload="{ title: task.title }"
+      type="task"
+    >
+      <RemoteDragHandle
+        as="button"
+        class="task-handle"
+        :for="task.id"
+      >
+        Drag
+      </RemoteDragHandle>
+
+      <span>{{ task.title }}</span>
+    </RemoteSortableItem>
+  </RemoteSortableContainer>
+</template>
+```
+
+Для доски в стиле kanban используйте несколько `RemoteSortableContainer` и обновляйте source- и target-массивы внутри `onDrop`.
+
+## DOM-состояние host для стилизации
+
+Во время drag host runtime ставит на реальный DOM state-атрибуты:
+
+- Статические маркеры: `data-dnd-sortable-container`, `data-dnd-sortable-item`, `data-dnd-handle`
+- Маркеры активной сессии: `data-dnd-source`, `data-dnd-dragging`, `data-dnd-target`, `data-dnd-drag-over`
+- Маркеры placement и допуска: `data-dnd-placement`, `data-dnd-drop-allowed`, `data-dnd-drop-forbidden`
+
+Это позволяет оформлять drag-state через host CSS без протекания внутренних transport-props в DOM.
+
+## См. также
+
+- [Компоненты remote](/ru/remote-components/)
+- [Компоненты хоста](/ru/host-components/)
+- [Web Worker Runtime](/ru/web-workers/)

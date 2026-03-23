@@ -1,0 +1,178 @@
+---
+title: 可排序 DnD
+description: 说明跨 remote 边界的 sortable drag-and-drop 机制，以及如何使用新的 DnD 原语。
+template: doc
+---
+
+## 这个功能新增了什么
+
+`@omnicajs/vue-remote/remote` 现在导出三个用于 sortable drag-and-drop 的构件：
+
+- `RemoteSortableContainer`
+- `RemoteSortableItem`
+- `RemoteDragHandle`
+
+它们让 remote 代码可以声明可排序列表和看板，而 Vue host adapter 负责命中测试、指针跟踪、键盘取消以及 host 侧的 DOM 状态更新。
+
+不需要为这个功能额外注册 host 组件。host 的 Vue runtime 已经能够识别这些 remote wrapper 发出的内部 DnD binding。
+
+## Remote API
+
+```ts
+import {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+  type RemoteSortableEvent,
+} from '@omnicajs/vue-remote/remote'
+```
+
+核心 props：
+
+- `RemoteSortableContainer`
+  - `containerId`：容器的逻辑键。
+  - `orientation`：`'vertical' | 'horizontal'`。
+  - `accepts?`：允许的 item `type` 列表。
+  - `disabled?`：禁用该容器的 drop。
+  - `onDragenter`、`onDragleave`、`onDragmove`、`onDrop`。
+- `RemoteSortableItem`
+  - `itemId`：稳定的 item 键。
+  - `containerId`：当前容器键。
+  - `index`：当前视觉顺序索引。
+  - `type`：用于 `accepts` 判定的 item 类型。
+  - `payload?`：事件中返回的可序列化附加数据。
+  - `disabled?`：禁用该 item 的拖拽。
+  - `onDragstart`、`onDragend`、`onDragcancel`。
+- `RemoteDragHandle`
+  - `for?`：显式指定要拖拽的 `itemId`。
+  - `disabled?`：禁用该 handle 上的指针启动。
+
+这三个组件都支持 `as`，因此渲染根节点既可以是原生标签，也可以是 host 组件的根节点。
+
+## Host 与 remote 的职责划分
+
+- Remote 代码声明容器、item、handle 以及重排逻辑。
+- Host runtime 解析这些节点背后的真实 DOM 元素。
+- Host 维护 pointer session，并计算 `before`、`after` 或 `inside`。
+- 是否允许放置由 `item.type` 和目标容器的 `accepts` 决定。
+- `Escape` 会取消当前拖拽并触发 `onDragcancel`。
+
+这种划分让重排逻辑保留在 remote 状态里，而底层 DOM 处理留在可信的 host 侧。
+
+## 事件生命周期
+
+1. 在 `RemoteDragHandle` 上触发 `pointerdown` 后，会开始一个待激活会话。
+2. 超过拖拽阈值后，源 item 会触发 `onDragstart`。
+3. 在移动过程中，目标容器会收到 `onDragenter`、`onDragmove` 和 `onDragleave`。
+4. 当在允许的目标上触发 `pointerup` 时，容器会收到 `onDrop`。
+5. 源 item 最终总会以 `onDragend` 结束；如果发生 `Escape` 或 `pointercancel`，则会触发 `onDragcancel`。
+
+`RemoteSortableEvent` 包含归一化后的拖拽状态：
+
+- `accepted`
+- `itemId`、`type`、`payload`
+- `sourceContainerId`、`targetContainerId`
+- `targetItemId`、`targetIndex`
+- `placement`
+- `pointer`
+- `sessionId`
+
+## Placement 模型
+
+- `before` 和 `after` 用于悬停在现有 item 边缘时。
+- `inside` 用于把内容放到容器本身中，包括空容器。
+- `targetIndex` 已经按目标容器顺序做过归一化。
+- 如果 `RemoteDragHandle` 渲染在被拖拽 item 的子树内部，则 `for` 可以省略。
+
+## 示例：remote SFC 中的 sortable backlog
+
+```vue
+<script setup lang="ts">
+import { ref } from 'vue'
+import {
+  RemoteDragHandle,
+  RemoteSortableContainer,
+  RemoteSortableItem,
+  type RemoteSortableEvent,
+} from '@omnicajs/vue-remote/remote'
+
+type Task = {
+  id: string;
+  title: string;
+}
+
+const tasks = ref<Task[]>([
+  { id: 'task-1', title: 'Design DnD contract' },
+  { id: 'task-2', title: 'Cover host runtime' },
+  { id: 'task-3', title: 'Ship docs' },
+])
+
+const moveTask = (event: RemoteSortableEvent) => {
+  if (!event.accepted || event.targetIndex == null) {
+    return
+  }
+
+  const fromIndex = tasks.value.findIndex(task => task.id === event.itemId)
+
+  if (fromIndex < 0) {
+    return
+  }
+
+  const [task] = tasks.value.splice(fromIndex, 1)
+  const nextIndex = Math.min(event.targetIndex, tasks.value.length)
+
+  tasks.value.splice(nextIndex, 0, task)
+}
+</script>
+
+<template>
+  <RemoteSortableContainer
+    as="ul"
+    class="task-list"
+    container-id="backlog"
+    :accepts="['task']"
+    orientation="vertical"
+    :on-drop="moveTask"
+  >
+    <RemoteSortableItem
+      v-for="(task, index) in tasks"
+      :key="task.id"
+      as="li"
+      class="task-row"
+      container-id="backlog"
+      :index="index"
+      :item-id="task.id"
+      :payload="{ title: task.title }"
+      type="task"
+    >
+      <RemoteDragHandle
+        as="button"
+        class="task-handle"
+        :for="task.id"
+      >
+        Drag
+      </RemoteDragHandle>
+
+      <span>{{ task.title }}</span>
+    </RemoteSortableItem>
+  </RemoteSortableContainer>
+</template>
+```
+
+对于看板式场景，可以使用多个 `RemoteSortableContainer`，并在 `onDrop` 中同时更新源数组和目标数组。
+
+## 用于样式的 host DOM 状态
+
+拖拽过程中，host runtime 会把状态属性加到真实 DOM 上：
+
+- 静态标记：`data-dnd-sortable-container`、`data-dnd-sortable-item`、`data-dnd-handle`
+- 活动会话标记：`data-dnd-source`、`data-dnd-dragging`、`data-dnd-target`、`data-dnd-drag-over`
+- placement 与可接受性标记：`data-dnd-placement`、`data-dnd-drop-allowed`、`data-dnd-drop-forbidden`
+
+这样就可以在不把内部 transport props 泄漏到 DOM 的前提下，通过 host CSS 来控制拖拽态样式。
+
+## 另请参阅
+
+- [远程组件](/zh/remote-components/)
+- [宿主组件](/zh/host-components/)
+- [Web Worker 运行时](/zh/web-workers/)
