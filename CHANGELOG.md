@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.21](https://github.com/omnicajs/vue-remote/compare/v0.2.20...v0.2.21) (2026-03-23)
+
+
+### Features
+
+* **docs:** Worker file tree sandbox was added ([9826750](https://github.com/omnicajs/vue-remote/commit/9826750ce868b939e50a9fb3403cfa4a3713f773))
+* Sortable DnD support was added ([d442e9a](https://github.com/omnicajs/vue-remote/commit/d442e9a80df61929c683b6286853ec755febc899))
+* **vue:** Event modifier support was added ([76935d8](https://github.com/omnicajs/vue-remote/commit/76935d819fbcdc59ed212301ebff20faa421aa78))
+* Worker sortable table sandbox was added ([24d51f8](https://github.com/omnicajs/vue-remote/commit/24d51f8b3b4cde379787e483ba4c47914d529392))
+
 ### [0.2.20](https://github.com/omnicajs/vue-remote/compare/v0.2.19...v0.2.20) (2026-03-13)
 
 
