@@ -4,7 +4,6 @@ import {
   TabItem,
   Tabs,
 } from '@astrojs/starlight/components'
-import bootScript from '../sandboxes/sortable-table/boot.ts?url'
 import hostSource from '../sandboxes/sortable-table/host.ts?raw'
 import workerSource from '../sandboxes/sortable-table/remote.worker.ts?raw'
 import sandboxCssSource from './WorkerTableSandbox.css?raw'
@@ -77,4 +76,8 @@ const props = Astro.props
   </div>
 </section>
 
-<script type="module" src={bootScript}></script>
+<script>
+  import { bootWorkerTableSandboxes } from '../sandboxes/sortable-table/boot'
+
+  bootWorkerTableSandboxes()
+</script>

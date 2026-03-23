@@ -4,7 +4,6 @@ import {
   TabItem,
   Tabs,
 } from '@astrojs/starlight/components'
-import bootScript from '../sandboxes/sortable-kanban/boot.ts?url'
 import hostSource from '../sandboxes/sortable-kanban/host.ts?raw'
 import workerSource from '../sandboxes/sortable-kanban/remote.worker.ts?raw'
 import sandboxCssSource from './WorkerKanbanSandbox.css?raw'
@@ -77,4 +76,8 @@ const props = Astro.props
   </div>
 </section>
 
-<script type="module" src={bootScript}></script>
+<script>
+  import { bootWorkerKanbanSandboxes } from '../sandboxes/sortable-kanban/boot'
+
+  bootWorkerKanbanSandboxes()
+</script>

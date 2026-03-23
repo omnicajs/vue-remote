@@ -4,7 +4,6 @@ import {
   TabItem,
   Tabs,
 } from '@astrojs/starlight/components'
-import bootScript from '../sandboxes/sortable-file-tree/boot.ts?url'
 import hostSource from '../sandboxes/sortable-file-tree/host.ts?raw'
 import workerSource from '../sandboxes/sortable-file-tree/remote.worker.ts?raw'
 import sandboxCssSource from './WorkerFileTreeSandbox.css?raw'
@@ -100,4 +99,8 @@ const props = Astro.props
   </div>
 </section>
 
-<script type="module" src={bootScript}></script>
+<script>
+  import { bootWorkerFileTreeSandboxes } from '../sandboxes/sortable-file-tree/boot'
+
+  bootWorkerFileTreeSandboxes()
+</script>
