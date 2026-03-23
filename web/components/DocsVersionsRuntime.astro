@@ -182,7 +182,6 @@ const labels = locale === 'ru'
     const localePrefix = locale === 'en' ? '' : `${locale}/`
     const latestDocsPath = `${root}${localePrefix}`
     const versionsPagePath = `${root}${localePrefix}versions/`
-    const versionsPrefixPath = `${root}${localePrefix}versions/`
     const versionsJsonPath = `${root}versions.json`
 
     const setLatestVersion = (version) => {
@@ -252,7 +251,7 @@ const labels = locale === 'ru'
           item.className = 'docs-versions-item'
 
           const link = document.createElement('a')
-          link.href = `${versionsPrefixPath}${encodeURIComponent(version)}/`
+          link.href = `${root}versions/${encodeURIComponent(version)}/${localePrefix}`
           link.textContent = version
           item.appendChild(link)
 

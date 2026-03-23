@@ -234,7 +234,7 @@ jobs:
         run: |
           rsync -a --delete \
             --exclude ".git/" \
-            --exclude "versions/" \
+            --exclude "/versions/" \
             --exclude "versions.json" \
             --exclude ".nojekyll" \
             dist-web/ .pages-store/
