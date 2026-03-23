@@ -470,23 +470,29 @@
 
   :root:not([data-has-hero]) .page > .header .header {
     display: grid;
-    grid-template-columns: var(--sl-sidebar-width) minmax(16rem, 28rem) 1fr auto auto !important;
+    grid-template-columns:
+      var(--sl-sidebar-width)
+      minmax(0, calc(var(--__main-column-fr) - (2 * var(--sl-content-pad-x))))
+      minmax(16rem, 28rem)
+      1fr
+      auto
+      auto !important;
     align-items: center;
     gap: 0.75rem;
   }
 
   :root:not([data-has-hero]) .page > .header .title-wrapper + .sl-flex {
-    grid-column: 2;
+    grid-column: 3;
     min-width: 0;
   }
 
   :root:not([data-has-hero]) .page > .header .top-links {
-    grid-column: 4 !important;
+    grid-column: 5 !important;
     justify-self: end;
   }
 
   :root:not([data-has-hero]) .page > .header .right-group {
-    grid-column: 5 !important;
+    grid-column: 6 !important;
     justify-self: end;
   }
 
