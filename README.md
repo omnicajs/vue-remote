@@ -69,6 +69,29 @@ If you are consuming the published package from another project, use the package
 
 With the plugin enabled, refs like `<div ref="panel" />` inside `*.remote.vue` or `<script setup remote>` SFCs are inferred as remote element proxies from `@omnicajs/vue-remote/remote`, not as real DOM elements.
 
+### Remote event modifier bundler setup
+
+If your remote SFCs are bundled with webpack, add the package loader after `vue-loader` for compiled Vue modules and remote entry scripts so Vue rewrites `withModifiers(...)` and `withKeys(...)` to the remote-aware helpers:
+
+```js
+module.exports = {
+  module: {
+    rules: [
+      {
+        resourceQuery: /vue.*type=(?:template|script|scriptSetup)/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.remote\.(?:[cm]?[jt]sx?|vue)$/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+    ],
+  },
+}
+```
+
+Vite users can keep using the built-in plugin integration from this repository; the event helper rewrite logic is shared between both bundlers.
+
 ### IDE notes
 
 - VS Code: use the `Vue - Official` extension from the Vue language tools project.

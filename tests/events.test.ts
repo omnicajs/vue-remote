@@ -115,21 +115,29 @@ describe('events', () => {
 
   test('routes through input, keyboard, pointer, wheel, drag and touch serializers', () => {
     class FakeDragEvent extends Event {
+      altKey = true
       clientX = 10
       clientY = 20
       button = 0
+      ctrlKey = false
       dataTransfer = null
+      metaKey = true
+      shiftKey = false
     }
 
     class FakePointerEvent extends Event {
+      altKey = false
       clientX = 10
       clientY = 20
       button = 0
+      ctrlKey = true
       height = 1
       isPrimary = true
+      metaKey = false
       pointerId = 1
       pointerType = 'mouse'
       pressure = 0
+      shiftKey = true
       tangentialPressure = 0
       tiltX = 0
       tiltY = 0
@@ -153,10 +161,49 @@ describe('events', () => {
 
     expect(serializeInputEvent(new InputEvent('input', { data: 'x' })).data).toBe('x')
     expect(serializeKeyboardEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter' })).key).toBe('Enter')
-    expect(serializeMouseEvent(new MouseEvent('click', { clientX: 1, clientY: 2 })).clientX).toBe(1)
-    expect(serializeWheelEvent(new WheelEvent('wheel', { deltaX: 1, deltaY: 2, deltaZ: 3 })).deltaY).toBe(2)
-    expect(serializePointerEvent(new FakePointerEvent('pointerdown') as unknown as PointerEvent).pointerId).toBe(1)
-    expect(serializeDragEvent(new FakeDragEvent('dragstart') as unknown as DragEvent).dataTransfer).toBeNull()
+    expect(serializeMouseEvent(new MouseEvent('click', {
+      clientX: 1,
+      clientY: 2,
+      altKey: true,
+      ctrlKey: false,
+      metaKey: true,
+      shiftKey: true,
+    }))).toMatchObject({
+      clientX: 1,
+      altKey: true,
+      ctrlKey: false,
+      metaKey: true,
+      shiftKey: true,
+    })
+    expect(serializeWheelEvent(new WheelEvent('wheel', {
+      deltaX: 1,
+      deltaY: 2,
+      deltaZ: 3,
+      altKey: true,
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+    }))).toMatchObject({
+      deltaY: 2,
+      altKey: true,
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
+    })
+    expect(serializePointerEvent(new FakePointerEvent('pointerdown') as unknown as PointerEvent)).toMatchObject({
+      pointerId: 1,
+      altKey: false,
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: true,
+    })
+    expect(serializeDragEvent(new FakeDragEvent('dragstart') as unknown as DragEvent)).toMatchObject({
+      dataTransfer: null,
+      altKey: true,
+      ctrlKey: false,
+      metaKey: true,
+      shiftKey: false,
+    })
     expect(serializeTouchEvent(new FakeTouchEvent('touchstart') as unknown as TouchEvent).touches).toEqual([])
 
     expect(serializeEvent(new InputEvent('input', { data: 'x' }))).toMatchObject({ type: 'input' })

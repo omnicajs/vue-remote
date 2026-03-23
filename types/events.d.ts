@@ -56,9 +56,13 @@ export interface SerializedKeyboardEvent extends SerializedEvent {
 
 export interface SerializedMouseEvent extends SerializedEvent {
   type: MouseEvent['type'],
+  altKey: MouseEvent['altKey'],
   clientX: MouseEvent['clientX'],
   clientY: MouseEvent['clientY'],
   button: MouseEvent['button'],
+  ctrlKey: MouseEvent['ctrlKey'],
+  metaKey: MouseEvent['metaKey'],
+  shiftKey: MouseEvent['shiftKey'],
 }
 
 export interface SerializedPointerEvent extends SerializedMouseEvent {

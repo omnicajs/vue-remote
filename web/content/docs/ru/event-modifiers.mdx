@@ -1,0 +1,140 @@
+---
+title: Модификаторы событий
+description: Как включить поддержку Vue event modifiers через remote boundary для Vite- и webpack-сборок remote runtime.
+template: doc
+sidebar:
+  order: 999
+---
+
+Vue компилирует модификаторы шаблонов в вспомогательные функции времени выполнения, такие как
+`withModifiers(...)` и `withKeys(...)`. Эти функции рассчитаны на работу с настоящими объектами `Event` браузера.
+
+В `@omnicajs/vue-remote` нативные события отслеживаются на стороне host, затем сериализуются
+и передаются через транспорт в удаленный обработчик. То есть на удаленную сторону приходит
+не исходный экземпляр DOM-события, а его сериализованный снимок.
+
+Из-за этого стандартного поведения Vue недостаточно для удаленных шаблонов:
+
+- у сериализованного объекта нет методов вроде `preventDefault()` и `stopPropagation()`;
+- проверки, завязанные на «живую» идентичность события, например `.self`, нельзя надежно воспроизвести по обычному снимку;
+- проверки клавиш, указателя и системных модификаторов могут не получить нужные поля, если сериализатор на стороне host явно их не сохранил;
+- если обычная вспомогательная функция Vue запускается на переданном сериализованном объекте, код модификаторов начинает работать некорректно или падает во время выполнения.
+
+Решение состоит в том, чтобы сохранить метаданные модификаторов на этапе сборки и дать стороне host
+применить зависящую от нативного события часть логики до сериализации. Именно это и делают
+webpack loader и Vite plugin, описанные ниже.
+
+## Что поддерживается
+
+Если rewrite включен, remote templates и render functions сохраняют:
+
+- event option modifiers: `.capture`, `.once`, `.passive`;
+- propagation/default modifiers: `.stop`, `.prevent`, `.self`;
+- key и pointer guards: `.enter`, `.left`, `.right`, `.ctrl`, `.alt`, `.shift`, `.meta`, `.exact`.
+
+Обычные listeners без модификаторов продолжают использовать исходный transport path.
+
+## Что должна увидеть трансформация
+
+Чтобы модификаторы действительно заработали, трансформация сборщика должна увидеть:
+
+- исходные удаленные SFC, например `Widget.remote.vue`;
+- сгенерированные из этих SFC подмодули Vue, в первую очередь запросы `template`, `script` и `scriptSetup`;
+- отдельные файлы входа удаленной части, например `main.remote.ts` или `panel.remote.tsx`.
+
+Если один из этих этапов пропущен, шаблон может успешно собраться, но поведение модификаторов во время выполнения не вернется.
+
+## Настройка webpack
+
+Для webpack этот loader нужно воспринимать как дополнение к `vue-loader`, а не как его замену.
+Компиляцией SFC по-прежнему занимается `vue-loader`, а `@omnicajs/vue-remote/webpack-loader`
+отслеживает точки входа удаленной части и переписывает импорты вспомогательных функций в уже сгенерированных модулях.
+
+На практике конфигурация webpack должна делать три вещи:
+
+- пропускать исходный `.vue`-файл через remote loader, чтобы можно было определить `<script remote>` и `<script setup remote>`;
+- сохранять стандартный `vue-loader` rule и `VueLoaderPlugin`;
+- запускать remote loader для сгенерированных запросов к модулям Vue и для отдельных файлов входа `.remote.ts` / `.remote.js`.
+
+Пример конфигурации:
+
+```js
+const { VueLoaderPlugin } = require('vue-loader')
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+        enforce: 'pre',
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.vue$/,
+        loader: 'vue-loader',
+      },
+      {
+        test: /\.vue$/,
+        resourceQuery: /vue.*type=(?:template|script|scriptSetup)/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.remote\.(?:[cm]?[jt]sx?)$/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+    ],
+  },
+  plugins: [
+    new VueLoaderPlugin(),
+  ],
+}
+```
+
+Что дает такая конфигурация:
+
+- `Widget.remote.vue` определяется как удаленный SFC по имени файла;
+- обычный `Widget.vue` можно явно пометить через `<script remote>` или `<script setup remote>`;
+- у сгенерированных Vue `template` / `script` модулей переписываются импорты `withModifiers(...)` и `withKeys(...)`;
+- отдельные файлы входа удаленной части вроде `main.remote.ts` проходят через тот же путь преобразования.
+
+Если в проекте уже есть сложные `oneOf`-ветки или генераторы правил от фреймворка,
+сохраните ту же идею: remote loader должен увидеть и исходный запрос к SFC, и сгенерированные запросы к модулям Vue.
+
+## Настройка Vite
+
+Для Vite подключите remote plugin рядом с `@vitejs/plugin-vue`:
+
+```ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { vueRemoteVitePlugin } from '@omnicajs/vue-remote/vite-plugin'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueRemoteVitePlugin(),
+  ],
+})
+```
+
+На практике это означает:
+
+- `vue()` остается стандартным компилятором SFC;
+- `vueRemoteVitePlugin()` должен находиться в том же Vite-конфиге, чтобы видеть и переписывать сгенерированные модули Vue;
+- для явных файлов входа удаленной части используйте `*.remote.vue`, либо отмечайте обычный SFC через `<script remote>` / `<script setup remote>`;
+- для entry-скриптов вне SFC используйте `*.remote.ts`, `*.remote.js`, `*.remote.tsx` или `*.remote.jsx`.
+
+Внутренняя логика преобразования общая с webpack loader, поэтому семантика модификаторов
+в обоих вариантах сборки остается одинаковой.
+
+## Замечания по разработке и tooling
+
+- Remote-native template ref inference настраивается отдельно через `@omnicajs/vue-remote/tooling`.
+- Модификаторы в шаблонах работают и для нативных узлов DOM, и для Vue-компонентов стороны host, описанных через `defineRemoteComponent(...)`.
+- В ручных render functions можно использовать те же вспомогательные функции для удаленной стороны из `@omnicajs/vue-remote/remote`.
+
+## Далее
+
+- Базовая настройка: [Быстрый старт](/ru/getting-started/).
+- Контракты на стороне host: [Компоненты хоста](/ru/host-components/).
+- Моделирование UI на стороне remote: [Компоненты remote](/ru/remote-components/).

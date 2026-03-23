@@ -26,6 +26,8 @@ export default mergeConfig(basic, defineConfig({
         host: path.resolve(__dirname, './src/vue/host/index.ts'),
         remote: path.resolve(__dirname, './src/vue/remote/index.ts'),
         tooling: path.resolve(__dirname, './src/vue/tooling/index.ts'),
+        'vite-plugin': path.resolve(__dirname, './src/vue/vite-plugin.ts'),
+        'webpack-loader': path.resolve(__dirname, './src/vue/webpack-loader.ts'),
       },
     },
     minify: false,

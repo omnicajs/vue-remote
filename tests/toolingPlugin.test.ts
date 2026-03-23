@@ -13,7 +13,12 @@ import { parse as parseTemplate } from '@vue/compiler-dom'
 import { toString } from 'muggle-string'
 import ts from 'typescript'
 
-import vueRemoteToolingPlugin from '@/vue/tooling'
+import {
+  vueRemoteToolingPlugin,
+} from '@/vue/tooling'
+import { rewriteRemoteEventHelperImports } from '@/vue/bundler'
+import { vueRemoteVitePlugin } from '@/vue/vite-plugin'
+import vueRemoteWebpackLoader, { transformRemoteEventHelpersForWebpack } from '@/vue/webpack-loader'
 
 const HELPER_IMPORT = 'type __VLS_Elements = import(\'@omnicajs/vue-remote/tooling\').RemoteIntrinsicElements;\n'
 
@@ -229,5 +234,106 @@ describe('vueRemoteToolingPlugin', () => {
     } as never, embedded as never)
 
     expect(toString(embedded.content)).toBe(HELPER_IMPORT)
+  })
+
+  test('rewrites Vue event helper imports to remote runtime helpers', () => {
+    const code = [
+      'import { withModifiers as _withModifiers, withKeys as _withKeys, openBlock as _openBlock } from "vue"',
+      'const click = _withModifiers(submit, ["stop"])',
+      'const keydown = _withKeys(click, ["enter"])',
+      '_openBlock()',
+      '',
+    ].join('\n')
+
+    expect(rewriteRemoteEventHelperImports(code)).toBe([
+      'import { withModifiers as _withModifiers, withKeys as _withKeys } from \'@omnicajs/vue-remote/remote\'',
+      'import { openBlock as _openBlock } from "vue"',
+      'const click = _withModifiers(submit, ["stop"])',
+      'const keydown = _withKeys(click, ["enter"])',
+      '_openBlock()',
+      '',
+    ].join('\n'))
+  })
+
+  test('leaves helper imports untouched when no supported helpers can be extracted', () => {
+    const code = 'import { ref, withModifiers as } from "vue"\n'
+
+    expect(rewriteRemoteEventHelperImports(code)).toBeNull()
+  })
+
+  test('vite plugin rewrites helper imports for remote modules only', async () => {
+    const [scanPlugin, rewritePlugin] = vueRemoteVitePlugin() as Array<{
+      transform?: (code: string, id: string) => unknown;
+    }>
+    const remoteId = '/workspace/Component.remote.vue?vue&type=template&lang.js'
+    const code = 'import { withModifiers as _withModifiers } from "vue"\n'
+
+    expect(await rewritePlugin.transform?.(code, remoteId)).toBe(
+      'import { withModifiers as _withModifiers } from \'@omnicajs/vue-remote/remote\'\n'
+    )
+
+    await scanPlugin.transform?.('<script setup remote>const n = 1</script>', '/workspace/Component.vue')
+
+    expect(await rewritePlugin.transform?.(code, '/workspace/Component.vue?vue&type=template&lang.js')).toBe(
+      'import { withModifiers as _withModifiers } from \'@omnicajs/vue-remote/remote\'\n'
+    )
+
+    expect(await rewritePlugin.transform?.(code, '/workspace/Component.vue?vue&type=template&lang.js&plain=1')).toBe(
+      'import { withModifiers as _withModifiers } from \'@omnicajs/vue-remote/remote\'\n'
+    )
+
+    expect(await rewritePlugin.transform?.(code, '/workspace/Plain.vue?vue&type=template&lang.js')).toBeNull()
+  })
+
+  test('vite scan plugin ignores virtual Vue blocks', async () => {
+    const [scanPlugin] = vueRemoteVitePlugin() as Array<{
+      transform?: (code: string, id: string) => unknown;
+    }>
+
+    expect(await scanPlugin.transform?.('<script setup remote>const n = 1</script>', '/workspace/Component.vue?vue&type=script&lang.ts')).toBeNull()
+  })
+
+  test('webpack transform rewrites helper imports for .remote.vue modules', () => {
+    const code = 'import { withModifiers as _withModifiers } from "vue"\n'
+
+    expect(transformRemoteEventHelpersForWebpack(
+      code,
+      '/workspace/RemoteWidget.remote.vue',
+      '?vue&type=template&id=123&lang.js'
+    )).toBe('import { withModifiers as _withModifiers } from \'@omnicajs/vue-remote/remote\'\n')
+  })
+
+  test('webpack transform tracks <script remote> SFCs before rewriting their compiled modules', () => {
+    const source = '<script setup remote lang="ts">const n = 1</script>'
+    const code = 'import { withKeys as _withKeys } from "vue"\n'
+    const file = '/workspace/TrackedWidget.vue'
+
+    expect(transformRemoteEventHelpersForWebpack(source, file)).toBe(source)
+    expect(transformRemoteEventHelpersForWebpack(
+      code,
+      file,
+      '?vue&type=template&id=456&lang.js'
+    )).toBe('import { withKeys as _withKeys } from \'@omnicajs/vue-remote/remote\'\n')
+  })
+
+  test('webpack transform leaves non-remote modules and non-helper imports unchanged', () => {
+    const plainCode = 'import { withModifiers as _withModifiers } from "vue"\n'
+    const remoteCodeWithoutHelpers = 'import { ref } from "vue"\n'
+
+    expect(transformRemoteEventHelpersForWebpack(
+      plainCode,
+      '/workspace/PlainWidget.vue',
+      '?vue&type=template&id=789&lang.js'
+    )).toBe(plainCode)
+
+    expect(transformRemoteEventHelpersForWebpack(
+      remoteCodeWithoutHelpers,
+      '/workspace/RemoteWidget.remote.vue',
+      '?vue&type=template&id=789&lang.js'
+    )).toBe(remoteCodeWithoutHelpers)
+  })
+
+  test('webpack loader falls back to empty context fields', () => {
+    expect(vueRemoteWebpackLoader.call({}, 'import { ref } from "vue"\n')).toBe('import { ref } from "vue"\n')
   })
 })

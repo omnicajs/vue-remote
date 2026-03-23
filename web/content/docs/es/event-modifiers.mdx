@@ -1,0 +1,140 @@
+---
+title: Modificadores de eventos
+description: Cómo habilitar los modificadores de eventos de Vue a través de la frontera remota en bundles remotos con Vite o webpack.
+template: doc
+sidebar:
+  order: 999
+---
+
+Vue compila los modificadores de plantilla a helpers de runtime como `withModifiers(...)`
+y `withKeys(...)`. Esos helpers están pensados para ejecutarse sobre objetos `Event` reales del navegador.
+
+En `@omnicajs/vue-remote`, los eventos nativos se escuchan del lado host, luego se serializan
+y se envían por el transporte remoto al callback remoto. Eso significa que el lado remoto no recibe
+la instancia original del evento DOM, sino un snapshot serializado.
+
+Por eso el comportamiento estándar de los helpers de Vue no basta en plantillas remotas:
+
+- métodos imperativos como `preventDefault()` y `stopPropagation()` no existen en el payload serializado;
+- comprobaciones basadas en la identidad viva del evento, como `.self`, no se pueden reconstruir con fiabilidad desde un snapshot plano;
+- los guards de teclado, puntero y modificadores pueden quedar sin campos necesarios si el serializador host no los conserva explícitamente;
+- si un helper de Vue sin adaptar se ejecuta sobre el payload transportado, el código de modificadores puede comportarse mal o lanzar errores en runtime.
+
+La solución es conservar la metadata de modificadores durante el build y dejar que el host aplique
+la parte ligada al evento nativo antes de serializarlo. El loader de webpack y el plugin de Vite
+de abajo hacen exactamente eso.
+
+## Qué funciona
+
+Con la reescritura activa, las plantillas remotas y las render functions conservan:
+
+- modificadores de opción de evento como `.capture`, `.once`, `.passive`;
+- modificadores de propagación y comportamiento por defecto como `.stop`, `.prevent`, `.self`;
+- guards de teclado y puntero como `.enter`, `.left`, `.right`, `.ctrl`, `.alt`, `.shift`, `.meta`, `.exact`.
+
+Los listeners sin modificadores siguen usando la ruta de transporte original.
+
+## Qué debe ver la transformación
+
+Para que los modificadores se restauren correctamente, la transformación del bundler debe ver:
+
+- archivos fuente SFC remotos como `Widget.remote.vue`;
+- los submódulos Vue generados a partir de esos SFC, sobre todo requests de `template`, `script` y `scriptSetup`;
+- archivos de entrada remotos independientes como `main.remote.ts` o `panel.remote.tsx`.
+
+Si una de estas etapas se omite, la plantilla puede compilar, pero el comportamiento de los modificadores seguirá ausente en runtime.
+
+## Configuración con webpack
+
+En webpack, trata el loader remoto como un complemento de `vue-loader`, no como un reemplazo.
+`vue-loader` sigue encargándose de compilar los SFC, mientras que `@omnicajs/vue-remote/webpack-loader`
+rastrea las entradas remotas y reescribe los imports de helpers en los módulos ya compilados.
+
+En la práctica, la configuración de webpack debe hacer tres cosas:
+
+- pasar el source `.vue` original por el loader remoto para detectar `<script remote>` y `<script setup remote>`;
+- conservar la regla estándar de `vue-loader` y `VueLoaderPlugin`;
+- ejecutar el loader remoto sobre los requests de módulos Vue generados y sobre archivos de entrada `.remote.ts` / `.remote.js`.
+
+Ejemplo de configuración:
+
+```js
+const { VueLoaderPlugin } = require('vue-loader')
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+        enforce: 'pre',
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.vue$/,
+        loader: 'vue-loader',
+      },
+      {
+        test: /\.vue$/,
+        resourceQuery: /vue.*type=(?:template|script|scriptSetup)/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.remote\.(?:[cm]?[jt]sx?)$/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+    ],
+  },
+  plugins: [
+    new VueLoaderPlugin(),
+  ],
+}
+```
+
+Esta configuración te da lo siguiente:
+
+- `Widget.remote.vue` se reconoce como SFC remoto por el nombre del archivo;
+- un `Widget.vue` normal puede opt in con `<script remote>` o `<script setup remote>`;
+- los módulos Vue generados para `template` / `script` reescriben sus imports de `withModifiers(...)` y `withKeys(...)`;
+- archivos de entrada remotos independientes como `main.remote.ts` siguen la misma ruta de reescritura.
+
+Si tu webpack ya usa ramas `oneOf` o generadores de reglas del framework, conserva la misma intención:
+el loader remoto debe ver tanto el request fuente del SFC como los requests de módulos Vue generados.
+
+## Configuración con Vite
+
+En Vite, registra el plugin remoto junto con `@vitejs/plugin-vue`:
+
+```ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { vueRemoteVitePlugin } from '@omnicajs/vue-remote/vite-plugin'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueRemoteVitePlugin(),
+  ],
+})
+```
+
+Recomendaciones prácticas:
+
+- mantén `vue()` como compilador normal de SFC;
+- añade `vueRemoteVitePlugin()` en la misma configuración para que pueda observar y reescribir los módulos Vue generados;
+- usa `*.remote.vue` para entradas remotas explícitas, o marca un SFC normal con `<script remote>` / `<script setup remote>`;
+- usa `*.remote.ts`, `*.remote.js`, `*.remote.tsx` o `*.remote.jsx` para scripts remotos fuera de SFC.
+
+La lógica interna de reescritura se comparte con el loader de webpack, así que la semántica
+de modificadores se mantiene alineada entre ambos bundlers.
+
+## Notas de authoring y tooling
+
+- La inferencia de template refs remotas se configura aparte mediante `@omnicajs/vue-remote/tooling`.
+- Los modificadores en plantillas funcionan tanto para nodos DOM nativos como para componentes Vue host definidos con `defineRemoteComponent(...)`.
+- En render functions manuales puedes usar los mismos helpers remotos exportados desde `@omnicajs/vue-remote/remote`.
+
+## Siguiente
+
+- Configuración inicial: [Primeros pasos](/es/getting-started/).
+- Contratos del lado host: [Componentes del host](/es/host-components/).
+- Modelado de UI remota: [Componentes remotos](/es/remote-components/).

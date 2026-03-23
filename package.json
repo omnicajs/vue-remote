@@ -31,6 +31,18 @@
       "require": "./tooling.cjs",
       "import": "./tooling.mjs",
       "default": "./tooling.mjs"
+    },
+    "./vite-plugin": {
+      "types": "./dist/vite-plugin.d.ts",
+      "require": "./dist/vite-plugin.cjs",
+      "import": "./dist/vite-plugin.mjs",
+      "default": "./dist/vite-plugin.mjs"
+    },
+    "./webpack-loader": {
+      "types": "./dist/webpack-loader.d.ts",
+      "require": "./dist/webpack-loader.cjs",
+      "import": "./dist/webpack-loader.mjs",
+      "default": "./dist/webpack-loader.mjs"
     }
   },
   "sideEffects": false,
@@ -44,6 +56,12 @@
       ],
       "tooling": [
         "./dist/tooling.d.ts"
+      ],
+      "vite-plugin": [
+        "./dist/vite-plugin.d.ts"
+      ],
+      "webpack-loader": [
+        "./dist/webpack-loader.d.ts"
       ]
     }
   },

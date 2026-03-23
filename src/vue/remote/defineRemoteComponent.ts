@@ -24,6 +24,7 @@ import type {
 
 import {
   defineComponent,
+  getCurrentInstance,
   h,
   ref,
   type SetupContext,
@@ -31,7 +32,6 @@ import {
 import { isRemoteMethod } from './defineRemoteMethod'
 import { toRemoteSlots } from './slots'
 
-type EventEmit = (event: string, ...args: unknown[]) => void
 type EventHandler = (...args: unknown[]) => void
 type AnyRemoteMethodValidator = {
   bivarianceHack (...args: unknown[]): boolean;
@@ -113,19 +113,50 @@ type RemoteComponentRef = {
 }
 
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
+const eventOptionModifiers = ['Capture', 'Once', 'Passive']
+
+const isEventHandlerKey = (key: string, event: string) => {
+  const base = 'on' + capitalize(event)
+
+  if (!key.startsWith(base)) {
+    return false
+  }
+
+  let suffix = key.slice(base.length)
+
+  while (suffix.length > 0) {
+    const matched = eventOptionModifiers.find(modifier => suffix.startsWith(modifier))
+
+    if (matched == null) {
+      return false
+    }
+
+    suffix = suffix.slice(matched.length)
+  }
+
+  return true
+}
 
 const fallthroughEvents = <Emits extends EmitsOptions | undefined = undefined>(
   emits: Emits,
-  emit: EventEmit
+  props: Record<string, unknown> | null | undefined
 ): Record<string, EventHandler> => {
-  if (emits === undefined) {
+  if (emits === undefined || props == null) {
     return {}
   }
 
   const events: string[] = Array.isArray(emits) ? emits : Object.keys(emits)
 
-  return events.reduce((processed, event) => {
-    processed['on' + capitalize(event)] = (...args: unknown[]) => emit(event, ...args)
+  return Object.keys(props).reduce((processed, key) => {
+    if (!events.some(event => isEventHandlerKey(key, event))) {
+      return processed
+    }
+
+    const handler = props[key]
+
+    if (typeof handler === 'function' || Array.isArray(handler)) {
+      processed[key] = handler as EventHandler
+    }
 
     return processed
   }, {} as Record<string, EventHandler>)
@@ -226,8 +257,9 @@ function defineRemoteComponent<
     Emits extends undefined ? None : Emits,
     string,
     RemoteSlotsType<Slots>
-  >((props, { attrs, emit, expose, slots: internalSlots }: SetupContext<Emits extends undefined ? None : Emits, RemoteSlotsType<Slots>>) => {
+  >((props, { attrs, expose, slots: internalSlots }: SetupContext<Emits extends undefined ? None : Emits, RemoteSlotsType<Slots>>) => {
     const remote = ref<RemoteComponentRef | null>(null)
+    const instance = getCurrentInstance()
     const assignRemote = (value: unknown | null) => {
       if (value != null) {
         remote.value = value as RemoteComponentRef
@@ -238,13 +270,11 @@ function defineRemoteComponent<
       expose(createExposedMethods(methods, methodNames, remote))
     }
 
-    const events = fallthroughEvents(options.emits, emit)
-
     return () => h(type, {
       ref: assignRemote,
       ...props,
       ...attrs,
-      ...events,
+      ...fallthroughEvents(options.emits, instance?.vnode.props as Record<string, unknown> | null | undefined),
     }, toRemoteSlots(options.slots, internalSlots as never))
   }, {
     name: type,

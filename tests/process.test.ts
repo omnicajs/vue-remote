@@ -7,6 +7,10 @@ import {
 } from 'vitest'
 
 import { process } from '@/vue/host/render'
+import {
+  withKeys,
+  withModifiers,
+} from '@/vue/remote'
 import { ref } from 'vue'
 
 describe('process', () => {
@@ -90,5 +94,92 @@ describe('process', () => {
     delete properties.value.onClick
 
     expect(() => result.onClick()).not.toThrow()
+  })
+
+  test('applies host-side stop and prevent modifiers before serializing events', () => {
+    const onClick = vi.fn()
+    const properties = ref({
+      onClick: withModifiers(onClick, ['stop', 'prevent']),
+    })
+    const result = process(properties) as { onClick: (event: MouseEvent) => void }
+    const event = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+    })
+
+    const stopPropagation = vi.spyOn(event, 'stopPropagation')
+    const preventDefault = vi.spyOn(event, 'preventDefault')
+
+    result.onClick(event)
+
+    expect(stopPropagation).toHaveBeenCalledOnce()
+    expect(preventDefault).toHaveBeenCalledOnce()
+    expect(onClick).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'click',
+      defaultPrevented: true,
+    }))
+  })
+
+  test('filters self modifiers on the host against the real event target', () => {
+    const onClick = vi.fn()
+    const properties = ref({
+      onClick: withModifiers(onClick, ['self']),
+    })
+    const result = process(properties) as { onClick: (event: MouseEvent) => void }
+
+    const parent = document.createElement('div')
+    const child = document.createElement('span')
+    const childEvent = new MouseEvent('click', { bubbles: true })
+
+    Object.defineProperty(childEvent, 'target', { value: child, configurable: true })
+    Object.defineProperty(childEvent, 'currentTarget', { value: parent, configurable: true })
+
+    result.onClick(childEvent)
+    expect(onClick).not.toHaveBeenCalled()
+
+    const selfEvent = new MouseEvent('click', { bubbles: true })
+
+    Object.defineProperty(selfEvent, 'target', { value: parent, configurable: true })
+    Object.defineProperty(selfEvent, 'currentTarget', { value: parent, configurable: true })
+
+    result.onClick(selfEvent)
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  test('supports nested key and exact modifiers transported from the remote side', () => {
+    const onKeydown = vi.fn()
+    const properties = ref({
+      onKeydown: withKeys(withModifiers(onKeydown, ['exact']), ['enter']),
+    })
+    const result = process(properties) as { onKeydown: (event: KeyboardEvent) => void }
+
+    result.onKeydown(new KeyboardEvent('keydown', { key: 'Escape' }))
+    result.onKeydown(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true }))
+    result.onKeydown(new KeyboardEvent('keydown', { key: 'Enter' }))
+
+    expect(onKeydown).toHaveBeenCalledTimes(1)
+    expect(onKeydown).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'keydown',
+      key: 'Enter',
+    }))
+  })
+
+  test('keeps option-suffixed event props working with transported modifiers', () => {
+    const onClick = vi.fn()
+    const properties = ref({
+      onClickCaptureOnce: withModifiers(onClick, ['stop']),
+    })
+    const result = process(properties) as { onClickCaptureOnce: (event: MouseEvent) => void }
+    const event = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+    })
+
+    const stopPropagation = vi.spyOn(event, 'stopPropagation')
+
+    result.onClickCaptureOnce(event)
+
+    expect(stopPropagation).toHaveBeenCalledOnce()
+    expect(onClick).toHaveBeenCalledTimes(1)
   })
 })

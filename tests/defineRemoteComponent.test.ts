@@ -5,7 +5,17 @@ import {
   vi,
 } from 'vitest'
 
-import type { VNode } from 'vue'
+import {
+  createApp,
+  defineComponent,
+  h,
+  nextTick,
+  useTemplateRef,
+} from 'vue'
+import type {
+  ShallowRef,
+  VNode,
+} from 'vue'
 
 import defineRemoteComponent from '@/vue/remote/defineRemoteComponent'
 import defineRemoteMethod from '@/vue/remote/defineRemoteMethod'
@@ -39,32 +49,69 @@ describe('defineRemoteComponent', () => {
     expect(vnode.props).toEqual(expect.objectContaining({ id: 'x' }))
   })
 
-  test('creates fallthrough handlers for object-form emits', () => {
-    const RemoteButton = defineRemoteComponent('button', {
+  test('passes through parent handlers for declared emits', () => {
+    const container = document.createElement('div')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const onClick = vi.fn()
+    const onClickExtra = vi.fn()
+    const onSubmit = vi.fn()
+    const onClickInvalid = vi.fn()
+    const RemoteForm = defineRemoteComponent('form', {
       click: null,
       submit: null,
     })
-
-    const emit = vi.fn()
-    const render = (RemoteButton as unknown as ComponentWithSetup).setup({}, {
-      attrs: {},
-      emit,
-      expose: () => undefined,
-      slots: {},
+    const App = defineComponent({
+      setup () {
+        return () => h(RemoteForm, {
+          onClickCaptureOnce: [onClick, onClickExtra],
+          onSubmit,
+          onClickCustom: onClickInvalid,
+        })
+      },
     })
+    const app = createApp(App)
 
-    const vnode = render()
-    const onClick = vnode.props?.onClick as ((...args: unknown[]) => void) | undefined
-    const onSubmit = vnode.props?.onSubmit as ((...args: unknown[]) => void) | undefined
+    app.mount(container)
 
-    expect(typeof onClick).toBe('function')
-    expect(typeof onSubmit).toBe('function')
+    const form = container.querySelector('form')
+    form?.dispatchEvent(new Event('click'))
+    form?.dispatchEvent(new Event('click'))
+    form?.dispatchEvent(new Event('submit', { cancelable: true }))
 
-    onClick?.(1, 2)
-    onSubmit?.('payload')
+    expect(onClick).toHaveBeenCalledTimes(1)
+    expect(onClickExtra).toHaveBeenCalledTimes(1)
+    expect(onSubmit).toHaveBeenCalledTimes(1)
+    expect(onClickInvalid).not.toHaveBeenCalled()
 
-    expect(emit).toHaveBeenCalledWith('click', 1, 2)
-    expect(emit).toHaveBeenCalledWith('submit', 'payload')
+    app.unmount()
+    warn.mockRestore()
+  })
+
+  test('supports legacy array emits and skips non-callable matching props', () => {
+    const container = document.createElement('div')
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const onClick = vi.fn()
+    const RemoteButton = defineRemoteComponent('button', ['click'])
+    const App = defineComponent({
+      setup () {
+        return () => h('div', [
+          h(RemoteButton, { id: 'valid', onClick }),
+          h(RemoteButton, { id: 'invalid', onClick: 'noop' as never }),
+        ])
+      },
+    })
+    const app = createApp(App)
+
+    app.mount(container)
+
+    const buttons = container.querySelectorAll('button')
+    buttons.item(0).dispatchEvent(new Event('click'))
+    buttons.item(1).dispatchEvent(new Event('click'))
+
+    expect(onClick).toHaveBeenCalledTimes(1)
+
+    app.unmount()
+    warn.mockRestore()
   })
 
   test('creates exposed methods that delegate to invoke', async () => {
@@ -200,24 +247,69 @@ describe('defineRemoteComponent', () => {
   })
 
   test('treats malformed slots options as legacy emits at runtime', () => {
+    const container = document.createElement('div')
+    const onSlots = vi.fn()
     const RemoteDiv = defineRemoteComponent('div', {
       slots: 'header',
     } as never)
-    const emit = vi.fn()
+    const App = defineComponent({
+      setup () {
+        return () => h(RemoteDiv, {
+          onSlots,
+        })
+      },
+    })
+    const app = createApp(App)
 
-    const render = (RemoteDiv as unknown as ComponentWithSetup).setup({}, {
-      attrs: {},
-      emit,
-      expose: () => undefined,
-      slots: {},
+    app.mount(container)
+
+    const div = container.querySelector('div')
+    div?.dispatchEvent(new Event('slots'))
+
+    expect(onSlots).toHaveBeenCalledTimes(1)
+
+    app.unmount()
+  })
+
+  test('supports template refs without readonly warnings', async () => {
+    const invoke = vi.fn().mockResolvedValue(true)
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    const container = document.createElement('div')
+    let dialog: Readonly<ShallowRef<{ open: (id: string) => Promise<boolean> } | null>> | undefined
+
+    const RemoteDialog = defineRemoteComponent('VDialog', {
+      methods: {
+        open: defineRemoteMethod<[id: string], boolean>(),
+      },
+    })
+    const HostDialog = defineComponent({
+      name: 'VDialog',
+      setup (_, { expose }) {
+        expose({ invoke })
+
+        return () => null
+      },
+    })
+    const Parent = defineComponent({
+      components: { RemoteDialog },
+      template: '<RemoteDialog ref="dialog" />',
+      setup () {
+        dialog = useTemplateRef<{ open: (id: string) => Promise<boolean> }>('dialog')
+
+        return { dialog }
+      },
     })
 
-    const vnode = render()
+    const app = createApp(Parent)
+    app.component('VDialog', HostDialog)
+    app.mount(container)
+    await nextTick()
 
-    expect(vnode.children).toEqual({})
-    expect(vnode.props).toEqual(expect.objectContaining({
-      onSlots: expect.any(Function),
-    }))
+    expect(typeof dialog?.value?.open).toBe('function')
+    expect(warn).not.toHaveBeenCalled()
+
+    app.unmount()
+    warn.mockRestore()
   })
 
 })

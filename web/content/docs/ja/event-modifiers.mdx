@@ -1,0 +1,138 @@
+---
+title: イベント修飾子
+description: Vite または webpack で構築したリモートバンドルで、Vue のイベント修飾子をリモート境界越しに有効にする方法。
+template: doc
+sidebar:
+  order: 999
+---
+
+Vue はテンプレート修飾子を `withModifiers(...)` や `withKeys(...)` のような runtime helper に
+コンパイルします。これらの helper は本来、実際のブラウザ `Event` を前提に動作します。
+
+`@omnicajs/vue-remote` では、ネイティブイベントは host 側で購読され、その後シリアライズされて
+remote callback に送られます。つまり remote 側が受け取るのは元の DOM event instance ではなく、
+そのシリアライズ済み snapshot です。
+
+そのため、標準の Vue helper だけでは remote template の修飾子を正しく扱えません:
+
+- `preventDefault()` や `stopPropagation()` のような命令的メソッドはシリアライズ済み payload には存在しない;
+- `.self` のようにイベントの live identity に依存する判定は plain snapshot からは安定して再現できない;
+- key / pointer / modifier guard に必要なフィールドが host serializer で明示的に残されていないと不足する;
+- そのままの Vue helper が transported payload に対して動くと、修飾子コードが誤動作したり runtime error になったりする。
+
+解決策は、ビルド時に修飾子 metadata を保持し、シリアライズ前に host 側でネイティブイベント依存の
+処理を適用することです。以下の webpack loader と Vite plugin はそのためのものです。
+
+## 何が動くか
+
+書き換えを有効にすると、リモートテンプレートと render function で次を維持できます:
+
+- `.capture`、`.once`、`.passive` などのイベントオプション修飾子;
+- `.stop`、`.prevent`、`.self` などの伝播 / 既定動作の修飾子;
+- `.enter`、`.left`、`.right`、`.ctrl`、`.alt`、`.shift`、`.meta`、`.exact` などのキー / ポインタガード。
+
+修飾子のない通常のリスナーは従来のトランスポート経路を使い続けます。
+
+## transform が見る必要のあるもの
+
+修飾子を正しく復元するには、バンドラ側の transform が次を見られる必要があります:
+
+- `Widget.remote.vue` のようなリモート SFC のソース;
+- それらの SFC から生成される Vue サブモジュール、特に `template`、`script`、`scriptSetup` の request;
+- `main.remote.ts` や `panel.remote.tsx` のような単独のリモートエントリファイル。
+
+このどれかが抜けると、テンプレート自体はコンパイルできても、修飾子の挙動は runtime で戻りません。
+
+## webpack の設定
+
+webpack では、このリモート loader を `vue-loader` の置き換えではなく補助として扱います。
+SFC のコンパイルは引き続き `vue-loader` が担当し、`@omnicajs/vue-remote/webpack-loader`
+はリモートエントリを追跡して、生成済みモジュール内の helper import を書き換えます。
+
+実際の webpack 設定では、次の 3 点が必要です:
+
+- 元の `.vue` ソースをリモート loader に通して `<script remote>` と `<script setup remote>` を検出する;
+- 標準の `vue-loader` ルールと `VueLoaderPlugin` を維持する;
+- 生成された Vue モジュール request と単独の `.remote.ts` / `.remote.js` エントリファイルに対してリモート loader を実行する。
+
+設定例:
+
+```js
+const { VueLoaderPlugin } = require('vue-loader')
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+        enforce: 'pre',
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.vue$/,
+        loader: 'vue-loader',
+      },
+      {
+        test: /\.vue$/,
+        resourceQuery: /vue.*type=(?:template|script|scriptSetup)/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.remote\.(?:[cm]?[jt]sx?)$/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+    ],
+  },
+  plugins: [
+    new VueLoaderPlugin(),
+  ],
+}
+```
+
+この構成で得られること:
+
+- `Widget.remote.vue` はファイル名だけでリモート SFC として認識される;
+- 通常の `Widget.vue` も `<script remote>` または `<script setup remote>` で opt in できる;
+- 生成された Vue の `template` / `script` モジュールで `withModifiers(...)` と `withKeys(...)` の import が書き換えられる;
+- `main.remote.ts` のような単独のリモートエントリも同じ書き換え経路に乗る。
+
+既存の webpack 設定で `oneOf` 分岐やフレームワーク固有の rule generator を使っている場合でも、
+考え方は同じです。リモート loader は元の SFC request と生成された Vue モジュール request の両方を見る必要があります。
+
+## Vite の設定
+
+Vite では、リモート plugin を `@vitejs/plugin-vue` と一緒に登録します:
+
+```ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { vueRemoteVitePlugin } from '@omnicajs/vue-remote/vite-plugin'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueRemoteVitePlugin(),
+  ],
+})
+```
+
+実運用では次を推奨します:
+
+- `vue()` は通常どおり SFC コンパイラとして残す;
+- `vueRemoteVitePlugin()` を同じ Vite 設定に追加し、生成された Vue モジュールを観測 / 書き換えできるようにする;
+- 明示的なリモートエントリには `*.remote.vue` を使うか、通常の SFC を `<script remote>` / `<script setup remote>` でマークする;
+- SFC 以外のエントリスクリプトには `*.remote.ts`、`*.remote.js`、`*.remote.tsx`、`*.remote.jsx` を使う。
+
+内部の書き換えロジックは webpack loader と共有されるため、修飾子の意味論は両方の bundler で揃います。
+
+## authoring と tooling の注意
+
+- リモートネイティブ template ref 推論は `@omnicajs/vue-remote/tooling` で別途設定します。
+- テンプレートの修飾子はネイティブ DOM ノードと `defineRemoteComponent(...)` で定義した host Vue components の両方で動作します。
+- 手書きの render function では `@omnicajs/vue-remote/remote` がエクスポートする同じ helper を使えます。
+
+## 次に読むもの
+
+- 初期セットアップ: [クイックスタート](/ja/getting-started/)。
+- host 側の契約: [ホストコンポーネント](/ja/host-components/)。
+- remote 側の UI モデリング: [リモートコンポーネント](/ja/remote-components/)。

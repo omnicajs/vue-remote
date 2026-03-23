@@ -16,6 +16,7 @@ import {
 import { isDOMTag } from '@/common/dom'
 
 import { isFunction } from '@/dom/host'
+import { normalizeEventHandler } from '@/vue/events'
 
 import {
   isComment,
@@ -27,6 +28,7 @@ import {
   serializeEvent,
   serializeNativeVModelEvent,
 } from '@/vue/host/events'
+import { applyEventHandlerSteps } from '@/vue/host/modifiers'
 
 import { INTERNAL_V_MODEL_EVENT_PREFIX } from '@/vue/remote/nativeVModel'
 
@@ -143,10 +145,19 @@ const createEventHandler = (
   serialize: (event: Event) => unknown = serializeEvent
 ) => {
   return (...args: unknown[]) => {
-    const value = properties.value?.[key]
-    if (isFunction(value)) {
-      return value(...args.map(arg => arg instanceof Event ? serialize(arg) : arg))
+    const normalized = normalizeEventHandler(properties.value?.[key])
+
+    if (normalized == null) {
+      return
     }
+
+    const [event] = args
+
+    if (event instanceof Event && !applyEventHandlerSteps(event, normalized.steps)) {
+      return
+    }
+
+    return normalized.callback(...args.map(arg => arg instanceof Event ? serialize(arg) : arg))
   }
 }
 
@@ -188,7 +199,7 @@ export const process = (properties: Ref<Unknown | undefined> | undefined): Unkno
       continue
     }
 
-    result[key] = /^on[A-Z]/.test(key) && isFunction(v)
+    result[key] = /^on[A-Z]/.test(key) && normalizeEventHandler(v) != null
       ? createEventHandler(properties, key)
       : v
   }

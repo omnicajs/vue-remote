@@ -120,6 +120,16 @@ export default defineConfig({
               link: '/getting-started/',
             },
             {
+              label: 'Event Modifiers',
+              translations: withMexicanSpanish({
+                es: 'Modificadores de eventos',
+                ja: 'イベント修飾子',
+                'zh-CN': '事件修饰符',
+                ru: 'Модификаторы событий',
+              }),
+              link: '/event-modifiers/',
+            },
+            {
               label: 'Versions',
               translations: withMexicanSpanish({
                 es: 'Versiones',

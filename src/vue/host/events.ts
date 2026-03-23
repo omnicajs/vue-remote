@@ -121,9 +121,13 @@ export const serializeKeyboardEvent = (event: KeyboardEvent): SerializedKeyboard
 
 export const serializeMouseEvent = (event: MouseEvent): SerializedMouseEvent => ({
   ...serializeBaseEvent(event),
+  altKey: event.altKey,
   clientX: event.clientX,
   clientY: event.clientY,
   button: event.button,
+  ctrlKey: event.ctrlKey,
+  metaKey: event.metaKey,
+  shiftKey: event.shiftKey,
 })
 
 export const serializePointerEvent = (event: PointerEvent): SerializedPointerEvent => ({

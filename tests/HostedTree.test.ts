@@ -48,12 +48,14 @@ import {
   createRemoteRenderer,
   REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
   nextTick as remoteNextTick,
+  withModifiers,
 } from '@/vue/remote'
 
 import { keysOf } from '@/common/scaffolding'
 
 import { VButton } from './__fixtures__/components/VButton.host'
 import { VCard } from './__fixtures__/components/VCard.host'
+import { VButton as RemoteHostButton } from './__fixtures__/components/VButton.remote'
 
 import RemoteButton from './__fixtures__/remote/RemoteButton.vue'
 import RemoteCard from './__fixtures__/remote/RemoteCard.vue'
@@ -665,16 +667,60 @@ describe('HostedTree', () => {
       type: 'click',
       target: {},
       currentTarget: {},
+      altKey: false,
       bubbles: true,
       button: 0,
       cancelable: true,
       clientX: 0,
       clientY: 0,
       composed: true,
+      ctrlKey: false,
       defaultPrevented: false,
       eventPhase: 2,
       isTrusted: false,
+      metaKey: false,
+      shiftKey: false,
     } as SerializedMouseEvent)
+  })
+
+  test('updates modifier-bearing handlers without leaking stale callbacks', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver).mount(el as HTMLElement)
+
+    const first = vi.fn()
+    const second = vi.fn()
+
+    const { vm } = await createRemoteApp<{ switchHandler (): void }>({
+      setup (_, { expose }) {
+        const useSecond = ref(false)
+
+        expose({
+          switchHandler: () => {
+            useSecond.value = true
+          },
+        })
+
+        return () => h('button', {
+          onClick: withModifiers(useSecond.value ? second : first, ['prevent']),
+        }, 'Click me')
+      },
+    }, receiver)
+
+    el?.querySelector('button')?.click()
+    await receiver.flush()
+
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).not.toHaveBeenCalled()
+
+    vm.switchHandler()
+    await flushBoundary(receiver)
+
+    el?.querySelector('button')?.click()
+    await receiver.flush()
+
+    expect(first).toHaveBeenCalledTimes(1)
+    expect(second).toHaveBeenCalledTimes(1)
   })
 
   test('processes events on components', async () => {
@@ -703,6 +749,38 @@ describe('HostedTree', () => {
     await receiver.flush()
 
     expect(onClick).toHaveBeenCalledTimes(2)
+  })
+
+  test('applies host-side modifiers to events emitted by host components', async () => {
+    const receiver = createReceiver()
+
+    createHostApp(receiver, {
+      VButton,
+    }).mount(el as HTMLElement)
+
+    const onClick = vi.fn()
+
+    await createRemoteApp({
+      render () {
+        return h(RemoteHostButton, {
+          onClick: withModifiers(onClick, ['prevent']),
+        }, () => 'Click me')
+      },
+    }, receiver)
+
+    const event = new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+    })
+
+    el?.querySelector('button')?.dispatchEvent(event)
+    await receiver.flush()
+
+    expect(event.defaultPrevented).toBe(true)
+    expect(onClick).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'click',
+      defaultPrevented: true,
+    }))
   })
 
   test('processes FocusEvent on elements', async () => {
@@ -767,15 +845,19 @@ describe('HostedTree', () => {
       type: 'click',
       target: {},
       currentTarget: {},
+      altKey: false,
       bubbles: true,
       button: 0,
       cancelable: true,
       clientX: 0,
       clientY: 0,
       composed: true,
+      ctrlKey: false,
       defaultPrevented: false,
       eventPhase: 2,
       isTrusted: false,
+      metaKey: false,
+      shiftKey: false,
     } as SerializedMouseEvent)
   })
 

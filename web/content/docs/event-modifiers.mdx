@@ -1,0 +1,139 @@
+---
+title: Event Modifiers
+description: Enable Vue template event modifiers across the remote boundary for Vite and webpack-based remote bundles.
+template: doc
+sidebar:
+  order: 999
+---
+
+Vue template modifiers are compiled into runtime helpers such as `withModifiers(...)` and
+`withKeys(...)`. Those helpers are designed to run against real browser `Event` objects.
+
+In `@omnicajs/vue-remote`, native events are listened to on the host, then serialized and sent
+through the remote transport to the remote callback. That means the remote side does not receive
+the original DOM event instance. It receives a serialized snapshot instead.
+
+Because of that, the default Vue helper behavior is not enough for remote templates:
+
+- imperative event methods such as `preventDefault()` and `stopPropagation()` are unavailable on the serialized payload;
+- checks that depend on live event identity, such as `.self`, cannot be reproduced reliably from a plain snapshot;
+- key, pointer, and modifier guards may miss required fields unless the host serializer explicitly preserves them;
+- if an unmodified Vue helper runs against the transported payload, modifier code can behave incorrectly or throw at runtime.
+
+The fix is to preserve modifier metadata at build time and let the host apply the native-event
+parts before serialization. The webpack loader and Vite plugin described below do exactly that.
+
+## What works
+
+When the rewrite is enabled, remote templates and render functions can preserve:
+
+- event option modifiers such as `.capture`, `.once`, `.passive`;
+- propagation and default modifiers such as `.stop`, `.prevent`, `.self`;
+- key and pointer guards such as `.enter`, `.left`, `.right`, `.ctrl`, `.alt`, `.shift`, `.meta`, `.exact`.
+
+Plain listeners without modifiers keep the original transport path.
+
+## What the transform must see
+
+To restore modifiers successfully, the bundler transform needs access to:
+
+- remote SFC source files such as `Widget.remote.vue`;
+- compiled Vue submodules generated from those SFCs, especially `template`, `script`, and `scriptSetup` requests;
+- standalone remote entry files such as `main.remote.ts` or `panel.remote.tsx`.
+
+If one of these stages is skipped, templates may compile, but modifier behavior will still be missing at runtime.
+
+## Webpack setup
+
+For webpack, treat the remote loader as a companion to `vue-loader`, not a replacement.
+`vue-loader` still owns SFC compilation, while `@omnicajs/vue-remote/webpack-loader`
+tracks remote entries and rewrites the compiled helper imports.
+
+In practice, webpack should do three things:
+
+- pass raw `.vue` source through the remote loader so `<script remote>` and `<script setup remote>` can be detected;
+- keep the standard `vue-loader` rule and `VueLoaderPlugin`;
+- run the remote loader for generated Vue submodule requests and for standalone `.remote.ts` / `.remote.js` entry files.
+
+Example configuration:
+
+```js
+const { VueLoaderPlugin } = require('vue-loader')
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+        enforce: 'pre',
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.vue$/,
+        loader: 'vue-loader',
+      },
+      {
+        test: /\.vue$/,
+        resourceQuery: /vue.*type=(?:template|script|scriptSetup)/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.remote\.(?:[cm]?[jt]sx?)$/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+    ],
+  },
+  plugins: [
+    new VueLoaderPlugin(),
+  ],
+}
+```
+
+What this config gives you:
+
+- `Widget.remote.vue` is recognized as a remote SFC by filename;
+- plain `Widget.vue` can opt in with `<script remote>` or `<script setup remote>`;
+- compiled Vue `template` / `script` modules get their `withModifiers(...)` and `withKeys(...)` imports rewritten;
+- standalone remote entry files such as `main.remote.ts` go through the same rewrite path.
+
+If your webpack config already has `oneOf` branches or framework-specific rule generators,
+keep the same intent: the remote loader must see both the raw SFC request and the generated Vue module requests.
+
+## Vite setup
+
+For Vite, register the remote plugin alongside `@vitejs/plugin-vue`:
+
+```ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { vueRemoteVitePlugin } from '@omnicajs/vue-remote/vite-plugin'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueRemoteVitePlugin(),
+  ],
+})
+```
+
+Recommended behavior:
+
+- keep `vue()` enabled as usual for SFC compilation;
+- add `vueRemoteVitePlugin()` in the same config so it can observe and rewrite generated Vue modules;
+- use `*.remote.vue` for explicit remote entries, or mark a regular SFC with `<script remote>` / `<script setup remote>`;
+- use `*.remote.ts`, `*.remote.js`, `*.remote.tsx`, or `*.remote.jsx` for remote entry scripts outside SFCs.
+
+The underlying rewrite logic is shared with the webpack loader, so both bundlers keep the
+same event modifier semantics.
+
+## Tooling and authoring notes
+
+- Remote-native template ref inference is configured separately through `@omnicajs/vue-remote/tooling`.
+- Modifier-aware templates work for both native DOM nodes and host Vue components exposed through `defineRemoteComponent(...)`.
+- Manual render functions can use the same remote-aware helpers exported from `@omnicajs/vue-remote/remote`.
+
+## Next
+
+- First-time setup: [Getting Started](/getting-started/).
+- Host-side contracts: [Host Components](/host-components/).
+- Remote-side component modelling: [Remote Components](/remote-components/).

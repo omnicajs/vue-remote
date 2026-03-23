@@ -1,0 +1,137 @@
+---
+title: 事件修饰符
+description: 如何在使用 Vite 或 webpack 构建的远程 bundle 中，通过远程边界启用 Vue 事件修饰符。
+template: doc
+sidebar:
+  order: 999
+---
+
+Vue 会把模板修饰符编译成 `withModifiers(...)`、`withKeys(...)` 这类 runtime helper。
+这些 helper 原本是为真实浏览器 `Event` 对象设计的。
+
+在 `@omnicajs/vue-remote` 中，原生事件是在宿主侧监听的，然后会被序列化，再通过远程传输
+发送到远程回调。也就是说，远程侧拿到的不是原始 DOM 事件实例，而是一个序列化后的快照。
+
+因此，Vue 默认的 helper 行为并不足以正确处理远程模板中的修饰符：
+
+- `preventDefault()`、`stopPropagation()` 这类命令式方法在序列化 payload 上不存在；
+- 像 `.self` 这样依赖事件实时身份的判断，无法从普通快照中可靠重建；
+- 键盘、指针和系统修饰键 guard 依赖的字段，如果宿主序列化器没有明确保留，就可能缺失；
+- 如果未改造的 Vue helper 直接运行在传输后的 payload 上，修饰符代码就可能行为错误，甚至在 runtime 中直接报错。
+
+解决方式是：在构建阶段保留修饰符元数据，并在序列化之前由宿主侧先应用那些依赖原生事件的逻辑。
+下面的 webpack loader 和 Vite plugin 正是为此准备的。
+
+## 支持内容
+
+启用重写后，远程模板和 render function 可以保留：
+
+- `.capture`、`.once`、`.passive` 等事件选项修饰符；
+- `.stop`、`.prevent`、`.self` 等传播与默认行为修饰符；
+- `.enter`、`.left`、`.right`、`.ctrl`、`.alt`、`.shift`、`.meta`、`.exact` 等键盘和指针 guard。
+
+没有修饰符的普通监听器仍然走原有传输路径。
+
+## transform 需要看到什么
+
+要想正确恢复修饰符，bundler 侧 transform 必须能看到：
+
+- `Widget.remote.vue` 这类远程 SFC 源文件；
+- 这些 SFC 生成出来的 Vue 子模块，尤其是 `template`、`script`、`scriptSetup` request；
+- `main.remote.ts` 或 `panel.remote.tsx` 这类独立的远程入口文件。
+
+如果其中任何一个阶段被跳过，模板虽然还能编译，但修饰符行为在 runtime 中依然不会恢复。
+
+## webpack 配置
+
+在 webpack 中，应该把这个远程 loader 当作 `vue-loader` 的配套能力，而不是替代品。
+SFC 编译仍然由 `vue-loader` 负责，`@omnicajs/vue-remote/webpack-loader`
+负责跟踪远程入口，并重写已生成模块里的 helper import。
+
+实际配置时，webpack 需要完成三件事：
+
+- 让原始 `.vue` 源文件先经过远程 loader，这样才能识别 `<script remote>` 和 `<script setup remote>`；
+- 保留标准的 `vue-loader` 规则以及 `VueLoaderPlugin`；
+- 对生成出来的 Vue 模块 request，以及独立的 `.remote.ts` / `.remote.js` 入口文件运行远程 loader。
+
+配置示例：
+
+```js
+const { VueLoaderPlugin } = require('vue-loader')
+
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.vue$/,
+        enforce: 'pre',
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.vue$/,
+        loader: 'vue-loader',
+      },
+      {
+        test: /\.vue$/,
+        resourceQuery: /vue.*type=(?:template|script|scriptSetup)/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+      {
+        test: /\.remote\.(?:[cm]?[jt]sx?)$/,
+        loader: '@omnicajs/vue-remote/webpack-loader',
+      },
+    ],
+  },
+  plugins: [
+    new VueLoaderPlugin(),
+  ],
+}
+```
+
+这套配置可以带来：
+
+- `Widget.remote.vue` 会按文件名直接识别为远程 SFC；
+- 普通 `Widget.vue` 也可以通过 `<script remote>` 或 `<script setup remote>` 显式启用；
+- 生成出来的 Vue `template` / `script` 模块会重写 `withModifiers(...)` 与 `withKeys(...)` 的 import；
+- `main.remote.ts` 这类独立远程入口也会走同一条重写路径。
+
+如果你的 webpack 配置已经使用 `oneOf` 分支或框架生成的规则，也请保持同样的原则：
+远程 loader 必须同时看到原始 SFC request 和生成后的 Vue 模块 request。
+
+## Vite 配置
+
+在 Vite 中，请把远程插件和 `@vitejs/plugin-vue` 一起注册：
+
+```ts
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { vueRemoteVitePlugin } from '@omnicajs/vue-remote/vite-plugin'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    vueRemoteVitePlugin(),
+  ],
+})
+```
+
+实践建议：
+
+- 保留 `vue()` 作为标准的 SFC 编译器；
+- 在同一个 Vite 配置中加入 `vueRemoteVitePlugin()`，让它能够观察并重写生成出来的 Vue 模块；
+- 显式远程入口使用 `*.remote.vue`，或者在普通 SFC 中使用 `<script remote>` / `<script setup remote>`；
+- SFC 之外的远程入口脚本使用 `*.remote.ts`、`*.remote.js`、`*.remote.tsx` 或 `*.remote.jsx`。
+
+内部重写逻辑与 webpack loader 共用，因此两个 bundler 的修饰符语义保持一致。
+
+## 编写与 tooling 说明
+
+- 远程原生 template ref 推导需要单独通过 `@omnicajs/vue-remote/tooling` 配置。
+- 模板修饰符既适用于原生 DOM 节点，也适用于通过 `defineRemoteComponent(...)` 声明的宿主 Vue 组件。
+- 手写 render function 时，也可以使用 `@omnicajs/vue-remote/remote` 导出的同一组 helper。
+
+## 下一步
+
+- 初始配置：[快速开始](/zh/getting-started/)。
+- 宿主侧契约：[宿主组件](/zh/host-components/)。
+- 远程侧 UI 建模：[远程组件](/zh/remote-components/)。

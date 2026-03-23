@@ -69,12 +69,16 @@ describe('eventsSerialization', () => {
     await runtime.flush()
 
     button.dispatchEvent(new MouseEvent('mousedown', {
+      altKey: true,
       button: 1,
       clientX: 42,
       clientY: 24,
       bubbles: true,
       cancelable: true,
       composed: true,
+      ctrlKey: false,
+      metaKey: true,
+      shiftKey: true,
     }))
 
     await expect.poll(async () => {
@@ -134,9 +138,13 @@ describe('eventsSerialization', () => {
           defaultPrevented: false,
           eventPhase: 2,
           isTrusted: false,
+          altKey: true,
           clientX: 42,
           clientY: 24,
           button: 1,
+          ctrlKey: false,
+          metaKey: true,
+          shiftKey: true,
         },
       },
     ])
@@ -164,16 +172,20 @@ describe('eventsSerialization', () => {
     input.focus()
 
     button.dispatchEvent(new PointerEvent('pointerdown', {
+      altKey: true,
       button: 0,
       clientX: 18,
       clientY: 36,
       bubbles: true,
       cancelable: true,
       composed: true,
+      ctrlKey: false,
       pointerType: 'mouse',
       isPrimary: true,
+      metaKey: true,
       pointerId: 5,
       pressure: 0.5,
+      shiftKey: true,
       tangentialPressure: 0.1,
       tiltX: 1,
       tiltY: 2,
@@ -183,6 +195,7 @@ describe('eventsSerialization', () => {
     }))
 
     input.dispatchEvent(new WheelEvent('wheel', {
+      altKey: false,
       deltaMode: WheelEvent.DOM_DELTA_LINE,
       deltaX: 7,
       deltaY: 8,
@@ -193,12 +206,19 @@ describe('eventsSerialization', () => {
       clientX: 11,
       clientY: 22,
       button: 0,
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: true,
     }))
 
     button.dispatchEvent(new DragEvent('dragstart', {
+      altKey: true,
       bubbles: true,
       cancelable: true,
       composed: true,
+      ctrlKey: true,
+      metaKey: false,
+      shiftKey: false,
       ...(typeof DataTransfer === 'function' && { dataTransfer: new DataTransfer() }),
     }))
 
@@ -239,12 +259,16 @@ describe('eventsSerialization', () => {
           defaultPrevented: false,
           eventPhase: 2,
           isTrusted: false,
+          altKey: true,
           clientX: 18,
           clientY: 36,
           button: 0,
+          ctrlKey: false,
+          metaKey: true,
           pointerId: expect.any(Number),
           pointerType: expect.any(String),
           pressure: expect.any(Number),
+          shiftKey: true,
           tangentialPressure: expect.any(Number),
           tiltX: expect.any(Number),
           tiltY: expect.any(Number),
@@ -272,9 +296,11 @@ describe('eventsSerialization', () => {
           defaultPrevented: false,
           eventPhase: 2,
           isTrusted: false,
+          altKey: false,
           button: 0,
           clientX: 11,
           clientY: 22,
+          ctrlKey: true,
           deltaMode: WheelEvent.DOM_DELTA_LINE,
           deltaX: 7,
           deltaY: 8,
@@ -282,6 +308,8 @@ describe('eventsSerialization', () => {
           DOM_DELTA_PIXEL: WheelEvent.DOM_DELTA_PIXEL,
           DOM_DELTA_LINE: WheelEvent.DOM_DELTA_LINE,
           DOM_DELTA_PAGE: WheelEvent.DOM_DELTA_PAGE,
+          metaKey: false,
+          shiftKey: true,
         },
       },
       {
@@ -296,15 +324,19 @@ describe('eventsSerialization', () => {
           defaultPrevented: false,
           eventPhase: 2,
           isTrusted: false,
+          altKey: true,
           button: 0,
           clientX: 0,
           clientY: 0,
+          ctrlKey: true,
           dataTransfer: typeof DataTransfer === 'function' ? {
             dropEffect: expect.any(String),
             effectAllowed: expect.any(String),
             files: expect.any(Array),
             types: expect.any(Array),
           } : null,
+          metaKey: false,
+          shiftKey: false,
         },
       },
     ])
