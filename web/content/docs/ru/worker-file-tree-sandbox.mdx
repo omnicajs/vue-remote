@@ -1,0 +1,72 @@
+---
+title: Дерево файлов в Worker
+description: Живая песочница, где сортируемое и редактируемое дерево файлов работает в выделенном Web Worker, а docs-страница держит реальное host DOM-дерево.
+template: doc
+---
+
+import WorkerFileTreeSandbox from '../../../components/WorkerFileTreeSandbox.astro'
+
+## Как устроен пример
+
+Эта страница показывает вложенное worker-based дерево файлов без моков. Docs-страница держит host DOM и pointer hit-testing, а remote Vue-приложение хранит структуру дерева, inline-редактирование и drag-логику внутри выделенного `Web Worker`.
+
+Пример состоит из трех частей:
+
+- host runtime, который монтирует `HostedTree` в область preview;
+- remote Worker, который рендерит папки, файлы, inline-действия и обрабатывает `RemoteSortableEvent`;
+- live snapshot под деревом, который показывает текущее вложенное remote-state после редактирования и drop.
+
+## Как взаимодействовать
+
+- Перетаскивайте узлы за handle, чтобы менять порядок соседей или переносить их в другую папку.
+- Переименовывайте элементы inline, добавляйте файлы и папки, удаляйте узлы из текущего дерева.
+- Используйте `Сбросить дерево`, чтобы вернуть исходную структуру workspace.
+
+<WorkerFileTreeSandbox
+  codeCssLabel="CSS песочницы"
+  codeHostLabel="Код host runtime"
+  codeWorkerLabel="Код remote Worker"
+  draggingLabel="Тащим"
+  instructions="Перетаскивайте файлы и папки за handle, переносите узлы между папками, переименовывайте элементы inline, создавайте новые записи и при необходимости сбрасывайте дерево к исходному состоянию."
+  previewTitle="Сортируемое и редактируемое дерево файлов в выделенном Worker"
+  runtimeNote="Это дерево подключено через тот же host/worker transport, который используется публичными runtime API библиотеки."
+  labels={{
+    addFileLabel: 'Добавить файл',
+    addFolderLabel: 'Добавить папку',
+    cancelLabel: 'Отмена',
+    collapseLabel: 'Свернуть папку',
+    deleteLabel: 'Удалить',
+    dragCanceledAction: 'Перетаскивание отменено.',
+    draggingAction: 'Перетаскиваю узел.',
+    emptyFolderLabel: 'Перетащите сюда файлы или папки',
+    expandLabel: 'Развернуть папку',
+    fileAddedAction: 'Файл создан.',
+    fileKindLabel: 'Файл',
+    folderAddedAction: 'Папка создана.',
+    folderKindLabel: 'Папка',
+    initialAction: 'Управляйте папками и файлами, затем перетаскивайте узлы для сортировки и перемещения.',
+    movedAction: 'Узел перемещен.',
+    newFileName: 'new-file.ts',
+    newFolderName: 'new-folder',
+    removedAction: 'Узел удален.',
+    renameLabel: 'Переименовать',
+    renamedAction: 'Имя обновлено.',
+    resetLabel: 'Сбросить дерево',
+    rootEyebrow: 'Дерево workspace',
+    saveLabel: 'Сохранить',
+    snapshotLabel: 'Текущий snapshot remote-state',
+  }}
+  status={{
+    booting: 'Запускаю выделенный Worker runtime...',
+    failed: 'Worker-песочница завершилась с ошибкой',
+    ready: 'Песочница работает в выделенном Worker runtime',
+    snapshotUnavailable: 'Snapshot remote-state недоступен.',
+    unsupported: 'Этот браузер не поддерживает module workers.',
+  }}
+/>
+
+## Связанные страницы
+
+- [Перетаскивание и сортировка](/ru/sortable-dnd/)
+- [Канбан-доска в Worker](/ru/worker-kanban-sandbox/)
+- [Сортируемая таблица в Worker](/ru/worker-table-sandbox/)

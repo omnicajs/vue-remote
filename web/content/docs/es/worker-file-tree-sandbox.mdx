@@ -1,0 +1,72 @@
+---
+title: Árbol de archivos en Worker
+description: Un sandbox en vivo donde un árbol de archivos sortable y editable se ejecuta en un Web Worker dedicado mientras la página de docs aloja el árbol DOM real del host.
+template: doc
+---
+
+import WorkerFileTreeSandbox from '../../../components/WorkerFileTreeSandbox.astro'
+
+## Cómo está construido este ejemplo
+
+Esta página muestra un árbol de archivos anidado basado en Worker sin mocks. La página de docs conserva el DOM host y el pointer hit-testing, mientras la app Vue remota mantiene la estructura del árbol, la edición inline y la lógica de drag dentro de un `Web Worker` dedicado.
+
+El ejemplo tiene tres partes:
+
+- un host runtime que monta `HostedTree` dentro del área de preview;
+- una app remota en Worker que renderiza carpetas, archivos, acciones inline y procesa `RemoteSortableEvent`;
+- un snapshot en vivo bajo el árbol que muestra el estado remoto anidado después de cada edición y drop.
+
+## Cómo interactuar
+
+- Arrastra nodos desde el handle para reordenar hermanos o moverlos a otra carpeta.
+- Renombra elementos inline, agrega archivos o carpetas y elimina nodos del árbol actual.
+- Usa `Reiniciar árbol` para restaurar la estructura inicial del workspace.
+
+<WorkerFileTreeSandbox
+  codeCssLabel="CSS del sandbox"
+  codeHostLabel="Código del runtime host"
+  codeWorkerLabel="Código remoto del Worker"
+  draggingLabel="Arrastrando"
+  instructions="Arrastra archivos y carpetas desde su handle, mueve nodos entre carpetas, renombra elementos inline, crea nuevas entradas y reinicia el workspace cuando quieras volver al estado inicial."
+  previewTitle="Árbol de archivos sortable y editable en un Worker dedicado"
+  runtimeNote="Este árbol está conectado mediante el mismo modelo de transporte host/worker que usan los runtime API públicos de la librería."
+  labels={{
+    addFileLabel: 'Agregar archivo',
+    addFolderLabel: 'Agregar carpeta',
+    cancelLabel: 'Cancelar',
+    collapseLabel: 'Colapsar carpeta',
+    deleteLabel: 'Eliminar',
+    dragCanceledAction: 'Arrastre cancelado.',
+    draggingAction: 'Arrastrando nodo.',
+    emptyFolderLabel: 'Suelta archivos o carpetas aquí',
+    expandLabel: 'Expandir carpeta',
+    fileAddedAction: 'Archivo creado.',
+    fileKindLabel: 'Archivo',
+    folderAddedAction: 'Carpeta creada.',
+    folderKindLabel: 'Carpeta',
+    initialAction: 'Gestiona carpetas y archivos, luego arrastra nodos para reordenarlos o moverlos.',
+    movedAction: 'Nodo movido.',
+    newFileName: 'nuevo-archivo.ts',
+    newFolderName: 'nueva-carpeta',
+    removedAction: 'Nodo eliminado.',
+    renameLabel: 'Renombrar',
+    renamedAction: 'Nombre actualizado.',
+    resetLabel: 'Reiniciar árbol',
+    rootEyebrow: 'Árbol del workspace',
+    saveLabel: 'Guardar',
+    snapshotLabel: 'Snapshot remoto en vivo',
+  }}
+  status={{
+    booting: 'Iniciando runtime dedicado en Worker...',
+    failed: 'El sandbox del Worker falló',
+    ready: 'Ejecutándose en un runtime dedicado de Worker',
+    snapshotUnavailable: 'El snapshot remoto no está disponible.',
+    unsupported: 'Este navegador no soporta module workers.',
+  }}
+/>
+
+## Páginas relacionadas
+
+- [Arrastrar y soltar ordenable](/es/sortable-dnd/)
+- [Tablero kanban en Worker](/es/worker-kanban-sandbox/)
+- [Tabla sortable en Worker](/es/worker-table-sandbox/)

@@ -393,6 +393,16 @@ export default defineConfig({
               }),
               link: '/worker-table-sandbox/',
             },
+            {
+              label: 'Worker File Tree',
+              translations: withMexicanSpanish({
+                es: 'Árbol de archivos en Worker',
+                ja: 'Worker ファイルツリー',
+                'zh-CN': 'Worker 文件树',
+                ru: 'Дерево файлов в Worker',
+              }),
+              link: '/worker-file-tree-sandbox/',
+            },
           ],
         },
       ],

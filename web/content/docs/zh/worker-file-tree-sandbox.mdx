@@ -1,0 +1,72 @@
+---
+title: Worker 文件树
+description: 一个实时沙盒：可排序且可编辑的文件树运行在专用 Web Worker 中，而 docs 页面承载真实的 host DOM tree。
+template: doc
+---
+
+import WorkerFileTreeSandbox from '../../../components/WorkerFileTreeSandbox.astro'
+
+## 这个示例由哪些部分组成
+
+这个页面展示的是完整的 Worker 嵌套文件树场景，而不是模拟预览。docs 页面负责 host DOM 和指针命中测试，remote Vue app 则在专用 `Web Worker` 中保存树结构、inline 编辑状态和 drag 逻辑。
+
+这个示例包含三部分：
+
+- 把 `HostedTree` 挂到预览区域中的 host runtime；
+- 渲染文件夹、文件、inline 操作并处理 `RemoteSortableEvent` 的 remote Worker 应用；
+- 位于树下方的实时 snapshot，用来显示每次编辑和 drop 之后的当前嵌套 remote state。
+
+## 如何交互
+
+- 通过 handle 拖拽节点来重排同级节点或把它们移动到其他文件夹。
+- 直接 inline 重命名项目、添加文件或文件夹，并从当前树中删除节点。
+- 使用 `重置树` 可以恢复初始 workspace 结构。
+
+<WorkerFileTreeSandbox
+  codeCssLabel="Sandbox CSS"
+  codeHostLabel="Host runtime 代码"
+  codeWorkerLabel="Worker remote 代码"
+  draggingLabel="拖拽中"
+  instructions="通过 handle 拖拽文件和文件夹，在文件夹之间移动节点，inline 编辑名称，创建新的条目，并在需要时将 workspace 恢复到初始状态。"
+  previewTitle="运行在专用 Worker 中的可排序可编辑文件树"
+  runtimeNote="这个文件树接入的正是库对外公开 runtime API 所使用的同一套 host/worker transport 模型。"
+  labels={{
+    addFileLabel: '添加文件',
+    addFolderLabel: '添加文件夹',
+    cancelLabel: '取消',
+    collapseLabel: '折叠文件夹',
+    deleteLabel: '删除',
+    dragCanceledAction: '拖拽已取消。',
+    draggingAction: '正在拖拽节点。',
+    emptyFolderLabel: '把文件或文件夹拖到这里',
+    expandLabel: '展开文件夹',
+    fileAddedAction: '文件已创建。',
+    fileKindLabel: '文件',
+    folderAddedAction: '文件夹已创建。',
+    folderKindLabel: '文件夹',
+    initialAction: '管理文件夹和文件，然后拖拽节点来排序或移动它们。',
+    movedAction: '节点已移动。',
+    newFileName: 'new-file.ts',
+    newFolderName: 'new-folder',
+    removedAction: '节点已删除。',
+    renameLabel: '重命名',
+    renamedAction: '名称已更新。',
+    resetLabel: '重置树',
+    rootEyebrow: 'Workspace 树',
+    saveLabel: '保存',
+    snapshotLabel: '实时 remote 快照',
+  }}
+  status={{
+    booting: '正在启动专用 Worker runtime...',
+    failed: 'Worker 沙盒启动失败',
+    ready: '正在专用 Worker runtime 中运行',
+    snapshotUnavailable: '无法获取 remote 快照。',
+    unsupported: '当前浏览器不支持 module workers。',
+  }}
+/>
+
+## 相关页面
+
+- [可排序拖放](/zh/sortable-dnd/)
+- [Worker 看板](/zh/worker-kanban-sandbox/)
+- [Worker 可排序表格](/zh/worker-table-sandbox/)

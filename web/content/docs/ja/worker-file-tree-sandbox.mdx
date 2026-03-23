@@ -1,0 +1,72 @@
+---
+title: Worker ファイルツリー
+description: sortable かつ編集可能なファイルツリーを専用 Web Worker で動かし、docs ページ側が実 DOM の host tree を保持するライブサンドボックス。
+template: doc
+---
+
+import WorkerFileTreeSandbox from '../../../components/WorkerFileTreeSandbox.astro'
+
+## この例の構成
+
+このページはモックではなく、Worker ベースの入れ子ファイルツリーをそのまま見せています。docs ページが host DOM と pointer hit-testing を担当し、remote Vue app はツリー構造、inline 編集状態、drag ロジックを専用 `Web Worker` の中で保持します。
+
+この例は次の 3 つの要素で構成されています。
+
+- preview 領域に `HostedTree` をマウントする host runtime
+- フォルダー、ファイル、inline アクションを描画し、`RemoteSortableEvent` を処理する remote Worker app
+- 編集や drop のたびに現在の nested remote state を表示する、ツリー下の live snapshot
+
+## 使い方
+
+- ノードは handle からドラッグして兄弟ノードの並び替えや別フォルダーへの移動を行います。
+- inline で名前を変更し、ファイルやフォルダーを追加し、現在のツリーからノードを削除できます。
+- `ツリーをリセット` を使うと、初期の workspace 構造に戻せます。
+
+<WorkerFileTreeSandbox
+  codeCssLabel="Sandbox CSS"
+  codeHostLabel="Host runtime のコード"
+  codeWorkerLabel="Worker remote のコード"
+  draggingLabel="ドラッグ中"
+  instructions="ファイルとフォルダーを handle からドラッグし、フォルダー間でノードを移動し、inline で名前を編集し、新しい項目を作成して、必要に応じて workspace を初期状態に戻してください。"
+  previewTitle="専用 Worker で動く sortable かつ編集可能なファイルツリー"
+  runtimeNote="このツリーは、ライブラリの公開 runtime API が使うのと同じ host/worker transport モデルで接続されています。"
+  labels={{
+    addFileLabel: 'ファイルを追加',
+    addFolderLabel: 'フォルダーを追加',
+    cancelLabel: 'キャンセル',
+    collapseLabel: 'フォルダーを折りたたむ',
+    deleteLabel: '削除',
+    dragCanceledAction: 'ドラッグをキャンセルしました。',
+    draggingAction: 'ノードをドラッグ中です。',
+    emptyFolderLabel: 'ここにファイルまたはフォルダーをドロップ',
+    expandLabel: 'フォルダーを展開',
+    fileAddedAction: 'ファイルを作成しました。',
+    fileKindLabel: 'File',
+    folderAddedAction: 'フォルダーを作成しました。',
+    folderKindLabel: 'Folder',
+    initialAction: 'フォルダーとファイルを操作し、その後ノードをドラッグして並べ替えや移動を行ってください。',
+    movedAction: 'ノードを移動しました。',
+    newFileName: 'new-file.ts',
+    newFolderName: 'new-folder',
+    removedAction: 'ノードを削除しました。',
+    renameLabel: '名前を変更',
+    renamedAction: '名前を更新しました。',
+    resetLabel: 'ツリーをリセット',
+    rootEyebrow: 'Workspace tree',
+    saveLabel: '保存',
+    snapshotLabel: 'ライブ remote snapshot',
+  }}
+  status={{
+    booting: '専用 Worker runtime を起動しています...',
+    failed: 'Worker サンドボックスの起動に失敗しました',
+    ready: '専用 Worker runtime で実行中です',
+    snapshotUnavailable: 'Remote snapshot を取得できません。',
+    unsupported: 'このブラウザは module workers をサポートしていません。',
+  }}
+/>
+
+## 関連ページ
+
+- [並べ替えドラッグ＆ドロップ](/ja/sortable-dnd/)
+- [Worker カンバンボード](/ja/worker-kanban-sandbox/)
+- [Worker 並べ替えテーブル](/ja/worker-table-sandbox/)

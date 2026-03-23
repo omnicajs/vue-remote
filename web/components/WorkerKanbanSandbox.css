@@ -156,7 +156,7 @@
 .worker-kanban-sandbox__snapshot-code {
   overflow: auto;
   padding: 1rem;
-  border-radius: 1rem;
+  border-radius: 0.5rem;
   background: color-mix(in srgb, var(--sl-color-black) 12%, var(--sl-color-bg));
   color: var(--sl-color-white);
   font-size: 0.82rem;
@@ -197,7 +197,7 @@
   gap: 1rem;
   padding: 1rem;
   border: 1px solid var(--worker-sandbox-border);
-  border-radius: 1.25rem;
+  border-radius: 0.5rem;
   background:
     radial-gradient(circle at top right, color-mix(in srgb, var(--sl-color-accent) 12%, transparent), transparent 36%),
     linear-gradient(180deg, color-mix(in srgb, var(--worker-sandbox-surface) 96%, transparent), var(--sl-color-bg));
@@ -234,7 +234,7 @@
   min-height: 16rem;
   padding: 0.9rem;
   border: 1px solid color-mix(in srgb, var(--sl-color-hairline-light) 82%, transparent);
-  border-radius: 1rem;
+  border-radius: 0.5rem;
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--sl-color-white) 6%, transparent), transparent),
     color-mix(in srgb, var(--sl-color-bg) 92%, var(--sl-color-accent-low));
@@ -292,7 +292,7 @@
   z-index: 1;
   box-sizing: border-box;
   border: 1px dashed color-mix(in srgb, var(--sl-color-accent-high) 22%, var(--worker-sandbox-border));
-  border-radius: 0.9rem;
+  border-radius: 0.5rem;
   color: var(--sl-color-gray-2);
   font-weight: 600;
   transition:

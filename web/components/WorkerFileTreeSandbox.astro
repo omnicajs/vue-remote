@@ -1,0 +1,103 @@
+---
+import {
+  Code,
+  TabItem,
+  Tabs,
+} from '@astrojs/starlight/components'
+import bootScript from '../sandboxes/sortable-file-tree/boot.ts?url'
+import hostSource from '../sandboxes/sortable-file-tree/host.ts?raw'
+import workerSource from '../sandboxes/sortable-file-tree/remote.worker.ts?raw'
+import sandboxCssSource from './WorkerFileTreeSandbox.css?raw'
+import './WorkerFileTreeSandbox.css'
+
+interface Props {
+  codeCssLabel: string;
+  codeHostLabel: string;
+  codeWorkerLabel: string;
+  draggingLabel: string;
+  instructions: string;
+  previewTitle: string;
+  runtimeNote: string;
+  labels: {
+    addFileLabel: string;
+    addFolderLabel: string;
+    cancelLabel: string;
+    collapseLabel: string;
+    deleteLabel: string;
+    dragCanceledAction: string;
+    draggingAction: string;
+    emptyFolderLabel: string;
+    expandLabel: string;
+    fileAddedAction: string;
+    fileKindLabel: string;
+    folderAddedAction: string;
+    folderKindLabel: string;
+    initialAction: string;
+    newFileName: string;
+    newFolderName: string;
+    removedAction: string;
+    renameLabel: string;
+    renamedAction: string;
+    resetLabel: string;
+    rootEyebrow: string;
+    saveLabel: string;
+    movedAction: string;
+    snapshotLabel: string;
+  };
+  status: {
+    booting: string;
+    failed: string;
+    ready: string;
+    snapshotUnavailable: string;
+    unsupported: string;
+  };
+}
+
+const props = Astro.props
+---
+
+<section
+  class="worker-file-tree-sandbox"
+  data-worker-file-tree-sandbox
+  style={`--worker-dragging-label: ${JSON.stringify(props.draggingLabel)};`}
+>
+  <script
+    type="application/json"
+    data-sandbox-config
+    set:html={JSON.stringify({
+      labels: {
+        ...props.status,
+        ...props.labels,
+      },
+    })}
+  />
+
+  <div class="worker-file-tree-sandbox__layout">
+    <div class="worker-file-tree-sandbox__surface">
+      <div class="worker-file-tree-sandbox__heading">
+        <h2>{props.previewTitle}</h2>
+        <p>{props.instructions}</p>
+      </div>
+
+      <div class="worker-file-tree-sandbox__runtime-host" data-sandbox-root>{props.status.booting}</div>
+
+      <p class="worker-file-tree-sandbox__note">{props.runtimeNote}</p>
+    </div>
+
+    <div class="worker-file-tree-sandbox__code">
+      <Tabs syncKey="worker-file-tree-sandbox-code">
+        <TabItem label={props.codeHostLabel}>
+          <Code code={hostSource} lang="ts" />
+        </TabItem>
+        <TabItem label={props.codeWorkerLabel}>
+          <Code code={workerSource} lang="ts" />
+        </TabItem>
+        <TabItem label={props.codeCssLabel}>
+          <Code code={sandboxCssSource} lang="css" />
+        </TabItem>
+      </Tabs>
+    </div>
+  </div>
+</section>
+
+<script type="module" src={bootScript}></script>

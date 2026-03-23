@@ -1,0 +1,72 @@
+---
+title: Worker File Tree Sandbox
+description: A live sandbox that runs a sortable and editable file tree in a dedicated Web Worker while the docs page hosts the real DOM tree.
+template: doc
+---
+
+import WorkerFileTreeSandbox from '../../components/WorkerFileTreeSandbox.astro'
+
+## How this example is built
+
+This page shows a nested worker-based file tree without mocks. The docs page owns the host DOM and pointer hit-testing, while the remote Vue app keeps the tree structure, inline editing state, and drag logic inside a dedicated `Web Worker`.
+
+The example has three parts:
+
+- a host runtime that mounts `HostedTree` into the preview area;
+- a remote worker app that renders folders, files, inline actions, and handles `RemoteSortableEvent`;
+- a live snapshot below the tree that shows the current nested state after edits and drops.
+
+## How to use it
+
+- Drag nodes by the grip handle to reorder siblings or move them into another folder.
+- Rename items inline, add files or folders, and remove nodes from the current tree.
+- Use `Reset tree` to restore the initial workspace structure.
+
+<WorkerFileTreeSandbox
+  codeCssLabel="Sandbox CSS"
+  codeHostLabel="Host runtime code"
+  codeWorkerLabel="Worker remote code"
+  draggingLabel="Dragging"
+  instructions="Drag files and folders by their handle, move nodes across folders, rename items inline, create new entries, and reset the workspace whenever you want to start over."
+  previewTitle="Sortable and editable file tree running in a dedicated Worker"
+  runtimeNote="This tree is wired through the same host/worker transport model used by the library's public runtime APIs."
+  labels={{
+    addFileLabel: 'Add file',
+    addFolderLabel: 'Add folder',
+    cancelLabel: 'Cancel',
+    collapseLabel: 'Collapse folder',
+    deleteLabel: 'Delete',
+    dragCanceledAction: 'Drag canceled.',
+    draggingAction: 'Dragging node.',
+    emptyFolderLabel: 'Drop files or folders here',
+    expandLabel: 'Expand folder',
+    fileAddedAction: 'File created.',
+    fileKindLabel: 'File',
+    folderAddedAction: 'Folder created.',
+    folderKindLabel: 'Folder',
+    initialAction: 'Manage folders and files, then drag nodes to reorder or move them.',
+    movedAction: 'Node moved.',
+    newFileName: 'new-file.ts',
+    newFolderName: 'new-folder',
+    removedAction: 'Node removed.',
+    renameLabel: 'Rename',
+    renamedAction: 'Name updated.',
+    resetLabel: 'Reset tree',
+    rootEyebrow: 'Workspace tree',
+    saveLabel: 'Save',
+    snapshotLabel: 'Live remote snapshot',
+  }}
+  status={{
+    booting: 'Booting dedicated Worker runtime...',
+    failed: 'Worker sandbox failed',
+    ready: 'Running in a dedicated Worker runtime',
+    snapshotUnavailable: 'Remote snapshot is unavailable.',
+    unsupported: 'This browser does not support module workers.',
+  }}
+/>
+
+## Related pages
+
+- [Sortable Drag and Drop](/sortable-dnd/)
+- [Worker Kanban Sandbox](/worker-kanban-sandbox/)
+- [Worker Sortable Table](/worker-table-sandbox/)
