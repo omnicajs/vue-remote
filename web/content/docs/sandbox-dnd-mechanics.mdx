@@ -1,0 +1,80 @@
+---
+title: Sandbox DnD Mechanics
+description: How the worker sandboxes build product-like drag and drop with the built-in host runtime, remote state, and sandbox-local CSS.
+template: doc
+---
+
+## Why this page exists
+
+The kanban board, sortable table, and editable file tree all use the same built-in sortable DnD runtime, but they do not look the same. The interesting part is not only the remote reorder logic, but also how each sandbox styles the host-side drag presentation so the interaction feels close to a real product.
+
+## Layer 1: remote state stays in the Worker
+
+Each sandbox keeps its source of truth inside the remote worker:
+
+- the kanban worker owns lanes and cards;
+- the table worker owns the row order;
+- the file tree worker owns nested nodes, rename state, and inline actions.
+
+The worker renders `RemoteSortableContainer`, `RemoteSortableItem`, and `RemoteDragHandle`, then reacts to `RemoteSortableEvent` in `onDrop`. The host never mutates that state directly.
+
+## Layer 2: the host owns real DOM and hit-testing
+
+The docs page still owns the real DOM tree. `HostedTree` mounts the remote view into the preview area, and the built-in host DnD runtime performs:
+
+- pointer tracking and drag threshold handling;
+- target resolution for `before`, `after`, and `inside`;
+- acceptance checks based on item `type` and container `accepts`;
+- session cleanup for `pointercancel`, `Escape`, and unmount.
+
+This keeps the trusted host responsible for low-level DOM work, while the worker stays focused on data and UI structure.
+
+## Layer 3: drag presentation is built into the host runtime
+
+The sandboxes no longer implement their own drag overlay logic on the host. The built-in DnD presentation layer creates:
+
+- a floating overlay clone for the grabbed source item;
+- a placeholder that marks the potential drop position;
+- state attributes on the real DOM such as `data-dnd-source`, `data-dnd-target`, `data-dnd-placement`, and `data-dnd-drop-allowed`.
+
+That means the demos can stay simple on the host side: start the worker, mount the endpoint, and unmount it on teardown.
+
+## Layer 4: CSS gives each sandbox its own behavior
+
+The tricky styling comes from the fact that all three demos share the same runtime markers, but they map those markers to different visuals:
+
+- kanban styles the placeholder as a card-shaped vacancy and keeps empty lanes as full-height drop zones;
+- the sortable table keeps overlays and placeholders row-shaped so the interaction still reads as a table, not as cards;
+- the file tree styles placeholders as compact node slots and hides nested children in drag presentation so tree moves stay readable.
+
+The important rule is that CSS does not invent drag state on its own. It only reacts to host runtime markers and to the sandbox's own DOM structure.
+
+## Principles used in the sandbox CSS
+
+- Scope styles to the sandbox root so docs chrome and markdown styles do not leak into drag presentation.
+- Style `data-dnd-overlay` and `data-dnd-placeholder` as variations of the real item, not as unrelated widgets.
+- Keep placeholders sized like real items, otherwise lists and trees visibly jump during reorder.
+- Treat empty containers as first-class drop targets, with their own visual state instead of a collapsed placeholder.
+- Prefer hiding non-essential subparts in drag presentation, such as row actions or nested tree children, when they make the overlay harder to read.
+
+## Why the table and tree need special treatment
+
+Two examples need extra care even though they use the same DnD contract:
+
+- table rows cannot be previewed like generic block elements, so the host presentation layer uses a table-row-specific adapter to preserve cell geometry;
+- tree nodes must wrap the full node slot, not only the visible row, otherwise same-list reorder adds extra height and nested drops become unreliable.
+
+These are presentation and structure concerns, not a different remote API.
+
+## What is reusable outside the demos
+
+- The worker-side state pattern is reusable as-is: the worker owns the source of truth and applies drops.
+- The built-in host drag presentation is reusable as-is: overlay, placeholder, and DOM markers come from the runtime.
+- The CSS is intentionally example-specific. Reuse the principles and selectors, but expect the final styling to depend on whether you are building a board, a grid, or a tree.
+
+## Related pages
+
+- [Sortable Drag and Drop](/sortable-dnd/)
+- [Worker Kanban Sandbox](/worker-kanban-sandbox/)
+- [Worker Sortable Table](/worker-table-sandbox/)
+- [Worker File Tree Sandbox](/worker-file-tree-sandbox/)

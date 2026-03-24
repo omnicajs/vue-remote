@@ -1,0 +1,80 @@
+---
+title: Механика DnD в песочницах
+description: Как worker-песочницы собирают product-like drag and drop из встроенного host runtime, remote-state и локального CSS.
+template: doc
+---
+
+## Зачем нужна эта страница
+
+Канбан-доска, сортируемая таблица и редактируемое дерево файлов используют один и тот же встроенный sortable DnD runtime, но выглядят по-разному. Важно не только то, как remote-сторона меняет порядок данных, но и то, как каждая песочница стилизует host-side drag presentation, чтобы взаимодействие ощущалось ближе к реальному продукту.
+
+## Слой 1: remote-state живет в Worker
+
+Каждая песочница держит source of truth внутри remote worker:
+
+- worker канбана хранит колонки и карточки;
+- worker таблицы хранит порядок строк;
+- worker дерева хранит вложенные узлы, состояние rename и inline-действия.
+
+Worker рендерит `RemoteSortableContainer`, `RemoteSortableItem` и `RemoteDragHandle`, а затем реагирует на `RemoteSortableEvent` в `onDrop`. Хост напрямую это состояние не меняет.
+
+## Слой 2: хост владеет реальным DOM и hit-testing
+
+При этом docs-страница все равно владеет реальным DOM-деревом. `HostedTree` монтирует remote-view в preview-зону, а встроенный host DnD runtime делает:
+
+- pointer tracking и обработку drag threshold;
+- вычисление `before`, `after` и `inside`;
+- acceptance checks по `type` элемента и `accepts` контейнера;
+- cleanup сессии по `pointercancel`, `Escape` и unmount.
+
+Так low-level DOM-работа остается на доверенной host-стороне, а worker занимается данными и структурой UI.
+
+## Слой 3: drag presentation встроен в host runtime
+
+Песочницы больше не реализуют собственную overlay-логику на хосте. Встроенный DnD presentation layer сам создает:
+
+- плавающий overlay-клон захваченного source item;
+- placeholder, который показывает потенциальную точку drop;
+- state-атрибуты на реальном DOM, например `data-dnd-source`, `data-dnd-target`, `data-dnd-placement` и `data-dnd-drop-allowed`.
+
+Из-за этого host-часть демо может оставаться очень простой: поднять worker, смонтировать endpoint и снять его на teardown.
+
+## Слой 4: CSS дает каждой песочнице свой характер
+
+Сложность стилизации в том, что все три демо используют одни и те же runtime markers, но превращают их в разные визуальные состояния:
+
+- kanban делает placeholder похожим на вакантное место под карточку и растягивает empty lane до полноценной drop-zone;
+- sortable table держит overlay и placeholder в геометрии строк, чтобы взаимодействие по-прежнему читалось как таблица, а не как карточки;
+- file tree стилизует placeholder как компактный slot узла и скрывает вложенные children в drag presentation, чтобы переносы по дереву оставались читаемыми.
+
+Важный принцип: CSS сам не придумывает drag-state. Он только реагирует на host runtime markers и на DOM-структуру конкретной песочницы.
+
+## Принципы, на которых построен CSS песочниц
+
+- Ограничивать стили корнем песочницы, чтобы drag presentation не загрязнялся стилями docs chrome и markdown.
+- Стилизовать `data-dnd-overlay` и `data-dnd-placeholder` как вариации реального item, а не как отдельные случайные виджеты.
+- Сохранять размеры placeholder такими же, как у реальных элементов, иначе списки и деревья заметно прыгают при reorder.
+- Считать пустые контейнеры полноценными drop-target, с собственным визуальным состоянием вместо схлопнутого placeholder.
+- Убирать из drag presentation несущественные части, например row actions или вложенные tree children, если они только ухудшают читаемость overlay.
+
+## Почему таблице и дереву нужна отдельная аккуратность
+
+Два примера требуют дополнительной настройки, хотя DnD-контракт у них тот же:
+
+- строки таблицы нельзя preview-ить как обычные block-элементы, поэтому host presentation layer использует table-row-specific adapter, чтобы сохранить геометрию ячеек;
+- узлы дерева должны оборачивать весь node slot, а не только видимую строку, иначе reorder внутри одного списка добавляет лишнюю высоту и nested drop начинает работать нестабильно.
+
+Это вопросы presentation и структуры, а не другой remote API.
+
+## Что из этого можно переиспользовать вне демо
+
+- Worker-side state pattern можно брать почти без изменений: worker владеет source of truth и применяет drop.
+- Built-in host drag presentation тоже переиспользуется как есть: overlay, placeholder и DOM markers приходят из runtime.
+- CSS намеренно остается примерным и предметным. Переиспользовать стоит принципы и селекторы, но финальный вид все равно зависит от того, строите ли вы доску, таблицу или дерево.
+
+## Связанные страницы
+
+- [Перетаскивание и сортировка](/ru/sortable-dnd/)
+- [Канбан-доска в Worker](/ru/worker-kanban-sandbox/)
+- [Сортируемая таблица в Worker](/ru/worker-table-sandbox/)
+- [Дерево файлов в Worker](/ru/worker-file-tree-sandbox/)

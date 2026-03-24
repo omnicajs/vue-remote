@@ -1,0 +1,80 @@
+---
+title: Mecánica DnD de las sandboxes
+description: Cómo las sandboxes con worker construyen un drag and drop cercano a producto usando el runtime host integrado, estado remoto y CSS local.
+template: doc
+---
+
+## Por qué existe esta página
+
+El tablero kanban, la tabla sortable y el árbol de archivos editable usan el mismo runtime sortable DnD integrado, pero no se ven igual. Lo interesante no es solo la lógica remota de reorder, sino también cómo cada sandbox estiliza la presentación del drag en el host para que la interacción se sienta más cercana a un producto real.
+
+## Capa 1: el estado remoto vive en el Worker
+
+Cada sandbox mantiene su source of truth dentro del remote worker:
+
+- el worker del kanban guarda columnas y tarjetas;
+- el worker de la tabla guarda el orden de las filas;
+- el worker del árbol guarda nodos anidados, estado de rename y acciones inline.
+
+El worker renderiza `RemoteSortableContainer`, `RemoteSortableItem` y `RemoteDragHandle`, y luego responde a `RemoteSortableEvent` en `onDrop`. El host no muta ese estado de forma directa.
+
+## Capa 2: el host posee el DOM real y el hit-testing
+
+La página de docs sigue poseyendo el árbol DOM real. `HostedTree` monta la vista remota dentro del preview, y el runtime DnD del host se encarga de:
+
+- pointer tracking y manejo del drag threshold;
+- resolver `before`, `after` e `inside`;
+- acceptance checks según el `type` del item y `accepts` del contenedor;
+- cleanup de sesión en `pointercancel`, `Escape` y unmount.
+
+Así, el trabajo DOM de bajo nivel queda en el host de confianza, mientras que el worker se concentra en datos y estructura de UI.
+
+## Capa 3: la presentación del drag ya viene en el runtime host
+
+Las sandboxes ya no implementan su propia lógica de overlay en el host. La capa integrada de presentación DnD crea:
+
+- un overlay flotante con el clon del item de origen;
+- un placeholder que marca la posible posición del drop;
+- atributos de estado sobre el DOM real, como `data-dnd-source`, `data-dnd-target`, `data-dnd-placement` y `data-dnd-drop-allowed`.
+
+Eso permite que el host del demo siga siendo simple: iniciar el worker, montar el endpoint y desmontarlo en el teardown.
+
+## Capa 4: el CSS da personalidad a cada sandbox
+
+La parte más delicada del estilo viene de que los tres demos comparten los mismos runtime markers, pero cada uno los convierte en una experiencia visual distinta:
+
+- kanban estiliza el placeholder como un hueco con forma de tarjeta y convierte las columnas vacías en drop-zones de altura completa;
+- la tabla sortable mantiene overlay y placeholder con geometría de fila para que la interacción siga leyendo como tabla;
+- el árbol de archivos usa placeholders compactos con forma de nodo y oculta children anidados dentro de la presentación del drag para conservar legibilidad.
+
+La regla importante es que el CSS no inventa el drag state. Solo reacciona a los markers del runtime host y a la estructura DOM de cada sandbox.
+
+## Principios usados por el CSS de las sandboxes
+
+- Limitar los estilos al root de la sandbox para que los estilos del chrome de docs y de markdown no se filtren al drag.
+- Tratar `data-dnd-overlay` y `data-dnd-placeholder` como variaciones del item real, no como widgets ajenos.
+- Mantener el tamaño del placeholder igual al del item real, o las listas y árboles saltarán al reordenar.
+- Tratar los contenedores vacíos como drop-targets reales, con estado visual propio.
+- Ocultar en la presentación del drag las partes no esenciales, como acciones de fila o children anidados, cuando solo entorpecen la lectura del overlay.
+
+## Por qué la tabla y el árbol requieren tratamiento especial
+
+Dos ejemplos necesitan un cuidado extra aunque compartan el mismo contrato DnD:
+
+- las filas de tabla no se pueden previsualizar como bloques genéricos, así que la capa host usa un adapter específico para filas y preserva la geometría de las celdas;
+- los nodos del árbol deben envolver el node slot completo, no solo la fila visible, o el reorder dentro del mismo nivel añade altura extra y los nested drops se vuelven inestables.
+
+Estos son problemas de presentación y estructura, no de una API remota diferente.
+
+## Qué se puede reutilizar fuera del demo
+
+- El patrón de estado en el worker se puede reutilizar casi tal cual: el worker es dueño del source of truth y aplica los drops.
+- La presentación drag del host también es reutilizable tal cual: overlay, placeholder y DOM markers los produce el runtime.
+- El CSS es deliberadamente específico del ejemplo. Conviene reutilizar principios y selectores, pero el acabado final depende de si construyes un board, una tabla o un árbol.
+
+## Páginas relacionadas
+
+- [Arrastrar y soltar ordenable](/es/sortable-dnd/)
+- [Tablero kanban en Worker](/es/worker-kanban-sandbox/)
+- [Tabla sortable en Worker](/es/worker-table-sandbox/)
+- [Árbol de archivos en Worker](/es/worker-file-tree-sandbox/)

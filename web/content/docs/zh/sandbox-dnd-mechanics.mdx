@@ -1,0 +1,80 @@
+---
+title: 沙盒 DnD 机制
+description: 说明 worker 沙盒如何通过内建 host runtime、remote state 和本地 CSS 组合出接近真实产品的 drag and drop。
+template: doc
+---
+
+## 为什么需要这页
+
+看板、可排序表格和可编辑文件树都使用同一个内建 sortable DnD runtime，但它们的视觉效果并不相同。关键不只是 remote 侧怎样做 reorder，更在于每个 sandbox 如何给 host 侧的 drag presentation 做样式，让交互更接近真实产品。
+
+## 第 1 层：remote state 保持在 Worker 中
+
+每个 sandbox 都把 source of truth 放在 remote worker 里：
+
+- kanban worker 保存 lane 和 card；
+- table worker 保存 row order；
+- file tree worker 保存 nested node、rename state 和 inline action。
+
+worker 渲染 `RemoteSortableContainer`、`RemoteSortableItem` 和 `RemoteDragHandle`，并在 `onDrop` 里处理 `RemoteSortableEvent`。host 不会直接修改这些状态。
+
+## 第 2 层：host 持有真实 DOM 和 hit-testing
+
+真实 DOM 树仍然属于 docs 页面。`HostedTree` 把 remote view 挂载到 preview 区域，而内建 host DnD runtime 负责：
+
+- pointer tracking 和 drag threshold；
+- 解析 `before`、`after`、`inside`；
+- 根据 item `type` 和 container `accepts` 做 acceptance checks；
+- 在 `pointercancel`、`Escape` 和 unmount 时清理 session。
+
+这样低层 DOM 工作留在可信的 host 侧，worker 只需要关注数据和 UI 结构。
+
+## 第 3 层：drag presentation 已经内建在 host runtime 中
+
+这些 sandbox 已经不再在 host 侧自己实现 overlay 逻辑。内建的 DnD presentation layer 会创建：
+
+- 被抓取 source item 的浮动 overlay clone；
+- 表示潜在 drop 位置的 placeholder；
+- 写在真实 DOM 上的状态属性，比如 `data-dnd-source`、`data-dnd-target`、`data-dnd-placement` 和 `data-dnd-drop-allowed`。
+
+因此 demo 的 host 部分可以保持很简单：启动 worker、挂载 endpoint，并在 teardown 时卸载。
+
+## 第 4 层：CSS 决定每个 sandbox 的具体表现
+
+样式之所以显得比较“巧”，是因为三个 demo 共享同一套 runtime markers，但把它们映射成完全不同的视觉行为：
+
+- kanban 把 placeholder 做成卡片形状的 vacancy，并把空 lane 扩展成整块 drop-zone；
+- sortable table 让 overlay 和 placeholder 保持 row 几何，这样交互仍然像表格而不是卡片；
+- file tree 把 placeholder 做成紧凑的 node slot，并在 drag presentation 中隐藏 nested children，让树移动更容易读懂。
+
+重要原则是：CSS 不自己发明 drag state。它只响应 host runtime markers 和 sandbox 自己的 DOM 结构。
+
+## sandbox CSS 使用的原则
+
+- 把样式限制在 sandbox root 内，避免 docs chrome 和 markdown 样式污染 drag presentation。
+- 把 `data-dnd-overlay` 和 `data-dnd-placeholder` 当成真实 item 的变体，而不是无关的小部件。
+- 让 placeholder 尺寸与真实 item 保持一致，否则 list 和 tree 在 reorder 时会明显跳动。
+- 把空容器视为真正的 drop target，并给它独立的视觉状态。
+- 在 drag presentation 中隐藏不重要的部分，例如 row actions 或 nested tree children，只保留最有助于识别的位置和形状。
+
+## 为什么 table 和 tree 需要额外处理
+
+即使使用同一个 DnD contract，这两个例子仍然需要特殊处理：
+
+- table row 不能像普通 block element 那样做 preview，所以 host presentation layer 使用 table-row 专用 adapter 来保留 cell 几何；
+- tree node 必须包住整个 node slot，而不能只包住可见的 row，否则同级 reorder 会多出额外高度，nested drop 也会变得不稳定。
+
+这些属于 presentation 和结构问题，而不是另一套 remote API。
+
+## 哪些部分可以在 demo 外复用
+
+- worker 侧的 state pattern 可以直接复用：worker 持有 source of truth，并负责应用 drop。
+- 内建 host drag presentation 也可以直接复用：overlay、placeholder 和 DOM markers 都由 runtime 提供。
+- CSS 则是有意按示例定制的。适合复用的是原则和选择器思路，而最终样式仍然取决于你是在做 board、table 还是 tree。
+
+## 相关页面
+
+- [可排序拖放](/zh/sortable-dnd/)
+- [Worker 看板](/zh/worker-kanban-sandbox/)
+- [Worker 可排序表格](/zh/worker-table-sandbox/)
+- [Worker 文件树](/zh/worker-file-tree-sandbox/)

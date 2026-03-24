@@ -403,6 +403,16 @@ export default defineConfig({
               }),
               link: '/worker-file-tree-sandbox/',
             },
+            {
+              label: 'Sandbox DnD Mechanics',
+              translations: withMexicanSpanish({
+                es: 'Mecánica DnD de las sandboxes',
+                ja: 'サンドボックス DnD の仕組み',
+                'zh-CN': '沙盒 DnD 机制',
+                ru: 'Механика DnD в песочницах',
+              }),
+              link: '/sandbox-dnd-mechanics/',
+            },
           ],
         },
       ],

@@ -1,0 +1,80 @@
+---
+title: サンドボックス DnD の仕組み
+description: worker サンドボックスが、組み込み host runtime と remote state、ローカル CSS を使って product-like な drag and drop をどう組み立てているかを説明します。
+template: doc
+---
+
+## このページの目的
+
+カンバン、並べ替えテーブル、編集可能なファイルツリーは、同じ組み込み sortable DnD runtime を使っていますが、見え方は同じではありません。重要なのは remote 側の reorder ロジックだけではなく、各 sandbox が host 側の drag presentation をどうスタイリングして、実際の製品に近い操作感を作っているかです。
+
+## レイヤー 1: remote state は Worker に置く
+
+各 sandbox の source of truth は remote worker の中にあります。
+
+- kanban の worker は lane と card を持つ;
+- table の worker は row order を持つ;
+- file tree の worker は nested node、rename state、inline action を持つ。
+
+worker は `RemoteSortableContainer`、`RemoteSortableItem`、`RemoteDragHandle` を描画し、`onDrop` で `RemoteSortableEvent` を処理します。host はその state を直接変更しません。
+
+## レイヤー 2: host が実 DOM と hit-testing を担当する
+
+実際の DOM ツリーは docs ページ側が持ちます。`HostedTree` が preview に remote view を mount し、組み込みの host DnD runtime が次を処理します。
+
+- pointer tracking と drag threshold;
+- `before`、`after`、`inside` の解決;
+- item `type` と container `accepts` による acceptance checks;
+- `pointercancel`、`Escape`、unmount 時の session cleanup。
+
+この分離によって、低レベルの DOM 処理は信頼された host に残り、worker は data と UI structure に集中できます。
+
+## レイヤー 3: drag presentation は host runtime に built-in されている
+
+sandbox はもう host 側で独自の overlay ロジックを書いていません。組み込みの DnD presentation layer が次を作ります。
+
+- 掴んだ source item の floating overlay clone;
+- drop 位置を示す placeholder;
+- `data-dnd-source`、`data-dnd-target`、`data-dnd-placement`、`data-dnd-drop-allowed` のような real DOM state attributes。
+
+そのため demo の host 側はかなり単純です。worker を起動し、endpoint を mount し、teardown で unmount するだけです。
+
+## レイヤー 4: CSS が各 sandbox の見え方を決める
+
+スタイリングが少し複雑なのは、3 つの demo が同じ runtime markers を共有しつつ、それを異なる視覚表現に変換しているからです。
+
+- kanban は placeholder を card-shaped vacancy として見せ、empty lane を full-height drop-zone にする;
+- sortable table は overlay と placeholder を row geometry のまま保ち、card-like に見えないようにする;
+- file tree は placeholder を compact node slot として描き、drag presentation 中は nested children を隠して tree move を読みやすくする。
+
+重要なのは、CSS 自身が drag state を発明しないことです。CSS は host runtime markers と sandbox の DOM structure に反応するだけです。
+
+## sandbox CSS の原則
+
+- drag presentation に docs chrome や markdown の style が漏れないよう、sandbox root に style を閉じ込める。
+- `data-dnd-overlay` と `data-dnd-placeholder` を、別物の widget ではなく real item の variation として扱う。
+- placeholder のサイズを real item と揃え、reorder 時の list や tree のジャンプを防ぐ。
+- empty container を独立した drop target として扱い、独自の visual state を持たせる。
+- row actions や nested tree children など、overlay の可読性を下げる部分は drag presentation から外す。
+
+## table と tree に追加の工夫が必要な理由
+
+同じ DnD contract を使っていても、2 つの例は追加の配慮が必要です。
+
+- table row は generic block element として preview できないため、host presentation layer は cell geometry を保つ table-row adapter を使う;
+- tree node は visible row だけでなく node slot 全体を wrap する必要があり、そうしないと same-list reorder で余計な高さが増え、nested drop も不安定になる。
+
+これは別の remote API ではなく、presentation と structure の問題です。
+
+## demo の外でも再利用できるもの
+
+- worker 側の state pattern はそのまま再利用しやすく、worker が source of truth を持って drop を適用する。
+- built-in host drag presentation もそのまま再利用でき、overlay、placeholder、DOM markers は runtime が提供する。
+- CSS は意図的に example-specific です。再利用すべきなのは principle と selector で、最終的な見た目は board、table、tree のどれを作るかで変わります。
+
+## 関連ページ
+
+- [並べ替えドラッグ＆ドロップ](/ja/sortable-dnd/)
+- [Worker カンバンボード](/ja/worker-kanban-sandbox/)
+- [Worker 並べ替えテーブル](/ja/worker-table-sandbox/)
+- [Worker ファイルツリー](/ja/worker-file-tree-sandbox/)
