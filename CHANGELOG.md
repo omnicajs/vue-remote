@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.22](https://github.com/omnicajs/vue-remote/compare/v0.2.21...v0.2.22) (2026-03-24)
+
+
+### Fixes
+
+* **docs:** Previous version links were corrected ([0540bbc](https://github.com/omnicajs/vue-remote/commit/0540bbc7ef9d3b676e73a34cb920d5fe46677802))
+* **docs:** Worker sandbox boot scripts were bundled ([c9c87dc](https://github.com/omnicajs/vue-remote/commit/c9c87dc75294fddfcf248b64197ebbedff6dd114))
+
 ### [0.2.21](https://github.com/omnicajs/vue-remote/compare/v0.2.20...v0.2.21) (2026-03-23)
 
 
