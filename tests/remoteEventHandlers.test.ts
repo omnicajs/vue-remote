@@ -9,6 +9,7 @@ import {
   isEventHandler,
   isRemoteEventHandler,
   normalizeEventHandler,
+  normalizeEventHandlers,
   wrapEventHandler,
 } from '@/vue/events'
 import { applyEventHandlerSteps } from '@/vue/host/modifiers'
@@ -43,6 +44,91 @@ describe('remote event handlers', () => {
         ['modifiers', ['stop']],
       ],
     })
+  })
+
+  test('normalizes arrays of remote event handlers', () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    const withPrevent = wrapEventHandler(first, 'modifiers', ['prevent'])
+    const withEnter = wrapEventHandler(second, 'keys', ['enter'])
+
+    expect(normalizeEventHandlers([withPrevent, withEnter])).toEqual([
+      {
+        callback: first,
+        steps: [['modifiers', ['prevent']]],
+      },
+      {
+        callback: second,
+        steps: [['keys', ['enter']]],
+      },
+    ])
+  })
+
+  test('flattens nested arrays of remote event handlers', () => {
+    const first = vi.fn()
+    const second = vi.fn()
+    const third = vi.fn()
+
+    expect(normalizeEventHandlers([
+      wrapEventHandler(first, 'modifiers', ['stop']),
+      [
+        wrapEventHandler(second, 'keys', ['left']),
+        [wrapEventHandler(third, 'keys', ['right'])],
+      ],
+    ])).toEqual([
+      {
+        callback: first,
+        steps: [['modifiers', ['stop']]],
+      },
+      {
+        callback: second,
+        steps: [['keys', ['left']]],
+      },
+      {
+        callback: third,
+        steps: [['keys', ['right']]],
+      },
+    ])
+  })
+
+  test('ignores unsupported values in mixed handler arrays', () => {
+    const local = vi.fn()
+    const remote = vi.fn()
+
+    expect(normalizeEventHandlers([
+      null,
+      'noop',
+      { handle: true },
+      [local, wrapEventHandler(remote, 'modifiers', ['self'])],
+    ])).toEqual([
+      {
+        callback: local,
+        steps: [],
+      },
+      {
+        callback: remote,
+        steps: [['modifiers', ['self']]],
+      },
+    ])
+  })
+
+  test('preserves remote tuple boundaries while flattening outer arrays', () => {
+    const handler = vi.fn()
+    const wrapped = wrapEventHandler(
+      wrapEventHandler(handler, 'modifiers', ['prevent']),
+      'keys',
+      ['enter']
+    )
+
+    expect(normalizeEventHandlers([[wrapped]])).toEqual([
+      {
+        callback: handler,
+        steps: [
+          ['keys', ['enter']],
+          ['modifiers', ['prevent']],
+        ],
+      },
+    ])
   })
 })
 

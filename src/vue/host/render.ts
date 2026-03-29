@@ -17,7 +17,7 @@ import {
 import { isDOMTag } from '@/common/dom'
 
 import { isFunction } from '@/dom/host'
-import { normalizeEventHandler } from '@/vue/events'
+import { normalizeEventHandlers } from '@/vue/events'
 
 import {
   isComment,
@@ -141,25 +141,34 @@ const isJavaScriptSchema = (value: string) => {
   }
 }
 
+const isVNodeHook = (key: string) => {
+  return /^onVnode[A-Z]/.test(key)
+}
+
 const createEventHandler = (
   properties: Ref<Unknown | undefined>,
   key: string,
   serialize: (event: Event) => unknown = serializeEvent
 ) => {
   return (...args: unknown[]) => {
-    const normalized = normalizeEventHandler(properties.value?.[key])
+    const normalizedHandlers = normalizeEventHandlers(properties.value?.[key])
 
-    if (normalized == null) {
+    if (normalizedHandlers == null) {
       return
     }
 
     const [event] = args
+    let result: unknown
 
-    if (event instanceof Event && !applyEventHandlerSteps(event, normalized.steps)) {
-      return
+    for (const handler of normalizedHandlers) {
+      if (event instanceof Event && !applyEventHandlerSteps(event, handler.steps)) {
+        continue
+      }
+
+      result = handler.callback(...args.map(arg => arg instanceof Event ? serialize(arg) : arg))
     }
 
-    return normalized.callback(...args.map(arg => arg instanceof Event ? serialize(arg) : arg))
+    return result
   }
 }
 
@@ -206,7 +215,7 @@ export const process = (properties: Ref<Unknown | undefined> | undefined): Unkno
       continue
     }
 
-    result[key] = /^on[A-Z]/.test(key) && normalizeEventHandler(v) != null
+    result[key] = /^on[A-Z]/.test(key) && !isVNodeHook(key) && normalizeEventHandlers(v) != null
       ? createEventHandler(properties, key)
       : v
   }

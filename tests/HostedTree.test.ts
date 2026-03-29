@@ -48,6 +48,7 @@ import {
   createRemoteRenderer,
   REMOTE_LIFECYCLE_REASON_HOST_UNMOUNTED,
   nextTick as remoteNextTick,
+  withKeys,
   withModifiers,
 } from '@/vue/remote'
 
@@ -779,6 +780,92 @@ describe('HostedTree', () => {
     expect(event.defaultPrevented).toBe(true)
     expect(onClick).toHaveBeenCalledWith(expect.objectContaining({
       type: 'click',
+      defaultPrevented: true,
+    }))
+  })
+
+  test('processes array-shaped keyboard handlers emitted by host components', async () => {
+    const receiver = createReceiver()
+    const VKeyEmitter = defineComponent({
+      name: 'VKeyEmitter',
+      emits: ['keydown'],
+      setup (_, { attrs, emit }) {
+        return () => h('button', {
+          ...attrs,
+          onKeydown: (event: KeyboardEvent) => emit('keydown', event),
+        }, 'Key emitter')
+      },
+    })
+
+    createHostApp(receiver, {
+      VKeyEmitter,
+    }).mount(el as HTMLElement)
+
+    const RemoteKeyEmitter = defineRemoteComponent('VKeyEmitter', [
+      'keydown',
+    ] as unknown as {
+      keydown: () => true;
+    })
+    const onKeydown = vi.fn()
+
+    await createRemoteApp({
+      render () {
+        return h(RemoteKeyEmitter, {
+          onKeydown: [
+            withKeys(withModifiers(onKeydown, ['prevent']), ['enter']),
+            withKeys(withModifiers(onKeydown, ['prevent']), ['space']),
+          ],
+        })
+      },
+    }, receiver, ['VKeyEmitter'])
+
+    const button = el?.querySelector('button')
+
+    if (!(button instanceof HTMLButtonElement)) {
+      throw new Error('Keyboard emitter fixture was not rendered')
+    }
+
+    button.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    }))
+    await receiver.flush()
+
+    expect(onKeydown).not.toHaveBeenCalled()
+
+    const enter = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      bubbles: true,
+      cancelable: true,
+    })
+
+    expect(() => button.dispatchEvent(enter)).not.toThrow()
+    await expect(receiver.flush()).resolves.toBeUndefined()
+
+    expect(enter.defaultPrevented).toBe(true)
+    expect(onKeydown).toHaveBeenCalledTimes(1)
+    expect(onKeydown).toHaveBeenLastCalledWith(expect.objectContaining({
+      type: 'keydown',
+      key: 'Enter',
+      defaultPrevented: true,
+    }))
+    expect(onKeydown.mock.calls[0]?.[0]).not.toBeInstanceOf(KeyboardEvent)
+
+    const space = new KeyboardEvent('keydown', {
+      key: ' ',
+      bubbles: true,
+      cancelable: true,
+    })
+
+    button.dispatchEvent(space)
+    await expect(receiver.flush()).resolves.toBeUndefined()
+
+    expect(space.defaultPrevented).toBe(true)
+    expect(onKeydown).toHaveBeenCalledTimes(2)
+    expect(onKeydown).toHaveBeenLastCalledWith(expect.objectContaining({
+      type: 'keydown',
+      key: ' ',
       defaultPrevented: true,
     }))
   })

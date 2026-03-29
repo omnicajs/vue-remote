@@ -96,6 +96,26 @@ describe('process', () => {
     expect(() => result.onClick()).not.toThrow()
   })
 
+  test('keeps vnode lifecycle hook arrays untouched', () => {
+    const mounted = vi.fn()
+    const updated = vi.fn()
+    const mountHooks = [mounted, null]
+    const updateHooks = [updated]
+    const properties = ref({
+      onVnodeMounted: mountHooks,
+      onVnodeUpdated: updateHooks,
+    })
+    const result = process(properties) as {
+      onVnodeMounted: typeof mountHooks;
+      onVnodeUpdated: typeof updateHooks;
+    }
+
+    expect(Array.isArray(result.onVnodeMounted)).toBe(true)
+    expect(Array.isArray(result.onVnodeUpdated)).toBe(true)
+    expect(result.onVnodeMounted).toStrictEqual(mountHooks)
+    expect(result.onVnodeUpdated).toStrictEqual(updateHooks)
+  })
+
   test('applies host-side stop and prevent modifiers before serializing events', () => {
     const onClick = vi.fn()
     const properties = ref({
@@ -162,6 +182,63 @@ describe('process', () => {
       type: 'keydown',
       key: 'Enter',
     }))
+  })
+
+  test('processes array-shaped keyboard handlers without leaking native events', () => {
+    const onEnter = vi.fn()
+    const onSpace = vi.fn()
+    const properties = ref({
+      onKeydown: [
+        withKeys(withModifiers(onEnter, ['prevent']), ['enter']),
+        [
+          'noop',
+          withKeys(withModifiers(onSpace, ['prevent']), ['space']),
+        ],
+      ],
+    })
+    const result = process(properties) as { onKeydown: (event: KeyboardEvent) => void }
+
+    const escape = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    })
+
+    expect(() => result.onKeydown(escape)).not.toThrow()
+    expect(onEnter).not.toHaveBeenCalled()
+    expect(onSpace).not.toHaveBeenCalled()
+
+    const enter = new KeyboardEvent('keydown', {
+      key: 'Enter',
+      bubbles: true,
+      cancelable: true,
+    })
+
+    expect(() => result.onKeydown(enter)).not.toThrow()
+    expect(enter.defaultPrevented).toBe(true)
+    expect(onEnter).toHaveBeenCalledTimes(1)
+    expect(onEnter).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'keydown',
+      key: 'Enter',
+      defaultPrevented: true,
+    }))
+    expect(onEnter.mock.calls[0]?.[0]).not.toBeInstanceOf(KeyboardEvent)
+
+    const space = new KeyboardEvent('keydown', {
+      key: ' ',
+      bubbles: true,
+      cancelable: true,
+    })
+
+    expect(() => result.onKeydown(space)).not.toThrow()
+    expect(space.defaultPrevented).toBe(true)
+    expect(onSpace).toHaveBeenCalledTimes(1)
+    expect(onSpace).toHaveBeenCalledWith(expect.objectContaining({
+      type: 'keydown',
+      key: ' ',
+      defaultPrevented: true,
+    }))
+    expect(onSpace.mock.calls[0]?.[0]).not.toBeInstanceOf(KeyboardEvent)
   })
 
   test('keeps option-suffixed event props working with transported modifiers', () => {

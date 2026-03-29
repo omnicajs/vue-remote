@@ -15,6 +15,11 @@ export type RemoteEventHandler<F extends UnknownFunction = UnknownFunction> = re
   steps: readonly RemoteEventHandlerStep[],
 ]
 
+export interface NormalizedEventHandler {
+  callback: UnknownFunction;
+  steps: RemoteEventHandlerStep[];
+}
+
 const eventHandlerCache = new WeakMap<object, Map<string, RemoteEventHandler>>()
 
 const isObject = (value: unknown): value is object => {
@@ -33,7 +38,7 @@ export const isEventHandler = (value: unknown): value is UnknownFunction | Remot
   return typeof value === 'function' || isRemoteEventHandler(value)
 }
 
-export const normalizeEventHandler = (value: unknown) => {
+const toNormalizedEventHandler = (value: UnknownFunction | RemoteEventHandler): NormalizedEventHandler => {
   if (typeof value === 'function') {
     return {
       callback: value,
@@ -41,14 +46,33 @@ export const normalizeEventHandler = (value: unknown) => {
     }
   }
 
-  if (isRemoteEventHandler(value)) {
-    return {
-      callback: value[1],
-      steps: value[2].map(([kind, modifiers]) => [kind, [...modifiers]] as RemoteEventHandlerStep),
+  return {
+    callback: value[1],
+    steps: value[2].map(([kind, modifiers]) => [kind, [...modifiers]] as RemoteEventHandlerStep),
+  }
+}
+
+export const normalizeEventHandlers = (value: unknown): NormalizedEventHandler[] | undefined => {
+  const normalized: NormalizedEventHandler[] = []
+
+  const visit = (current: unknown) => {
+    if (isEventHandler(current)) {
+      normalized.push(toNormalizedEventHandler(current))
+      return
+    }
+
+    if (Array.isArray(current)) {
+      current.forEach(visit)
     }
   }
 
-  return undefined
+  visit(value)
+
+  return normalized.length > 0 ? normalized : undefined
+}
+
+export const normalizeEventHandler = (value: unknown) => {
+  return normalizeEventHandlers(value)?.[0]
 }
 
 export const wrapEventHandler = (
