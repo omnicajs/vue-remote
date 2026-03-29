@@ -469,6 +469,71 @@ describe('hostDndRuntime', () => {
     expect(taskCancel).toHaveBeenCalledTimes(2)
   })
 
+  test('invokes array-shaped dnd listeners for item and container bindings', () => {
+    const doneContainer = document.createElement('div')
+    const task = document.createElement('div')
+    const handle = document.createElement('button')
+
+    document.body.append(doneContainer)
+    doneContainer.append(task)
+    task.append(handle)
+
+    const dragStartFirst = vi.fn()
+    const dragStartSecond = vi.fn()
+    const dropFirst = vi.fn()
+    const dropSecond = vi.fn()
+
+    bindNode(runtime, 'done-container', ref({
+      [INTERNAL_DND_CONTAINER_PROP]: {
+        accepts: ['task'],
+        containerId: 'done',
+        onDrop: [
+          dropFirst,
+          ['noop', dropSecond],
+        ],
+        orientation: 'vertical',
+      },
+    }), doneContainer)
+    bindNode(runtime, 'task', ref({
+      [INTERNAL_DND_ITEM_PROP]: {
+        containerId: 'done',
+        index: 0,
+        itemId: 'task-1',
+        onDragstart: [
+          dragStartFirst,
+          [null, dragStartSecond],
+        ],
+        type: 'task',
+      },
+    }), task)
+    bindNode(runtime, 'handle', ref({
+      [INTERNAL_DND_HANDLE_PROP]: {
+        for: 'task-1',
+      },
+    }), handle)
+
+    setRect(task, { bottom: 40, height: 40, left: 0, right: 100, top: 0, width: 100 })
+    elementFromPoint.mockReturnValue(doneContainer)
+
+    handle.dispatchEvent(pointer('pointerdown', { clientX: 10, clientY: 10 }, { pointerId: 21 }))
+    document.dispatchEvent(pointer('pointermove', { clientX: 30, clientY: 30 }, { pointerId: 21 }))
+    document.dispatchEvent(pointer('pointerup', { clientX: 30, clientY: 30 }, { pointerId: 21 }))
+
+    expect(dragStartFirst).toHaveBeenCalledTimes(1)
+    expect(dragStartSecond).toHaveBeenCalledTimes(1)
+    expect(dropFirst).toHaveBeenCalledTimes(1)
+    expect(dropSecond).toHaveBeenCalledTimes(1)
+
+    expect(dragStartFirst).toHaveBeenCalledWith(expect.objectContaining({
+      itemId: 'task-1',
+      sourceContainerId: 'done',
+    }))
+    expect(dropFirst).toHaveBeenCalledWith(expect.objectContaining({
+      itemId: 'task-1',
+      targetContainerId: 'done',
+    }))
+  })
+
   test('renders built-in drag overlay and placeholder without sandbox-specific host logic', () => {
     const sourceContainer = document.createElement('div')
     const targetContainer = document.createElement('div')

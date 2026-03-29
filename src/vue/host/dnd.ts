@@ -8,7 +8,7 @@ import {
   isSortableContainerBinding,
   isSortableItemBinding,
 } from '@/dnd'
-import { normalizeEventHandler } from '@/vue/events'
+import { normalizeEventHandlers } from '@/vue/events'
 
 import {
   INTERNAL_DND_CONTAINER_PROP,
@@ -86,8 +86,11 @@ const extractBindings = (properties: Unknown | undefined): DndNodeBindings => {
 }
 
 const callListener = (listener: unknown, event: RemoteSortableEvent) => {
-  const normalized = normalizeEventHandler(listener)
-  normalized?.callback(event)
+  const normalizedHandlers = normalizeEventHandlers(listener)
+
+  normalizedHandlers?.forEach(handler => {
+    handler.callback(event)
+  })
 }
 
 export const createHostDndRuntime = (): HostDndRuntime => {
