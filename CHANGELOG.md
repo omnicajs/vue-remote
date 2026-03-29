@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.23](https://github.com/omnicajs/vue-remote/compare/v0.2.22...v0.2.23) (2026-03-29)
+
+
+### Fixes
+
+* **host:** Array-shaped DnD listeners were normalized ([2c8abac](https://github.com/omnicajs/vue-remote/commit/2c8abac362a194115afd52999f32509e3271362d))
+* **vue:** Array-shaped remote event handlers were normalized ([3121946](https://github.com/omnicajs/vue-remote/commit/3121946d944bc7a0416166aa600baea095c442b6))
+
 ### [0.2.22](https://github.com/omnicajs/vue-remote/compare/v0.2.21...v0.2.22) (2026-03-24)
 
 
