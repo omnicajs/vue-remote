@@ -3,6 +3,7 @@ import path from 'node:path'
 
 const astroDir = path.resolve('.astro')
 const targetDir = path.resolve('var/.astro')
+const targetLink = path.relative(path.dirname(astroDir), targetDir)
 const docsFallbacks = [
   {
     sourceDocsDir: path.resolve('web/content/docs/es'),
@@ -119,11 +120,15 @@ try {
 }
 
 if (stats?.isSymbolicLink()) {
-  process.exit(0)
-}
+  if (fs.readlinkSync(astroDir) === targetLink) {
+    process.exit(0)
+  }
 
-if (stats) {
   fs.rmSync(astroDir, { recursive: true, force: true })
 }
 
-fs.symlinkSync(targetDir, astroDir, 'dir')
+if (stats && !stats.isSymbolicLink()) {
+  fs.rmSync(astroDir, { recursive: true, force: true })
+}
+
+fs.symlinkSync(targetLink, astroDir, 'dir')
