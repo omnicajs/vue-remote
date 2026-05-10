@@ -88,6 +88,22 @@ describe('createRemoteRoot', () => {
       expect((card.children[0] as UnknownComponent).type).toEqual('VImage')
     })
 
+    test('creates component with children and omitted properties', () => {
+      const root = createRemoteRoot(createNoopChannel(), {
+        strict: false,
+      })
+
+      const card = root.createComponent('VCard', root.createComponent('VImage'))
+      const list = root.createComponent('VList', [root.createComponent('VButton')])
+
+      expect(card.properties).toEqual({})
+      expect(card.children).toHaveLength(1)
+      expect((card.children[0] as UnknownComponent).type).toEqual('VImage')
+      expect(list.properties).toEqual({})
+      expect(list.children).toHaveLength(1)
+      expect((list.children[0] as UnknownComponent).type).toEqual('VButton')
+    })
+
     test('does not throw error for allowed components', () => {
       const components = [defineRemoteComponent('VCard')]
       const root = createRemoteRoot(createNoopChannel(), { components })

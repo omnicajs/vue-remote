@@ -3,10 +3,18 @@ import type { Channel } from '@/dom/common/channel'
 import type { TreeContext } from '@/dom/remote/context'
 
 import type {
+  ChildrenOf,
+  PropertiesOf,
+} from '@/dom/remote/schema'
+
+import type {
+  RemoteChild,
   RemoteComponentOption,
+  RemoteComponentDescriptor,
   RemoteRoot,
   RemoteRootOptions,
   SchemaOf,
+  SupportedBy,
 } from '@/dom/remote/tree'
 
 import { createTreeContext } from '@/dom/remote/context'
@@ -18,6 +26,9 @@ import { createRemoteText } from '@/dom/remote/tree/text'
 import { registerRemoteRuntime } from '@/vue/remote/runtime'
 
 import {
+  isRemoteComment,
+  isRemoteComponent,
+  isRemoteText,
   normalizeChild,
   normalizeChildren,
 } from '@/dom/remote/tree'
@@ -85,15 +96,47 @@ function addCreateComponentMethod<R extends RemoteRoot>(root: R, context: TreeCo
       throw new Error(`Unsupported component: ${type}`)
     }
 
-    const _type = components?.find(c => c === type || c.type === type) ?? type
+    const _type = (
+      components?.find(c => c === type || c.type === type) ?? type
+    ) as SupportedBy<R> | RemoteComponentDescriptor<SupportedBy<R>>
 
-    const [properties, children, ...restChildren] = rest
+    const [properties, children] = parseCreateComponentRest(rest)
 
-    return createRemoteComponent(_type, properties, [
-      ...arraify(children ?? []) as R['children'],
-      ...restChildren,
-    ], root, context)
+    return createRemoteComponent(
+      _type,
+      properties as PropertiesOf<SupportedBy<R>> | null | undefined,
+      children as Array<RemoteChild<ChildrenOf<SupportedBy<R>>, R> | string>,
+      root,
+      context
+    )
   })
+}
+
+function parseCreateComponentRest(rest: unknown[]) {
+  const [properties, children, ...restChildren] = rest
+
+  if (Array.isArray(properties)) {
+    return [undefined, [
+      ...properties,
+      ...rest.slice(1),
+    ]] as const
+  }
+
+  if (isRemoteChildInput(properties)) {
+    return [undefined, rest] as const
+  }
+
+  return [properties, [
+    ...arraify(children ?? []) as unknown[],
+    ...restChildren,
+  ]] as const
+}
+
+function isRemoteChildInput(value: unknown) {
+  return typeof value === 'string'
+    || isRemoteComment(value)
+    || isRemoteComponent(value)
+    || isRemoteText(value)
 }
 
 function addCreateFragmentMethod<R extends RemoteRoot>(root: R, context: TreeContext<R>) {

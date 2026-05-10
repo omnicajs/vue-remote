@@ -85,33 +85,24 @@ export interface RemoteRoot<
 
   createComponent<Type extends Supports>(
     type: Type | RemoteComponentDescriptor<Type>,
-    ...rest: IfAllKeysOptional<
-      PropertiesOf<Type>,
-      | [(PropertiesOf<Type> | null)?, ...Array<
-        | RemoteComment<RemoteRoot<Supports>>
-        | RemoteComponent<ChildrenOf<Supports>, RemoteRoot<Supports>>
-        | RemoteText<RemoteRoot<Supports>>
-        | string
-      >]
-      | [(PropertiesOf<Type> | null)?, Array<
-        | RemoteComment<RemoteRoot<Supports>>
-        | RemoteComponent<ChildrenOf<Supports>, RemoteRoot<Supports>>
-        | RemoteText<RemoteRoot<Supports>>
-        | string
-      >?],
-      | [PropertiesOf<Type>, ...Array<
-        | RemoteComment<RemoteRoot<Supports>>
-        | RemoteComponent<ChildrenOf<Supports>, RemoteRoot<Supports>>
-        | RemoteText<RemoteRoot<Supports>>
-        | string
-      >]
-      | [PropertiesOf<Type>, Array<
-        | RemoteComment<RemoteRoot<Supports>>
-        | RemoteComponent<ChildrenOf<Supports>, RemoteRoot<Supports>>
-        | RemoteText<RemoteRoot<Supports>>
-        | string
-      >?]
-    >
+    ...children: CreateComponentOptionalChildren<Type, RemoteRoot<Supports>>
+  ): RemoteComponent<Type, RemoteRoot<Supports>>;
+
+  createComponent<Type extends Supports>(
+    type: Type | RemoteComponentDescriptor<Type>,
+    children: CreateComponentOptionalChildren<Type, RemoteRoot<Supports>>
+  ): RemoteComponent<Type, RemoteRoot<Supports>>;
+
+  createComponent<Type extends Supports>(
+    type: Type | RemoteComponentDescriptor<Type>,
+    properties: CreateComponentProperties<Type>,
+    ...children: CreateComponentChildren<Type, RemoteRoot<Supports>>
+  ): RemoteComponent<Type, RemoteRoot<Supports>>;
+
+  createComponent<Type extends Supports>(
+    type: Type | RemoteComponentDescriptor<Type>,
+    properties: CreateComponentProperties<Type>,
+    children?: CreateComponentChildren<Type, RemoteRoot<Supports>>
   ): RemoteComponent<Type, RemoteRoot<Supports>>;
 
   createFragment (): RemoteFragment<RemoteRoot<Supports>>;
@@ -127,6 +118,35 @@ export interface RemoteRootOptions<
   readonly strict?: boolean;
   readonly components?: ReadonlyArray<Supports>;
 }
+
+export type RemoteChild<
+  Type extends SupportedBy<RemoteRoot> = SupportedBy<RemoteRoot>,
+  Root extends RemoteRoot = RemoteRoot,
+> =
+  | RemoteComment<Root>
+  | RemoteComponent<Type, Root>
+  | RemoteText<Root>
+
+type CreateComponentProperties<
+  Type extends SupportedBy<RemoteRoot>
+> = IfAllKeysOptional<
+  PropertiesOf<Type>,
+  PropertiesOf<Type> | null | undefined,
+  PropertiesOf<Type>
+>
+
+type CreateComponentChildren<
+  Type extends SupportedBy<RemoteRoot>,
+  Root extends RemoteRoot,
+> = Array<RemoteChild<ChildrenOf<Type>, Root> | string>
+
+type CreateComponentOptionalChildren<
+  Type extends SupportedBy<RemoteRoot>,
+  Root extends RemoteRoot,
+> = IfAllKeysOptional<
+  PropertiesOf<Type>,
+  CreateComponentChildren<Type, Root>
+>
 
 export interface RemoteComment<Root extends RemoteRoot = RemoteRoot> extends RemoteNode {
   readonly kind: typeof KIND_COMMENT;
