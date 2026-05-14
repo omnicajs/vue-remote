@@ -249,7 +249,7 @@ const render = (
     return isDOMTag(node.type)
       ? h(
         node.type,
-        props,
+        { ...props, key: node.id },
         children.map(child => render(child, provider, dndRuntime))
       )
       : h(provider.get(node.type), { ...props, key: node.id }, toSlots(
