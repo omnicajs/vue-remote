@@ -124,6 +124,99 @@ describe('sortableBoardDnD', () => {
     expect(done.hasAttribute('data-dnd-placement')).toBe(false)
   })
 
+  test('keeps sender and receiver items draggable after cross-container move', async () => {
+    runtime = await createWorkerRuntime({
+      worker: new Worker(new URL('./__fixtures__/workers/sortable-board.worker.ts', import.meta.url), {
+        type: 'module',
+      }),
+      provider: {
+        VCard,
+      },
+    })
+
+    const handle = runtime.container.querySelector('[data-testid="active-handle-task-a"]')
+    const done = runtime.container.querySelector('#board-done')
+
+    if (
+      !(handle instanceof HTMLButtonElement)
+      || !(done instanceof HTMLDivElement)
+    ) {
+      throw new Error('Board fixture was not rendered')
+    }
+
+    const start = center(handle)
+    const target = center(done)
+
+    handle.dispatchEvent(pointer('pointerdown', start))
+    document.dispatchEvent(pointer('pointermove', {
+      clientX: start.clientX + 10,
+      clientY: start.clientY + 10,
+    }))
+    document.dispatchEvent(pointer('pointermove', target))
+    document.dispatchEvent(pointer('pointerup', target))
+
+    await expect.poll(async () => {
+      await runtime?.flush()
+      return await runtime?.read()
+    }).toMatchObject({
+      active: [{ id: 'task-b', title: 'Beta' }],
+      done: [{ id: 'task-a', title: 'Alpha' }],
+      dragEnds: 1,
+      dragStarts: 1,
+    })
+
+    await expect.poll(async () => {
+      await runtime?.flush()
+      return runtime?.container.querySelector('[data-testid="done-handle-task-a"]') != null
+    }).toBe(true)
+
+    const movedHandle = runtime.container.querySelector('[data-testid="done-handle-task-a"]')
+    const movedSource = runtime.container.querySelector('#task-a')
+    const remainingHandle = runtime.container.querySelector('[data-testid="active-handle-task-b"]')
+    const remainingSource = runtime.container.querySelector('#task-b')
+
+    if (
+      !(movedHandle instanceof HTMLButtonElement)
+      || !(movedSource instanceof HTMLElement)
+      || !(remainingHandle instanceof HTMLButtonElement)
+      || !(remainingSource instanceof HTMLElement)
+    ) {
+      throw new Error('Updated board fixture was not rendered')
+    }
+
+    const movedStart = center(movedHandle)
+
+    movedHandle.dispatchEvent(pointer('pointerdown', movedStart, {
+      pointerId: 9,
+    }))
+    document.dispatchEvent(pointer('pointermove', {
+      clientX: movedStart.clientX + 10,
+      clientY: movedStart.clientY + 10,
+    }, { pointerId: 9 }))
+
+    expect(movedSource.getAttribute('data-dnd-dragging')).toBe('true')
+
+    document.dispatchEvent(pointer('pointerup', movedStart, {
+      pointerId: 9,
+    }))
+
+    const remainingStart = center(remainingHandle)
+
+    remainingHandle.dispatchEvent(pointer('pointerdown', remainingStart, {
+      pointerId: 11,
+    }))
+    document.dispatchEvent(pointer('pointermove', {
+      clientX: remainingStart.clientX + 10,
+      clientY: remainingStart.clientY + 10,
+    }, { pointerId: 11 }))
+
+    expect(remainingSource.getAttribute('data-dnd-dragging')).toBe('true')
+
+    document.dispatchEvent(pointer('pointerup', remainingStart, {
+      pointerId: 11,
+    }))
+  })
+
   test('marks forbidden targets, supports handles without `for`, horizontal reorder, and cancel by Escape', async () => {
     runtime = await createWorkerRuntime({
       worker: new Worker(new URL('./__fixtures__/workers/sortable-board.worker.ts', import.meta.url), {
