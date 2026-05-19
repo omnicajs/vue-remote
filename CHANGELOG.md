@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.24](https://github.com/omnicajs/vue-remote/compare/v0.2.23...v0.2.24) (2026-05-19)
+
+
+### Fixes
+
+* **host:** DOM element keys were preserved during render ([5a97c60](https://github.com/omnicajs/vue-remote/commit/5a97c6040a255eeb8b1888bb1dc4b2d6021dd698))
+
 ### [0.2.23](https://github.com/omnicajs/vue-remote/compare/v0.2.22...v0.2.23) (2026-03-29)
 
 
