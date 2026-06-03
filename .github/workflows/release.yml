@@ -83,7 +83,7 @@ jobs:
       - name: Setup Node.js and dependencies
         uses: ./.github/actions/setup-node-deps
         with:
-          node-version: 24.x
+          node-version: 24.15
           cache-key-suffix: release
           registry-url: https://registry.npmjs.org
 
@@ -150,7 +150,7 @@ jobs:
       - name: Setup Node.js and dependencies
         uses: ./.github/actions/setup-node-deps
         with:
-          node-version: 24.x
+          node-version: 24.15
           cache-key-suffix: release-publish-token
           registry-url: https://registry.npmjs.org
 
@@ -197,7 +197,7 @@ jobs:
       - name: Setup Node.js and dependencies
         uses: ./.github/actions/setup-node-deps
         with:
-          node-version: 24.x
+          node-version: 24.15
           cache-key-suffix: release-publish-trusted
           registry-url: https://registry.npmjs.org
 
@@ -249,7 +249,7 @@ jobs:
       - name: Setup Node.js and dependencies
         uses: ./.github/actions/setup-node-deps
         with:
-          node-version: 24.x
+          node-version: 24.15
           cache-key-suffix: docs
 
       - name: Checkout docs store branch

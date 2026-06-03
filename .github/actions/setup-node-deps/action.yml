@@ -5,7 +5,7 @@ inputs:
   node-version:
     description: Node.js version
     required: false
-    default: 24.x
+    default: 24.15
   cache-key-suffix:
     description: Extra segment for cache key separation between workflows/jobs
     required: false
