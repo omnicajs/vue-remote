@@ -113,6 +113,21 @@ describe('events', () => {
     expect(serializedGeneric).toMatchObject({ type: 'change' })
   })
 
+  test('serializes mouse events when optional event constructors are missing', () => {
+    vi.stubGlobal('DragEvent', undefined)
+    vi.stubGlobal('PointerEvent', undefined)
+    vi.stubGlobal('TouchEvent', undefined)
+
+    expect(serializeEvent(new MouseEvent('click', {
+      clientX: 10,
+      clientY: 20,
+    }))).toMatchObject({
+      type: 'click',
+      clientX: 10,
+      clientY: 20,
+    })
+  })
+
   test('routes through input, keyboard, pointer, wheel, drag and touch serializers', () => {
     class FakeDragEvent extends Event {
       altKey = true

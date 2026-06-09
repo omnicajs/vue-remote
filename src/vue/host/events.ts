@@ -180,36 +180,45 @@ export const serializeWheelEvent = (event: WheelEvent): SerializedWheelEvent => 
   DOM_DELTA_PAGE: event.DOM_DELTA_PAGE,
 })
 
+const isEventConstructorInstance = <T extends Event>(
+  event: Event,
+  name: string
+): event is T => {
+  const constructor = globalThis[name as keyof typeof globalThis]
+
+  return typeof constructor === 'function' && event instanceof constructor
+}
+
 export const serializeEvent = <E extends Event>(event: E): SerializedEventType<E> => {
-  if (event instanceof InputEvent) {
+  if (isEventConstructorInstance<InputEvent>(event, 'InputEvent')) {
     return serializeInputEvent(event)
   }
 
-  if (event instanceof DragEvent) {
+  if (isEventConstructorInstance<DragEvent>(event, 'DragEvent')) {
     return serializeDragEvent(event)
   }
 
-  if (event instanceof FocusEvent) {
+  if (isEventConstructorInstance<FocusEvent>(event, 'FocusEvent')) {
     return serializeFocusEvent(event)
   }
 
-  if (event instanceof KeyboardEvent) {
+  if (isEventConstructorInstance<KeyboardEvent>(event, 'KeyboardEvent')) {
     return serializeKeyboardEvent(event)
   }
 
-  if (event instanceof PointerEvent) {
+  if (isEventConstructorInstance<PointerEvent>(event, 'PointerEvent')) {
     return serializePointerEvent(event)
   }
 
-  if (event instanceof WheelEvent) {
+  if (isEventConstructorInstance<WheelEvent>(event, 'WheelEvent')) {
     return serializeWheelEvent(event)
   }
 
-  if (event instanceof MouseEvent) {
+  if (isEventConstructorInstance<MouseEvent>(event, 'MouseEvent')) {
     return serializeMouseEvent(event)
   }
 
-  if (typeof window !== 'undefined' && window.TouchEvent && event instanceof TouchEvent) {
+  if (isEventConstructorInstance<TouchEvent>(event, 'TouchEvent')) {
     return serializeTouchEvent(event)
   }
 
