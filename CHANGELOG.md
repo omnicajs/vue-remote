@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.2.26](https://github.com/omnicajs/vue-remote/compare/v0.2.25...v0.2.26) (2026-06-10)
+
+
+### Fixes
+
+* **host:** Fixed event serialization without optional constructors ([9578c27](https://github.com/omnicajs/vue-remote/commit/9578c2777f75fa466cad9fd18f8c2e9c31131abc))
+
 ### [0.2.25](https://github.com/omnicajs/vue-remote/compare/v0.2.24...v0.2.25) (2026-06-03)
 
 ### [0.2.24](https://github.com/omnicajs/vue-remote/compare/v0.2.23...v0.2.24) (2026-05-19)
